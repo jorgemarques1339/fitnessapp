@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Image, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 
 interface TechnicalModalProps {
@@ -23,11 +23,20 @@ export default function TechnicalModal({ visible, onClose, exerciseName, videoUr
           
           <View style={styles.mediaContainer}>
             {videoUrl ? (
-              <Image 
-                source={{ uri: videoUrl }} 
-                style={styles.gifImage} 
-                resizeMode="contain"
-              />
+              Platform.OS === 'web' ? (
+                /* @ts-ignore - standard img tag for web stability */
+                <img 
+                  src={videoUrl} 
+                  style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                  alt={exerciseName}
+                />
+              ) : (
+                <Image 
+                  source={{ uri: videoUrl }} 
+                  style={styles.gifImage} 
+                  resizeMode="contain"
+                />
+              )
             ) : (
               <View style={styles.placeholderBox}>
                 <Text style={styles.placeholderText}>Demonstração não disponível</Text>
