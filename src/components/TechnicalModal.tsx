@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Image } from 'react-native';
+import { BlurView } from 'expo-blur';
 
 interface TechnicalModalProps {
   visible: boolean;
@@ -9,13 +10,12 @@ interface TechnicalModalProps {
 }
 
 export default function TechnicalModal({ visible, onClose, exerciseName, videoUrl }: TechnicalModalProps) {
+  if (!visible) return null;
+
   return (
-    <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
+    <View style={styles.fullscreenOverlay}>
+      <BlurView intensity={90} tint="dark" style={StyleSheet.absoluteFill} />
+      
       <View style={styles.centeredView}>
         <View style={styles.modalView}>
           <Text style={styles.modalTitle}>{exerciseName}</Text>
@@ -26,89 +26,110 @@ export default function TechnicalModal({ visible, onClose, exerciseName, videoUr
               <Image 
                 source={{ uri: videoUrl }} 
                 style={styles.gifImage} 
-                resizeMode="cover"
+                resizeMode="contain"
               />
             ) : (
-              <Text style={styles.placeholderText}>No Visual Guide Available</Text>
+              <View style={styles.placeholderBox}>
+                <Text style={styles.placeholderText}>Demonstração não disponível</Text>
+              </View>
             )}
           </View>
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.8}>
             <Text style={styles.textStyle}>Fechar Visualização</Text>
           </TouchableOpacity>
         </View>
       </View>
-    </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  centeredView: {
-    flex: 1,
+  fullscreenOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(10, 10, 10, 0.95)', // Almost completely opaqued out
+  },
+  centeredView: {
+    width: '100%',
+    padding: 24,
+    maxWidth: 600,
   },
   modalView: {
-    margin: 20,
-    backgroundColor: '#1E1E1E',
-    borderRadius: 20,
-    padding: 30,
+    backgroundColor: '#1E1F26',
+    borderRadius: 24,
+    padding: 24,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 15,
-    elevation: 8,
-    width: '90%',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.8,
+    shadowRadius: 30,
+    elevation: 20,
     borderWidth: 1,
-    borderColor: '#333'
+    borderColor: 'rgba(255,255,255,0.1)',
   },
   mediaContainer: {
     width: '100%',
-    height: 250,
-    backgroundColor: '#0a0a0a',
-    borderRadius: 12,
+    aspectRatio: 1,
+    maxHeight: 350,
+    backgroundColor: '#000',
+    borderRadius: 16,
     marginVertical: 20,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#444'
+    borderColor: 'rgba(56, 189, 248, 0.2)',
   },
   gifImage: {
     width: '100%',
     height: '100%',
   },
+  placeholderBox: {
+    padding: 20,
+  },
   placeholderText: {
-    color: '#666',
-    fontStyle: 'italic'
+    color: 'rgba(255,255,255,0.3)',
+    fontStyle: 'italic',
+    fontSize: 14,
   },
   closeButton: {
-    borderRadius: 12,
-    padding: 15,
-    elevation: 2,
-    backgroundColor: '#E53935',
+    borderRadius: 100,
+    paddingVertical: 18,
+    backgroundColor: '#38BDF8',
     width: '100%',
-    alignItems: 'center'
+    alignItems: 'center',
+    shadowColor: '#38BDF8',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
   textStyle: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#000',
+    fontWeight: '900',
     textAlign: 'center',
-    textTransform: 'uppercase'
+    textTransform: 'uppercase',
+    fontSize: 14,
+    letterSpacing: 1,
   },
   modalTitle: {
-    marginBottom: 5,
+    marginBottom: 4,
     textAlign: 'center',
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '900',
-    color: '#FFF'
+    color: '#FFF',
+    letterSpacing: -0.5,
   },
   subtitle: {
-    color: '#E53935',
-    fontSize: 12,
-    fontWeight: 'bold',
+    color: '#38BDF8',
+    fontSize: 11,
+    fontWeight: '900',
     textTransform: 'uppercase',
+    letterSpacing: 2,
   }
 });
