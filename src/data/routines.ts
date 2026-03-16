@@ -51,18 +51,21 @@ export const ROUTINES: RoutineDef[] = [
         name: 'Elevações Laterais com Halteres',
         targetSets: 3,
         notes: 'Dá ilusão de ombros mais largos (formato V). O deltoide frontal já foi trabalhado.',
+        videoUrl: 'https://media.tenor.com/E5LgG87bH-8AAAAC/lateral-raise.gif'
       },
       {
         id: 'triceps1',
         name: 'Tríceps na Polia com Corda',
         targetSets: 3,
         notes: 'Contração pesada no fim do movimento.',
+        videoUrl: 'https://media.tenor.com/I2vMlp_m-zQAAAAC/rope-push-down.gif'
       },
       {
         id: 'triceps2',
         name: 'Extensão de Tríceps acima da cabeça',
         targetSets: 3,
         notes: 'Foca no alongamento da cabeça longa do tríceps.',
+        videoUrl: 'https://media.tenor.com/kS9Y-m1v2S8AAAAC/overhead-tricep-extension.gif'
       }
     ]
   },
@@ -76,36 +79,42 @@ export const ROUTINES: RoutineDef[] = [
         name: 'Puxada na Polia Alta ou Elevações',
         targetSets: 4,
         notes: 'Foco total na largura das dorsais.',
+        videoUrl: 'https://media.tenor.com/V9Xm8yB_8G8AAAAC/lat-pulldown.gif'
       },
       {
         id: 'costas2',
         name: 'Remada Curvada com Barra',
         targetSets: 4,
         notes: 'Foco na espessura das costas. Contraia as escápulas.',
+        videoUrl: 'https://media.tenor.com/eE_Y_M-W8G8AAAAC/bent-over-row.gif'
       },
       {
         id: 'costas3',
         name: 'Remada Unilateral com Halter',
         targetSets: 3,
         notes: 'Aproveite para alongar bem o dorsal no final da descida.',
+        videoUrl: 'https://media.tenor.com/W-9X_m1W_V8AAAAC/dumbbell-row.gif'
       },
       {
         id: 'costas4',
         name: 'Face Pull na Polia',
         targetSets: 3,
         notes: 'Excelente para deltoide posterior e saúde postural.',
+        videoUrl: 'https://media.tenor.com/k9Xm8yB_8G8AAAAC/face-pull.gif'
       },
       {
         id: 'biceps1',
         name: 'Curl de Bíceps com Barra W',
         targetSets: 3,
         notes: 'Carga pesada para volume do bíceps.',
+        videoUrl: 'https://media.tenor.com/E-9X_m1W_V8AAAAC/ez-bar-curl.gif'
       },
       {
         id: 'biceps2',
         name: 'Curl Bíceps no Banco Inclinado',
         targetSets: 3,
         notes: 'Máximo alongamento. Trabalhe com halteres controlando a excêntrica.',
+        videoUrl: 'https://media.tenor.com/kS9X_m1W_V8AAAAC/incline-bicep-curl.gif'
       }
     ]
   },
