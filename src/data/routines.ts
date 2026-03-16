@@ -24,14 +24,14 @@ export const ROUTINES: RoutineDef[] = [
         name: 'Supino Inclinado com Halteres',
         targetSets: 4,
         notes: 'Dá maior amplitude de movimento que a barra e recruta o feixe clavicular a 100%. Mantenha a inclinação em 30 a 45 graus. Não bata os halteres no topo.',
-        videoUrl: 'https://i.pinimg.com/originals/db/7f/ed/db7fed74ccff32f416c1411e74de24c2.gif'
+        videoUrl: 'https://media.tenor.com/E5LgG87bH-8AAAAC/incline-dumbells-press.gif'
       },
       {
         id: 'peito2',
         name: 'Supino Inclinado na Máquina Smith',
         targetSets: 3,
         notes: 'Permite focar apenas na contração sem ter de estabilizar o peso. Desça até a barra tocar o peito superior suavemente.',
-        videoUrl: 'https://fitnessprogramer.com/wp-content/uploads/2021/04/Smith-Machine-Incline-Bench-Press.gif'
+        videoUrl: 'https://media.tenor.com/bW_n_V3eF8IAAAAS/smith-machine-incline-press.gif'
       },
       {
         id: 'peito3',
@@ -44,7 +44,7 @@ export const ROUTINES: RoutineDef[] = [
         name: 'Crossover em Polia Baixa',
         targetSets: 3,
         notes: 'O movimento de baixo para cima na polia isola a parte superior do peito. No topo, aperte o peitoral por 1 segundo.',
-        videoUrl: 'https://fitnessprogramer.com/wp-content/uploads/2021/02/Low-Cable-Crossover.gif'
+        videoUrl: 'https://media.tenor.com/Vp9x-Vv8v_YAAAAC/cable-crossover.gif'
       },
       {
         id: 'ombro1',
