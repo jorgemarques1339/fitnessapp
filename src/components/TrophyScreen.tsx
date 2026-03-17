@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
@@ -10,7 +10,10 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue 
 } from 'react-native-reanimated';
-import { Trophy, Clock, Weight, CheckCircle2, Share2 } from 'lucide-react-native';
+import { Trophy, Clock, Weight, CheckCircle2, Share2, Target } from 'lucide-react-native';
+import { captureRef } from 'react-native-view-shot';
+import * as Sharing from 'expo-sharing';
+
 import { useWorkoutStore } from '../store/useWorkoutStore';
 
 export default function TrophyScreen() {
@@ -18,11 +21,36 @@ export default function TrophyScreen() {
   const clearTrophy = useWorkoutStore(state => state.clearLastCompletedWorkout);
   const scale = useSharedValue(0.8);
 
+  const badgeRef = useRef<View>(null);
+
   useEffect(() => {
     scale.value = withSpring(1);
   }, []);
 
   if (!lastWorkout) return null;
+
+  const handleShare = async () => {
+    try {
+      if (badgeRef.current) {
+        const localUri = await captureRef(badgeRef, {
+          format: 'png',
+          quality: 1,
+        });
+
+        const isAvailable = await Sharing.isAvailableAsync();
+        if (isAvailable) {
+          await Sharing.shareAsync(localUri, {
+            mimeType: 'image/png',
+            dialogTitle: 'Partilhar Treino'
+          });
+        } else {
+          Alert.alert("Erro", "A partilha nativa não está disponível neste dispositivo.");
+        }
+      }
+    } catch (e: any) {
+      Alert.alert("Erro ao Partilhar", e.message);
+    }
+  };
 
   const animatedIconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -80,7 +108,7 @@ export default function TrophyScreen() {
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
             style={styles.shareButton} 
-            onPress={() => { /* Share logic here later */ }}
+            onPress={handleShare}
           >
             <BlurView intensity={40} tint="light" style={styles.buttonBlur}>
               <Share2 color="#FFFFFF" size={20} style={{ marginRight: 10 }} />
@@ -100,6 +128,48 @@ export default function TrophyScreen() {
             </LinearGradient>
           </TouchableOpacity>
         </View>
+
+        {/* Hidden Badge for Sharing */}
+        <View style={styles.hiddenBadgeContainer} pointerEvents="none">
+          <View ref={badgeRef} style={styles.shareBadge}>
+            <LinearGradient
+              colors={['#0F172A', '#000000']}
+              style={StyleSheet.absoluteFillObject}
+            />
+            <View style={styles.badgePattern}>
+              <Trophy color="rgba(255, 215, 0, 0.1)" size={140} />
+            </View>
+            
+            <View style={styles.badgeHeader}>
+              <Text style={styles.badgeAppTitle}>FITNESSAPP PRO</Text>
+            </View>
+            
+            <Text style={styles.badgeTitle}>{lastWorkout.routineTitle}</Text>
+            
+            <View style={styles.badgeStats}>
+              <View style={styles.badgeStat}>
+                <Weight color="#00E676" size={20} />
+                <Text style={styles.badgeStatValue}>{(lastWorkout.totalTonnageKg / 1000).toFixed(1)}t</Text>
+                <Text style={styles.badgeStatLabel}>TONELADAS</Text>
+              </View>
+              
+              {lastWorkout.calories ? (
+                <View style={styles.badgeStat}>
+                  <Target color="#FFD700" size={20} />
+                  <Text style={styles.badgeStatValue}>{lastWorkout.calories}</Text>
+                  <Text style={styles.badgeStatLabel}>KCAL</Text>
+                </View>
+              ) : null}
+              
+              <View style={styles.badgeStat}>
+                <CheckCircle2 color="#38BDF8" size={20} />
+                <Text style={styles.badgeStatValue}>{lastWorkout.totalSets}</Text>
+                <Text style={styles.badgeStatLabel}>SÉRIES</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
       </ScrollView>
     </View>
   );
@@ -242,5 +312,74 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 18,
+  },
+  hiddenBadgeContainer: {
+    position: 'absolute',
+    top: -2000, 
+    left: -2000,
+  },
+  shareBadge: {
+    width: 1080 / 3, // ~360px width
+    height: 1920 / 3, // ~640px height (Classic 9:16 ratio scaled down)
+    backgroundColor: '#000',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    padding: 30,
+  },
+  badgePattern: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeHeader: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  badgeAppTitle: {
+    color: 'rgba(255,255,255,0.3)',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 4,
+  },
+  badgeTitle: {
+    color: '#FFF',
+    fontSize: 40,
+    fontWeight: '900',
+    letterSpacing: -1,
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  badgeStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 20,
+    paddingVertical: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  badgeStat: {
+    alignItems: 'center',
+  },
+  badgeStatValue: {
+    color: '#FFF',
+    fontSize: 24,
+    fontWeight: '800',
+    marginTop: 8,
+  },
+  badgeStatLabel: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginTop: 4,
   }
 });

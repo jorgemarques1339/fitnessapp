@@ -41,7 +41,14 @@ export interface CompletedWorkout {
   routineTitle: string;
   totalSets: number;
   totalTonnageKg: number;
+  durationMs?: number;
+  calories?: number;
   exerciseLogs: ExerciseLog[];
+}
+
+export interface BodyWeightLog {
+  date: string; // ISO String
+  weightKg: number;
 }
 
 interface WorkoutState {
@@ -59,6 +66,12 @@ interface WorkoutState {
   lastCompletedWorkout: CompletedWorkout | null;
 
   customRoutines: RoutineDef[];
+  bodyWeightLogs: BodyWeightLog[];
+
+  // Settings
+  healthSyncEnabled: boolean;
+  setHealthSyncEnabled: (val: boolean) => void;
+  sessionStartTime: number | null;
 
   startWorkout: (routine: RoutineDef) => void;
   finishWorkout: () => void;
@@ -71,6 +84,8 @@ interface WorkoutState {
 
   saveCustomRoutine: (routine: RoutineDef) => void;
   deleteCustomRoutine: (id: string) => void;
+
+  logBodyWeight: (weightKg: number) => void;
 
   clearHistory: () => void;
   clearLastCompletedWorkout: () => void;
@@ -91,6 +106,11 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
       lastCompletedWorkout: null,
 
       customRoutines: [],
+      bodyWeightLogs: [],
+
+      healthSyncEnabled: true,
+      setHealthSyncEnabled: (val) => set({ healthSyncEnabled: val }),
+      sessionStartTime: null,
 
       startWorkout: (routine) => set({
         activeRoutine: routine,
@@ -99,6 +119,7 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
         currentExerciseSets: [],
         sessionLogs: [],
         isExerciseSelectionMode: true,
+        sessionStartTime: Date.now()
       }),
 
       abortWorkout: () => set({
@@ -108,6 +129,7 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
         currentExerciseSets: [],
         sessionLogs: [],
         isExerciseSelectionMode: false,
+        sessionStartTime: null
       }),
 
       selectExercise: (index) => {
@@ -187,7 +209,7 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
       },
 
       finishWorkout: () => {
-        const { activeRoutine, currentExerciseIndex, currentExerciseSets, sessionLogs, completedWorkouts, isExerciseSelectionMode } = get();
+        const { activeRoutine, currentExerciseIndex, currentExerciseSets, sessionLogs, completedWorkouts, isExerciseSelectionMode, sessionStartTime } = get();
         if (!activeRoutine) return;
 
         let finalLogs = [...sessionLogs];
@@ -213,6 +235,11 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
           });
         });
 
+        const durationMs = sessionStartTime ? (Date.now() - sessionStartTime) : 0;
+        const minutes = durationMs / 1000 / 60;
+        // Mock health formula: 4 cals/min + effort factor based on tonnage
+        const calories = Math.round((minutes * 4) + (sessionTotalTonnage * 0.02));
+
         const newWorkout: CompletedWorkout = {
           id: Date.now().toString(),
           date: new Date().toISOString(),
@@ -220,6 +247,8 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
           routineTitle: activeRoutine.title,
           totalSets: sessionTotalSets,
           totalTonnageKg: sessionTotalTonnage,
+          durationMs,
+          calories,
           exerciseLogs: finalLogs,
         };
 
@@ -232,6 +261,7 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
           currentExerciseIndex: 0,
           currentExerciseSets: [],
           sessionLogs: [],
+          sessionStartTime: null,
         });
       },
 
@@ -253,6 +283,17 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
       deleteCustomRoutine: (id) => {
         const { customRoutines } = get();
         set({ customRoutines: customRoutines.filter(r => r.id !== id) });
+      },
+
+      logBodyWeight: (weightKg) => {
+        const { bodyWeightLogs } = get();
+        const newLog: BodyWeightLog = {
+          date: new Date().toISOString(),
+          weightKg
+        };
+        // Keep only the last 30 logs to avoid bloating storage
+        const updatedLogs = [...bodyWeightLogs, newLog].slice(-30);
+        set({ bodyWeightLogs: updatedLogs });
       },
 
       getPreviousExerciseLog: (exerciseId) => {
