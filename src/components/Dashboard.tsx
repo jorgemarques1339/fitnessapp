@@ -3,11 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, useWind
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { ChevronRight, Play, Activity } from 'lucide-react-native';
+import { ChevronRight, Play, Activity, Plus } from 'lucide-react-native';
 
 import { ROUTINES, RoutineDef } from '../data/routines';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import TonnageChart from './TonnageChart';
+import RoutineBuilderModal from './RoutineBuilderModal';
 
 interface DashboardProps {
   onSelectRoutine: (routine: RoutineDef) => void;
@@ -17,6 +18,11 @@ interface DashboardProps {
 export default function Dashboard({ onSelectRoutine, onResumeWorkout }: DashboardProps) {
   const activeRoutine = useWorkoutStore(state => state.activeRoutine);
   const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
+  const customRoutines = useWorkoutStore(state => state.customRoutines);
+  const saveCustomRoutine = useWorkoutStore(state => state.saveCustomRoutine);
+
+  const [isBuilderVisible, setIsBuilderVisible] = React.useState(false);
+
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768;
   const contentMaxWidth = 768;
@@ -80,7 +86,52 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
               </TouchableOpacity>
             )}
 
-            <Text style={styles.sectionTitle}>Plano de Treino</Text>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>Meus Treinos</Text>
+              <TouchableOpacity onPress={() => setIsBuilderVisible(true)}>
+                <BlurView intensity={20} tint="light" style={styles.createBtn}>
+                  <Plus color="#38BDF8" size={16} style={{ marginRight: 6 }} />
+                  <Text style={styles.createBtnText}>Novo</Text>
+                </BlurView>
+              </TouchableOpacity>
+            </View>
+
+            {customRoutines.length === 0 ? (
+              <View style={styles.emptyCustomState}>
+                <Text style={styles.emptyCustomText}>Ainda não criou treinos próprios.</Text>
+              </View>
+            ) : (
+              <View style={styles.routinesGrid}>
+                {customRoutines.map((routine) => (
+                  <TouchableOpacity 
+                    key={routine.id}
+                    onPress={() => onSelectRoutine(routine)}
+                    activeOpacity={0.7}
+                    style={styles.cardContainer}
+                  >
+                    <BlurView intensity={25} tint="dark" style={styles.glassCard}>
+                      <View style={[styles.cardIndicator, { backgroundColor: '#FFD700' }]} />
+                      <View style={styles.cardContent}>
+                        <View style={styles.cardHeader}>
+                          <Text style={styles.cardTitle}>{routine.title}</Text>
+                          <Play color="rgba(255,255,255,0.7)" size={20} />
+                        </View>
+                        
+                        <Text style={styles.cardSubtitle}>{routine.subtitle}</Text>
+                        
+                        <View style={styles.tagContainer}>
+                          <BlurView intensity={20} tint="light" style={styles.glassTag}>
+                            <Text style={styles.tagText}>{routine.exercises.length} Excs</Text>
+                          </BlurView>
+                        </View>
+                      </View>
+                    </BlurView>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
+            <Text style={[styles.sectionTitle, { marginTop: 40 }]}>Planos Predefinidos</Text>
             
             <View style={styles.routinesGrid}>
               {ROUTINES.map((routine) => (
@@ -112,6 +163,12 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
             </View>
           </View>
         </ScrollView>
+
+        <RoutineBuilderModal 
+          visible={isBuilderVisible}
+          onClose={() => setIsBuilderVisible(false)}
+          onSave={(routine) => saveCustomRoutine(routine)}
+        />
       </SafeAreaView>
     </LinearGradient>
   );
@@ -154,12 +211,45 @@ const styles = StyleSheet.create({
   chartWrapper: {
     marginBottom: 30,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 20,
     letterSpacing: 0.5,
+  },
+  createBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+  },
+  createBtnText: {
+    color: '#38BDF8',
+    fontWeight: '800',
+    fontSize: 12,
+    textTransform: 'uppercase',
+  },
+  emptyCustomState: {
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+  },
+  emptyCustomText: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 14,
+    fontStyle: 'italic',
   },
   routinesGrid: {
     gap: 16,

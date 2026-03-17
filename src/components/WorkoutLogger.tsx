@@ -3,8 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Play, Focus, Info } from 'lucide-react-native';
-import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
+import { Play, Focus, Info, Check, ChevronLeft, ArrowRightLeft } from 'lucide-react-native';
+import Animated, { FadeInDown, FadeIn, FadeOutUp, Layout } from 'react-native-reanimated';
 
 import { calculateProgression, SetData } from '../utils/progression';
 import { RoutineDef, ExerciseDef } from '../data/routines';
@@ -12,6 +12,7 @@ import { useWorkoutTimer } from '../hooks/useWorkoutTimer';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import TechnicalModal from './TechnicalModal';
 import SwipeButton from './SwipeButton';
+import ExerciseSwapModal from './ExerciseSwapModal';
 
 export default function WorkoutLogger() {
   const { width } = useWindowDimensions();
@@ -21,12 +22,19 @@ export default function WorkoutLogger() {
   const activeRoutine = useWorkoutStore(state => state.activeRoutine);
   const currentExerciseIndex = useWorkoutStore(state => state.currentExerciseIndex);
   const currentExerciseSets = useWorkoutStore(state => state.currentExerciseSets);
+  const isExerciseSelectionMode = useWorkoutStore(state => state.isExerciseSelectionMode);
   
+  const sessionLogs = useWorkoutStore(state => state.sessionLogs);
+  const selectExercise = useWorkoutStore(state => state.selectExercise);
+  const returnToSelection = useWorkoutStore(state => state.returnToSelection);
+
   const logSet = useWorkoutStore(state => state.logSet);
-  const nextExercise = useWorkoutStore(state => state.nextExercise);
   const finishWorkout = useWorkoutStore(state => state.finishWorkout);
   const getPreviousExerciseLog = useWorkoutStore(state => state.getPreviousExerciseLog);
   const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
+  const swapExerciseInActiveRoutine = useWorkoutStore(state => state.swapExerciseInActiveRoutine);
+  const abortWorkout = useWorkoutStore(state => state.abortWorkout);
+
 
   if (!activeRoutine) return null;
   const currentExercise = activeRoutine.exercises[currentExerciseIndex];
@@ -37,6 +45,7 @@ export default function WorkoutLogger() {
   
   const [aiMessage, setAiMessage] = useState('');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [exerciseToSwap, setExerciseToSwap] = useState<ExerciseDef | null>(null);
 
   const { remainingSeconds, isActive, startTimer, stopTimer } = useWorkoutTimer();
 
@@ -103,6 +112,122 @@ export default function WorkoutLogger() {
 
   const isReadyToAdvance = currentExerciseSets.length >= currentExercise.targetSets;
 
+  if (isExerciseSelectionMode) {
+    return (
+      <>
+      <LinearGradient colors={['#0F172A', '#000000']} style={styles.background}>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={[
+            styles.container,
+            isLargeScreen && { alignSelf: 'center', width: '100%', maxWidth: contentMaxWidth }
+          ]}>
+            <View style={styles.topBar}>
+              <View style={styles.badge}>
+                <BlurView intensity={20} tint="light" style={styles.glassBadge}>
+                  <Text style={styles.routineTitle}>{activeRoutine.title}</Text>
+                </BlurView>
+              </View>
+            </View>
+
+            <View style={styles.titleRow}>
+              <Text style={styles.header}>Selecionar Exercício</Text>
+            </View>
+
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ gap: 12, paddingBottom: 20 }}
+            >
+              {activeRoutine.exercises.map((exercise, index) => {
+                const log = sessionLogs.find(l => l.exerciseId === exercise.id);
+                const completedSetsCount = log ? log.sets.length : 0;
+                const isComplete = completedSetsCount >= exercise.targetSets;
+                
+                return (
+                  <TouchableOpacity 
+                    key={exercise.id} 
+                    onPress={() => selectExercise(index)}
+                    style={{ borderRadius: 16, overflow: 'hidden' }}
+                  >
+                    <BlurView 
+                      intensity={isComplete ? 10 : 25} 
+                      tint="dark" 
+                      style={{ 
+                        padding: 16, 
+                        flexDirection: 'row', 
+                        alignItems: 'center', 
+                        borderWidth: 1, 
+                        borderColor: isComplete ? 'rgba(0, 230, 118, 0.3)' : 'rgba(255,255,255,0.1)' 
+                      }}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ 
+                          color: isComplete ? 'rgba(255,255,255,0.5)' : '#FFF', 
+                          fontSize: 16, 
+                          fontWeight: '700', 
+                          marginBottom: 4 
+                        }}>
+                          {exercise.name}
+                        </Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '500' }}>
+                          {completedSetsCount} de {exercise.targetSets} séries concluídas
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                        <TouchableOpacity 
+                          style={styles.swapMiniBtn}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            setExerciseToSwap(exercise);
+                          }}
+                        >
+                          <ArrowRightLeft color="#FFD700" size={20} />
+                        </TouchableOpacity>
+                        <View style={styles.listExerciseAction}>
+                          <Play color={isComplete ? "#00E676" : "#38BDF8"} size={20} style={{ marginLeft: 16 }} />
+                        </View>
+                      </View>
+                    </BlurView>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.bottomArea}>
+              <TouchableOpacity style={styles.nextButtonGlow} onPress={finishWorkout}>
+                <LinearGradient
+                  colors={['#FFD700', '#FFA000']}
+                  style={styles.nextGradientButton}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Text style={[styles.nextButtonText, { color: '#000' }]}>Concluir Treino!</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.quitButton} onPress={abortWorkout}>
+                <Text style={styles.quitButtonText}>Sair sem Guardar</Text>
+              </TouchableOpacity>
+            </View>
+
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+      
+      <ExerciseSwapModal 
+        visible={!!exerciseToSwap}
+        onClose={() => setExerciseToSwap(null)}
+        exerciseToReplace={exerciseToSwap}
+        onSelectSwap={(newExercise) => {
+          if (exerciseToSwap) {
+            swapExerciseInActiveRoutine(exerciseToSwap.id, newExercise);
+          }
+          setExerciseToSwap(null);
+        }}
+      />
+      </>
+    );
+  }
+
   return (
     <LinearGradient colors={['#0F172A', '#000000']} style={styles.background}>
       <SafeAreaView style={styles.safeArea}>
@@ -117,11 +242,11 @@ export default function WorkoutLogger() {
             
             {/* Top Navigation */}
             <View style={styles.topBar}>
-              <View style={styles.badge}>
+              <TouchableOpacity onPress={returnToSelection} style={styles.badge}>
                 <BlurView intensity={20} tint="light" style={styles.glassBadge}>
-                  <Text style={styles.routineTitle}>{activeRoutine.title}</Text>
+                  <Text style={styles.routineTitle}>← VOLTAR AOS EXERCÍCIOS</Text>
                 </BlurView>
-              </View>
+              </TouchableOpacity>
               <Text style={styles.counterText}>
                 {currentExerciseIndex + 1} de {activeRoutine.exercises.length}
               </Text>
@@ -257,36 +382,20 @@ export default function WorkoutLogger() {
                 </View>
               ) : (
                 <View style={styles.actionRow}>
-                  {currentExerciseIndex < activeRoutine.exercises.length - 1 ? (
-                    <TouchableOpacity style={styles.nextButtonGlow} onPress={nextExercise}>
-                      <LinearGradient
-                        colors={['#00E676', '#00C853']}
-                        style={styles.nextGradientButton}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                      >
-                        <Text style={styles.nextButtonText}>Passar ao Próximo Exercício</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity style={styles.nextButtonGlow} onPress={finishWorkout}>
-                      <LinearGradient
-                        colors={['#FFD700', '#FFA000']} // Gold for completion
-                        style={styles.nextGradientButton}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                      >
-                        <Text style={[styles.nextButtonText, { color: '#000' }]}>Concluir Treino!</Text>
-                      </LinearGradient>
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity style={styles.nextButtonGlow} onPress={returnToSelection}>
+                    <LinearGradient
+                      colors={['#00E676', '#00C853']}
+                      style={styles.nextGradientButton}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      <Text style={styles.nextButtonText}>Voltar aos Exercícios</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
               )}
               
-              <TouchableOpacity style={styles.quitButton} onPress={() => {
-                // Confirm abort? For now just go back
-                useWorkoutStore.setState({ activeRoutine: null, isInLogger: false });
-              }}>
+              <TouchableOpacity style={styles.quitButton} onPress={abortWorkout}>
                 <Text style={styles.quitButtonText}>Sair sem Guardar</Text>
               </TouchableOpacity>
             </View>
@@ -577,5 +686,25 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  listExerciseAction: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(0, 230, 118, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 230, 118, 0.3)',
+  },
+  swapMiniBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 215, 0, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 215, 0, 0.3)',
   }
 });

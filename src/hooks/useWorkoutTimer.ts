@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import * as Notifications from 'expo-notifications';
 
 interface UseWorkoutTimerProps {
   onTimerEnd?: () => void;
@@ -12,20 +13,59 @@ export function useWorkoutTimer({ onTimerEnd }: UseWorkoutTimerProps = {}) {
   
   // We store the target absolute timestamp when the timer should end.
   const targetTimeRef = useRef<number | null>(null);
+  const notificationIdRef = useRef<string | null>(null);
   
   // Track AppState to recalculate timer when returning to foreground
   const appState = useRef(AppState.currentState);
 
-  const startTimer = useCallback((seconds: number) => {
+  useEffect(() => {
+    async function requestPermissions() {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+    }
+    requestPermissions();
+  }, []);
+
+  const startTimer = useCallback(async (seconds: number) => {
     targetTimeRef.current = Date.now() + seconds * 1000;
     setRemainingSeconds(seconds);
     setIsActive(true);
+
+    try {
+      const id = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "💪 Recuperação Terminada",
+          body: "O tempo de descanso acabou. Hora de voltar à carga!",
+          sound: true,
+        },
+        trigger: {
+          seconds: seconds,
+          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        },
+      });
+      notificationIdRef.current = id;
+    } catch (e) {
+      console.log('Failed to schedule notification', e);
+    }
   }, []);
 
-  const stopTimer = useCallback(() => {
+  const stopTimer = useCallback(async () => {
     targetTimeRef.current = null;
     setRemainingSeconds(0);
     setIsActive(false);
+
+    if (notificationIdRef.current) {
+      try {
+        await Notifications.cancelScheduledNotificationAsync(notificationIdRef.current);
+        notificationIdRef.current = null;
+      } catch (e) {
+        console.log('Failed to cancel notification', e);
+      }
+    }
   }, []);
 
   // Recalculate based on target time

@@ -2,11 +2,22 @@ import React from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Notifications from 'expo-notifications';
 
 import Dashboard from './src/components/Dashboard';
 import WorkoutLogger from './src/components/WorkoutLogger';
 import { RoutineDef } from './src/data/routines';
 import { useWorkoutStore } from './src/store/useWorkoutStore';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 export default function App() {
   const isInLogger = useWorkoutStore(state => state.isInLogger);
