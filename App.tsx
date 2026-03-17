@@ -5,6 +5,15 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Notifications from 'expo-notifications';
 import { BlurView } from 'expo-blur';
 import { Home, User, Settings } from 'lucide-react-native';
+import {
+  useFonts,
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_900Black,
+} from '@expo-google-fonts/inter';
+import { Outfit_700Bold, Outfit_900Black } from '@expo-google-fonts/outfit';
 
 import Dashboard from './src/components/Dashboard';
 import WorkoutLogger from './src/components/WorkoutLogger';
@@ -24,12 +33,26 @@ Notifications.setNotificationHandler({
 });
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    'Inter-Regular': Inter_400Regular,
+    'Inter-Medium': Inter_500Medium,
+    'Inter-SemiBold': Inter_600SemiBold,
+    'Inter-Bold': Inter_700Bold,
+    'Inter-Black': Inter_900Black,
+    'Outfit-Bold': Outfit_700Bold,
+    'Outfit-Black': Outfit_900Black,
+  });
+
   const isInLogger = useWorkoutStore(state => state.isInLogger);
   const activeRoutine = useWorkoutStore(state => state.activeRoutine);
   const startWorkout = useWorkoutStore(state => state.startWorkout);
   const getPreviousExerciseLog = useWorkoutStore(state => state.getPreviousExerciseLog);
 
   const [currentTab, setCurrentTab] = React.useState<'dashboard'|'profile'|'settings'>('dashboard');
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   const handleSelectRoutine = (routine: any) => {
     startWorkout(routine);

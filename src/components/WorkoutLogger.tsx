@@ -1,20 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { Play, Focus, Info, Check, ChevronLeft, ArrowRightLeft } from 'lucide-react-native';
-import Animated, { FadeInDown, FadeIn, FadeOutUp, Layout } from 'react-native-reanimated';
+import { Play, Focus, Info, ChevronLeft, ArrowRightLeft } from 'lucide-react-native';
+import Animated, { FadeInDown, FadeIn } from 'react-native-reanimated';
 
 import { calculateProgression, SetData } from '../utils/progression';
-import { RoutineDef, ExerciseDef } from '../data/routines';
+import { ExerciseDef } from '../data/routines';
 import { useWorkoutTimer } from '../hooks/useWorkoutTimer';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import TechnicalModal from './TechnicalModal';
 import SwipeButton from './SwipeButton';
 import ExerciseSwapModal from './ExerciseSwapModal';
+import { theme } from '../theme/theme';
+import AnimatedPressable from './common/AnimatedPressable';
 
 export default function WorkoutLogger() {
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768;
   const contentMaxWidth = 768;
@@ -34,7 +37,6 @@ export default function WorkoutLogger() {
   const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
   const swapExerciseInActiveRoutine = useWorkoutStore(state => state.swapExerciseInActiveRoutine);
   const abortWorkout = useWorkoutStore(state => state.abortWorkout);
-
 
   if (!activeRoutine) return null;
   const currentExercise = activeRoutine.exercises[currentExerciseIndex];
@@ -115,13 +117,13 @@ export default function WorkoutLogger() {
   if (isExerciseSelectionMode) {
     return (
       <>
-      <LinearGradient colors={['#0F172A', '#000000']} style={styles.background}>
+      <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.background}>
         <SafeAreaView style={styles.safeArea}>
           <View style={[
             styles.container,
             isLargeScreen && { alignSelf: 'center', width: '100%', maxWidth: contentMaxWidth }
           ]}>
-            <View style={styles.topBar}>
+            <View style={[styles.topBar, { marginTop: Math.max(insets.top, 10) }]}>
               <View style={styles.badge}>
                 <BlurView intensity={20} tint="light" style={styles.glassBadge}>
                   <Text style={styles.routineTitle}>{activeRoutine.title}</Text>
@@ -129,50 +131,45 @@ export default function WorkoutLogger() {
               </View>
             </View>
 
-            <View style={styles.titleRow}>
-              <Text style={styles.header}>Selecionar Exercício</Text>
-            </View>
-
             <ScrollView 
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ gap: 12, paddingBottom: 20 }}
+              contentContainerStyle={{ gap: 16, paddingBottom: 120 }}
             >
+              <View style={styles.titleRow}>
+                <Text style={styles.header}>Selecionar Exercício</Text>
+              </View>
+
               {activeRoutine.exercises.map((exercise, index) => {
                 const log = sessionLogs.find(l => l.exerciseId === exercise.id);
                 const completedSetsCount = log ? log.sets.length : 0;
                 const isComplete = completedSetsCount >= exercise.targetSets;
                 
                 return (
-                  <TouchableOpacity 
+                  <AnimatedPressable 
                     key={exercise.id} 
                     onPress={() => selectExercise(index)}
-                    style={{ borderRadius: 16, overflow: 'hidden' }}
+                    style={styles.cardContainer}
+                    hapticFeedback="light"
                   >
                     <BlurView 
                       intensity={isComplete ? 10 : 25} 
                       tint="dark" 
-                      style={{ 
-                        padding: 16, 
-                        flexDirection: 'row', 
-                        alignItems: 'center', 
-                        borderWidth: 1, 
-                        borderColor: isComplete ? 'rgba(0, 230, 118, 0.3)' : 'rgba(255,255,255,0.1)' 
-                      }}
+                      style={styles.exerciseListCard}
                     >
                       <View style={{ flex: 1 }}>
                         <Text style={{ 
                           color: isComplete ? 'rgba(255,255,255,0.5)' : '#FFF', 
-                          fontSize: 16, 
-                          fontWeight: '700', 
+                          fontSize: 18, 
+                          fontFamily: theme.typography.fonts.bold, 
                           marginBottom: 4 
                         }}>
                           {exercise.name}
                         </Text>
-                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '500' }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontFamily: theme.typography.fonts.medium }}>
                           {completedSetsCount} de {exercise.targetSets} séries concluídas
                         </Text>
                       </View>
-                      <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                      <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
                         <TouchableOpacity 
                           style={styles.swapMiniBtn}
                           onPress={(e) => {
@@ -182,33 +179,37 @@ export default function WorkoutLogger() {
                         >
                           <ArrowRightLeft color="#FFD700" size={20} />
                         </TouchableOpacity>
-                        <View style={styles.listExerciseAction}>
-                          <Play color={isComplete ? "#00E676" : "#38BDF8"} size={20} style={{ marginLeft: 16 }} />
+                        <View style={[styles.listExerciseAction, isComplete && { borderColor: 'rgba(0, 230, 118, 0.2)' }]}>
+                          <Play color={isComplete ? "#00E676" : "#38BDF8"} size={20} />
                         </View>
                       </View>
                     </BlurView>
-                  </TouchableOpacity>
+                  </AnimatedPressable>
                 );
               })}
+
+              <AnimatedPressable style={styles.abortBtnSmall} onPress={abortWorkout} hapticFeedback="medium">
+                <Text style={styles.quitButtonText}>Sair sem Guardar</Text>
+              </AnimatedPressable>
             </ScrollView>
 
-            <View style={styles.bottomArea}>
-              <TouchableOpacity style={styles.nextButtonGlow} onPress={finishWorkout}>
+            <View style={[styles.stickyFooterBase, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+              <LinearGradient
+                colors={['transparent', theme.colors.background]}
+                style={styles.footerGradient}
+                pointerEvents="none"
+              />
+              <AnimatedPressable style={styles.nextButtonGlow} onPress={finishWorkout} hapticFeedback="success" scaleTo={0.95}>
                 <LinearGradient
                   colors={['#FFD700', '#FFA000']}
                   style={styles.nextGradientButton}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
-                  <Text style={[styles.nextButtonText, { color: '#000' }]}>Concluir Treino!</Text>
+                  <Text style={[styles.nextButtonText, { color: '#000' }]}>Finalizar Sessão!</Text>
                 </LinearGradient>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.quitButton} onPress={abortWorkout}>
-                <Text style={styles.quitButtonText}>Sair sem Guardar</Text>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
-
           </View>
         </SafeAreaView>
       </LinearGradient>
@@ -229,7 +230,7 @@ export default function WorkoutLogger() {
   }
 
   return (
-    <LinearGradient colors={['#0F172A', '#000000']} style={styles.background}>
+    <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.background}>
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView 
           style={styles.keyboardAvoiding} 
@@ -241,14 +242,14 @@ export default function WorkoutLogger() {
           ]}>
             
             {/* Top Navigation */}
-            <View style={styles.topBar}>
+            <View style={[styles.topBar, { marginTop: Math.max(insets.top, 10) }]}>
               <TouchableOpacity onPress={returnToSelection} style={styles.badge}>
                 <BlurView intensity={20} tint="light" style={styles.glassBadge}>
-                  <Text style={styles.routineTitle}>← VOLTAR AOS EXERCÍCIOS</Text>
+                  <Text style={styles.routineTitle}>← LISTA DE EXERCÍCIOS</Text>
                 </BlurView>
               </TouchableOpacity>
               <Text style={styles.counterText}>
-                {currentExerciseIndex + 1} de {activeRoutine.exercises.length}
+                {currentExerciseIndex + 1} / {activeRoutine.exercises.length}
               </Text>
             </View>
 
@@ -262,17 +263,6 @@ export default function WorkoutLogger() {
               </TouchableOpacity>
             </View>
             
-            {/* Technical Focus Note */}
-            <Animated.View entering={FadeInDown.duration(400)}>
-              <BlurView intensity={20} tint="dark" style={styles.notesContainer}>
-                <View style={styles.notesHeader}>
-                  <Focus color="#38BDF8" size={14} />
-                  <Text style={styles.notesTitle}>Foco Técnico</Text>
-                </View>
-                <Text style={styles.notesText}>{currentExercise.notes}</Text>
-              </BlurView>
-            </Animated.View>
-
             <TechnicalModal 
               visible={isModalVisible} 
               onClose={() => setIsModalVisible(false)} 
@@ -307,8 +297,22 @@ export default function WorkoutLogger() {
             <ScrollView 
               style={styles.historyContainer} 
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 20 }}
+              contentContainerStyle={{ paddingBottom: 180 }}
             >
+              {/* Technical Focus Note */}
+              <Animated.View entering={FadeInDown.duration(400)}>
+                <BlurView intensity={20} tint="dark" style={styles.notesContainer}>
+                  <View style={styles.notesHeader}>
+                    <Focus color="#38BDF8" size={14} />
+                    <Text style={styles.notesTitle}>Foco Técnico</Text>
+                  </View>
+                  <Text style={styles.notesText}>{currentExercise.notes}</Text>
+                </BlurView>
+              </Animated.View>
+
+              {currentExerciseSets.length > 0 && (
+                 <Text style={[styles.label, { textAlign: 'left', marginBottom: 12, marginLeft: 4 }]}>Séries Realizadas</Text>
+              )}
               {currentExerciseSets.map((set, i) => (
                 <Animated.View key={i} entering={FadeInDown.delay(i * 100)}>
                   <BlurView intensity={25} tint="dark" style={styles.setRow}>
@@ -328,48 +332,55 @@ export default function WorkoutLogger() {
                   </BlurView>
                 </Animated.View>
               ))}
+
+              <AnimatedPressable style={styles.abortBtnSmall} onPress={abortWorkout} hapticFeedback="medium">
+                <Text style={styles.quitButtonText}>Sair sem Guardar</Text>
+              </AnimatedPressable>
             </ScrollView>
 
-            {/* Inputs & Actions */}
-            <View style={styles.bottomArea}>
+            {/* Inputs & Actions - STICKY FOOTER */}
+            <View style={[styles.stickyFooterBase, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+              <LinearGradient
+                colors={['transparent', theme.colors.background]}
+                style={styles.footerGradient}
+                pointerEvents="none"
+              />
+              
               <View style={styles.inputArea}>
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Carga (Kg)</Text>
-                  <BlurView intensity={30} tint="dark" style={styles.inputGlass}>
+                  <Text style={styles.label}>Peso</Text>
+                  <BlurView intensity={40} tint="dark" style={styles.inputGlass}>
                     <TextInput
                       style={styles.input}
                       keyboardType="numeric"
                       value={currentWeight}
                       onChangeText={setCurrentWeight}
-                      placeholder="0"
                       placeholderTextColor="rgba(255,255,255,0.2)"
                     />
                   </BlurView>
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Repetições</Text>
-                  <BlurView intensity={30} tint="dark" style={styles.inputGlass}>
+                  <Text style={styles.label}>Reps</Text>
+                  <BlurView intensity={40} tint="dark" style={styles.inputGlass}>
                     <TextInput
                       style={styles.input}
                       keyboardType="numeric"
                       value={currentReps}
                       onChangeText={setCurrentReps}
-                      placeholder="0"
                       placeholderTextColor="rgba(255,255,255,0.2)"
                     />
                   </BlurView>
                 </View>
 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Esforço (RPE)</Text>
-                  <BlurView intensity={30} tint="dark" style={styles.inputGlass}>
+                  <Text style={styles.label}>RPE</Text>
+                  <BlurView intensity={40} tint="dark" style={styles.inputGlass}>
                     <TextInput
                       style={styles.input}
                       keyboardType="numeric"
                       value={currentRpe}
                       onChangeText={setCurrentRpe}
-                      placeholder="1-10"
                       placeholderTextColor="rgba(255,255,255,0.2)"
                     />
                   </BlurView>
@@ -377,29 +388,20 @@ export default function WorkoutLogger() {
               </View>
 
               {!isReadyToAdvance ? (
-                <View style={styles.actionRow}>
-                  <SwipeButton onComplete={handleLogSet} title="Deslize para Registrar" />
-                </View>
+                <SwipeButton onComplete={handleLogSet} title="Deslize para Registrar" />
               ) : (
-                <View style={styles.actionRow}>
-                  <TouchableOpacity style={styles.nextButtonGlow} onPress={returnToSelection}>
-                    <LinearGradient
-                      colors={['#00E676', '#00C853']}
-                      style={styles.nextGradientButton}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                    >
-                      <Text style={styles.nextButtonText}>Voltar aos Exercícios</Text>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
+                <AnimatedPressable style={styles.nextButtonGlow} onPress={returnToSelection}>
+                  <LinearGradient
+                    colors={['#00E676', '#00C853']}
+                    style={styles.nextGradientButton}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                  >
+                    <Text style={styles.nextButtonText}>Regressar à Lista</Text>
+                  </LinearGradient>
+                </AnimatedPressable>
               )}
-              
-              <TouchableOpacity style={styles.quitButton} onPress={abortWorkout}>
-                <Text style={styles.quitButtonText}>Sair sem Guardar</Text>
-              </TouchableOpacity>
             </View>
-
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -419,92 +421,86 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: theme.spacing.xl,
     paddingTop: Platform.OS === 'ios' ? 10 : 20,
-    paddingBottom: 20,
-    justifyContent: 'space-between',
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: theme.spacing.lg,
+    // marginTop handled dynamically via insets
   },
   badge: {
-    borderRadius: 8,
+    borderRadius: theme.radii.sm,
     overflow: 'hidden',
   },
   glassBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
   routineTitle: {
-    color: '#38BDF8',
+    color: theme.colors.secondary,
     fontSize: 10,
-    fontWeight: '800',
+    fontFamily: theme.typography.fonts.bold,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
   counterText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 12,
-    fontWeight: '600',
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.sizes.sm,
+    fontFamily: theme.typography.fonts.semiBold,
     letterSpacing: 0.5,
   },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: theme.spacing.md,
   },
   header: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFFFFF',
+    fontSize: 28,
+    fontFamily: theme.typography.fonts.displayBlack,
+    color: theme.colors.textPrimary,
     letterSpacing: -1,
     flex: 1,
     paddingRight: 10,
   },
   videoButtonGlow: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
+    ...theme.shadows.soft,
   },
   notesContainer: {
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 30,
+    padding: theme.spacing.lg,
+    borderRadius: theme.radii.lg,
+    marginBottom: theme.spacing.xl,
     overflow: 'hidden',
-    borderLeftWidth: 3,
-    borderLeftColor: '#38BDF8',
-    borderTopWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    ...theme.shadows.soft,
   },
   notesHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 8,
   },
   notesTitle: {
-    color: '#38BDF8',
+    color: theme.colors.secondary,
     fontSize: 11,
-    fontWeight: '800',
+    fontFamily: theme.typography.fonts.bold,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginLeft: 6,
+    marginLeft: 8,
   },
   notesText: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.7)',
-    lineHeight: 22,
-    fontWeight: '500',
+    fontSize: theme.typography.sizes.md,
+    color: theme.colors.textSecondary,
+    lineHeight: 24,
+    fontFamily: theme.typography.fonts.medium,
   },
   historyContainer: {
     flex: 1,
@@ -513,17 +509,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    padding: theme.spacing.cardPadding,
+    borderRadius: theme.radii.lg,
+    marginBottom: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
     overflow: 'hidden',
+    ...theme.shadows.soft,
   },
   setLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 16,
   },
   setRight: {
     flexDirection: 'row',
@@ -531,171 +527,171 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   circleBadge: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(56, 189, 248, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.3)',
   },
   setText: {
-    color: '#38BDF8',
-    fontSize: 13,
-    fontWeight: '800',
+    color: theme.colors.secondary,
+    fontSize: 14,
+    fontFamily: theme.typography.fonts.bold,
   },
   setStatText: {
-    color: '#FFF',
-    fontSize: 17,
-    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    fontSize: 18,
+    fontFamily: theme.typography.fonts.bold,
   },
   rpeBadge: {
     backgroundColor: 'rgba(255, 51, 102, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
   },
   rpeText: {
-    color: '#FF3366',
-    fontSize: 13,
-    fontWeight: '800',
+    color: theme.colors.danger,
+    fontSize: 14,
+    fontFamily: theme.typography.fonts.bold,
   },
-  bottomArea: {
-    marginTop: 10,
+  stickyFooterBase: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: theme.spacing.xl,
+    paddingTop: 40,
+    // paddingBottom handled dynamically via insets
+    zIndex: 5,
+  },
+  footerGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    opacity: 0.95,
   },
   inputArea: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 20,
     gap: 12,
   },
   inputGroup: {
     flex: 1,
   },
   label: {
-    color: 'rgba(255,255,255,0.5)',
+    color: theme.colors.textMuted,
     fontSize: 11,
     marginBottom: 8,
     textTransform: 'uppercase',
-    fontWeight: '700',
-    letterSpacing: 0.5,
+    fontFamily: theme.typography.fonts.bold,
+    letterSpacing: 1,
     textAlign: 'center',
   },
   inputGlass: {
-    borderRadius: 16,
+    borderRadius: theme.radii.lg,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    borderTopColor: 'rgba(255,255,255,0.2)',
   },
   input: {
-    color: '#FFFFFF',
-    padding: 18,
-    fontSize: 24,
-    fontWeight: '800',
+    color: theme.colors.textPrimary,
+    padding: 16,
+    fontSize: 22,
+    fontFamily: theme.typography.fonts.black,
     textAlign: 'center',
-  },
-  actionRow: {
-    marginBottom: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   nextButtonGlow: {
-    shadowColor: '#00E676',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
+    ...theme.shadows.premium,
   },
   nextGradientButton: {
-    padding: 20,
-    borderRadius: 100,
+    padding: 22,
+    borderRadius: theme.radii.round,
     alignItems: 'center',
   },
   nextButtonText: {
-    color: '#000000',
-    fontWeight: '900',
-    fontSize: 16,
+    color: theme.colors.textInverse,
+    fontFamily: theme.typography.fonts.black,
+    fontSize: 18,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  quitButton: {
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  quitButtonText: {
-    color: 'rgba(255,255,255,0.3)',
-    textTransform: 'uppercase',
-    fontSize: 11,
-    fontWeight: '700',
     letterSpacing: 1,
   },
   restingOverlay: {
-    flex: 1,
-    zIndex: 10,
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 30,
+    padding: 40,
   },
   timerCircle: {
     alignItems: 'center',
     marginBottom: 40,
   },
   restTitle: {
-    color: '#38BDF8',
+    color: theme.colors.secondary,
     fontSize: 14,
-    fontWeight: '900',
-    letterSpacing: 6,
+    fontFamily: theme.typography.fonts.black,
+    letterSpacing: 8,
     marginBottom: 10,
   },
   timerText: {
-    color: '#FFFFFF',
-    fontSize: 90,
-    fontWeight: '900',
+    color: theme.colors.textPrimary,
+    fontSize: 100,
+    fontFamily: theme.typography.fonts.displayBlack,
     fontVariant: ['tabular-nums'],
-    letterSpacing: -3,
+    letterSpacing: -5,
   },
   aiGlowBox: {
     alignItems: 'center',
-    padding: 24,
-    backgroundColor: 'rgba(56, 189, 248, 0.05)',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
-    marginBottom: 50,
+    padding: 32,
+    backgroundColor: 'rgba(56, 189, 248, 0.08)',
+    borderRadius: 32,
+    marginBottom: 60,
+    width: '100%',
   },
   aiMessage: {
-    color: '#FFFFFF',
+    color: theme.colors.textPrimary,
     fontSize: 18,
     textAlign: 'center',
-    fontWeight: '400',
+    fontFamily: theme.typography.fonts.regular,
     lineHeight: 28,
   },
   skipButtonActive: {
     overflow: 'hidden',
-    borderRadius: 30,
+    borderRadius: 40,
   },
   glassSkip: {
-    paddingVertical: 14,
-    paddingHorizontal: 30,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    paddingVertical: 18,
+    paddingHorizontal: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   skipButtonText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
+    color: theme.colors.textPrimary,
+    fontSize: 14,
+    fontFamily: theme.typography.fonts.bold,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 2,
+  },
+  exerciseListCard: {
+    padding: theme.spacing.cardPadding,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  cardContainer: {
+    borderRadius: theme.radii.lg,
+    overflow: 'hidden',
+    ...theme.shadows.soft,
   },
   listExerciseAction: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: 'rgba(0, 230, 118, 0.1)',
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 230, 118, 0.3)',
   },
   swapMiniBtn: {
     width: 44,
@@ -704,7 +700,17 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 215, 0, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 215, 0, 0.3)',
-  }
+  },
+  abortBtnSmall: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    marginTop: 20,
+  },
+  quitButtonText: {
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    fontSize: 11,
+    fontFamily: theme.typography.fonts.bold,
+    letterSpacing: 2,
+  },
 });

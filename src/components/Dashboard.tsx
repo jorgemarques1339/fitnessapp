@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, useWindowDimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { ChevronRight, Play, Activity, Plus } from 'lucide-react-native';
@@ -9,6 +9,9 @@ import { ROUTINES, RoutineDef } from '../data/routines';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import TonnageChart from './TonnageChart';
 import RoutineBuilderModal from './RoutineBuilderModal';
+import WeeklyProgressRing from './WeeklyProgressRing';
+import { theme } from '../theme/theme';
+import AnimatedPressable from './common/AnimatedPressable';
 
 interface DashboardProps {
   onSelectRoutine: (routine: RoutineDef) => void;
@@ -23,6 +26,7 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
 
   const [isBuilderVisible, setIsBuilderVisible] = React.useState(false);
 
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isLargeScreen = width >= 768;
   const contentMaxWidth = 768;
@@ -43,7 +47,7 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
 
   return (
     <LinearGradient
-      colors={['#0F172A', '#000000']}
+      colors={[theme.colors.surface, theme.colors.background]}
       style={styles.background}
     >
       <SafeAreaView style={styles.safeArea}>
@@ -51,6 +55,10 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
           style={styles.container} 
           contentContainerStyle={[
             styles.contentContainer,
+            { 
+              paddingTop: Math.max(insets.top, 20), 
+              paddingBottom: Math.max(insets.bottom, 60) 
+            },
             isLargeScreen && { alignItems: 'center' }
           ]}
           showsVerticalScrollIndicator={false}
@@ -61,6 +69,8 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
               <Text style={styles.subtitle}>Pronto para destruir metas hoje?</Text>
             </View>
 
+            <WeeklyProgressRing completed={safeWorkouts.length % 5} total={5} />
+
             <View style={styles.chartWrapper}>
               <TonnageChart 
                 title="Progresso de Tonelagem (Kg)" 
@@ -70,30 +80,35 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
             </View>
 
             {activeRoutine && (
-              <TouchableOpacity activeOpacity={0.7} onPress={onResumeWorkout} style={styles.recoveryMargin}>
+              <AnimatedPressable 
+                onPress={onResumeWorkout} 
+                style={styles.recoveryMargin}
+                hapticFeedback="light"
+                scaleTo={0.97}
+              >
                 <BlurView intensity={30} tint="dark" style={styles.glassCard}>
                   <View style={styles.recoveryContent}>
                     <View style={styles.recoveryIconBox}>
-                      <Activity color="#FF3366" size={24} />
+                      <Activity color={theme.colors.danger} size={24} />
                     </View>
                     <View style={styles.recoveryTexts}>
                       <Text style={styles.recoveryTitle}>⏱️ Treino em Andamento</Text>
                       <Text style={styles.recoverySubtitle}>{activeRoutine.title}</Text>
                     </View>
-                    <ChevronRight color="rgba(255,255,255,0.4)" size={20} />
+                    <ChevronRight color={theme.colors.textMuted} size={20} />
                   </View>
                 </BlurView>
-              </TouchableOpacity>
+              </AnimatedPressable>
             )}
 
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>Meus Treinos</Text>
-              <TouchableOpacity onPress={() => setIsBuilderVisible(true)}>
+              <AnimatedPressable onPress={() => setIsBuilderVisible(true)} hapticFeedback="light">
                 <BlurView intensity={20} tint="light" style={styles.createBtn}>
-                  <Plus color="#38BDF8" size={16} style={{ marginRight: 6 }} />
+                  <Plus color={theme.colors.secondary} size={16} style={{ marginRight: 6 }} />
                   <Text style={styles.createBtnText}>Novo</Text>
                 </BlurView>
-              </TouchableOpacity>
+              </AnimatedPressable>
             </View>
 
             {customRoutines.length === 0 ? (
@@ -103,18 +118,18 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
             ) : (
               <View style={styles.routinesGrid}>
                 {customRoutines.map((routine) => (
-                  <TouchableOpacity 
+                  <AnimatedPressable 
                     key={routine.id}
                     onPress={() => onSelectRoutine(routine)}
-                    activeOpacity={0.7}
                     style={styles.cardContainer}
+                    hapticFeedback="medium"
                   >
                     <BlurView intensity={25} tint="dark" style={styles.glassCard}>
-                      <View style={[styles.cardIndicator, { backgroundColor: '#FFD700' }]} />
+                      <View style={[styles.cardIndicator, { backgroundColor: theme.colors.accent }]} />
                       <View style={styles.cardContent}>
                         <View style={styles.cardHeader}>
                           <Text style={styles.cardTitle}>{routine.title}</Text>
-                          <Play color="rgba(255,255,255,0.7)" size={20} />
+                          <Play color={theme.colors.textSecondary} size={20} />
                         </View>
                         
                         <Text style={styles.cardSubtitle}>{routine.subtitle}</Text>
@@ -126,7 +141,7 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                         </View>
                       </View>
                     </BlurView>
-                  </TouchableOpacity>
+                  </AnimatedPressable>
                 ))}
               </View>
             )}
@@ -135,18 +150,18 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
             
             <View style={styles.routinesGrid}>
               {ROUTINES.map((routine) => (
-                <TouchableOpacity 
+                <AnimatedPressable 
                   key={routine.id}
                   onPress={() => onSelectRoutine(routine)}
-                  activeOpacity={0.7}
                   style={styles.cardContainer}
+                  hapticFeedback="medium"
                 >
                   <BlurView intensity={25} tint="dark" style={styles.glassCard}>
                     <View style={styles.cardIndicator} />
                     <View style={styles.cardContent}>
                       <View style={styles.cardHeader}>
                         <Text style={styles.cardTitle}>{routine.title}</Text>
-                        <Play color="rgba(255,255,255,0.7)" size={20} />
+                        <Play color={theme.colors.textSecondary} size={20} />
                       </View>
                       
                       <Text style={styles.cardSubtitle}>{routine.subtitle}</Text>
@@ -158,7 +173,7 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                       </View>
                     </View>
                   </BlurView>
-                </TouchableOpacity>
+                </AnimatedPressable>
               ))}
             </View>
           </View>
@@ -185,138 +200,137 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: 24,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 60,
+    padding: theme.spacing.lg,
+    // paddingTop and paddingBottom are now dynamic via useSafeAreaInsets
   },
   innerContent: {
     flex: 1,
     width: '100%',
   },
   header: {
-    marginBottom: 40,
+    marginBottom: theme.spacing.xxl,
   },
   greeting: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
+    fontSize: theme.typography.sizes.displayLarge,
+    fontFamily: theme.typography.fonts.displayBlack,
+    color: theme.colors.textPrimary,
+    letterSpacing: -1,
+    lineHeight: theme.typography.sizes.displayLarge * 1.1,
   },
   subtitle: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginTop: 6,
-    fontWeight: '500',
+    fontSize: theme.typography.sizes.lg,
+    fontFamily: theme.typography.fonts.medium,
+    color: theme.colors.textSecondary,
+    marginTop: theme.spacing.xs,
   },
   chartWrapper: {
-    marginBottom: 30,
+    marginBottom: theme.spacing.xl,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: theme.spacing.lg,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: theme.typography.sizes.xl,
+    fontFamily: theme.typography.fonts.display,
+    color: theme.colors.textPrimary,
     letterSpacing: 0.5,
   },
   createBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.sm,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
     borderColor: 'rgba(56, 189, 248, 0.3)',
   },
   createBtnText: {
-    color: '#38BDF8',
-    fontWeight: '800',
-    fontSize: 12,
+    color: theme.colors.secondary,
+    fontFamily: theme.typography.fonts.bold,
+    fontSize: theme.typography.sizes.sm,
     textTransform: 'uppercase',
   },
   emptyCustomState: {
-    padding: 20,
-    borderRadius: 20,
+    padding: theme.spacing.lg,
+    borderRadius: theme.radii.lg,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: theme.colors.border,
     borderStyle: 'dashed',
     alignItems: 'center',
   },
   emptyCustomText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 14,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fonts.medium,
+    fontSize: theme.typography.sizes.md,
     fontStyle: 'italic',
   },
   routinesGrid: {
-    gap: 16,
+    gap: theme.spacing.md,
   },
   cardContainer: {
     overflow: 'hidden',
-    borderRadius: 20,
+    borderRadius: theme.radii.lg,
     backgroundColor: 'rgba(255, 255, 255, 0.03)',
   },
   glassCard: {
     flexDirection: 'row',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderTopColor: 'rgba(255, 255, 255, 0.15)',
-    borderLeftColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: theme.radii.lg,
     overflow: 'hidden',
+    ...theme.shadows.soft,
   },
   cardIndicator: {
     width: 6,
-    backgroundColor: '#38BDF8',
+    backgroundColor: theme.colors.secondary,
   },
   cardContent: {
     flex: 1,
-    padding: 20,
+    padding: theme.spacing.cardPadding,
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: theme.spacing.xs,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: theme.typography.sizes.lg,
+    fontFamily: theme.typography.fonts.bold,
+    color: theme.colors.textPrimary,
   },
   cardSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginBottom: 16,
+    fontSize: theme.typography.sizes.md,
+    fontFamily: theme.typography.fonts.regular,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.md,
   },
   tagContainer: {
     flexDirection: 'row',
   },
   glassTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: theme.radii.md,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   tagText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    fontFamily: theme.typography.fonts.semiBold,
+    fontSize: theme.typography.sizes.sm,
   },
   recoveryMargin: {
-    marginBottom: 30,
-    borderRadius: 20,
+    marginBottom: theme.spacing.xl,
+    borderRadius: theme.radii.lg,
     overflow: 'hidden',
   },
   recoveryContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
+    padding: theme.spacing.md,
   },
   recoveryIconBox: {
     width: 44,
@@ -325,22 +339,22 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 51, 102, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: theme.spacing.md,
   },
   recoveryTexts: {
     flex: 1,
   },
   recoveryTitle: {
-    color: '#FF3366',
-    fontSize: 13,
-    fontWeight: '800',
+    color: theme.colors.danger,
+    fontSize: theme.typography.sizes.sm,
+    fontFamily: theme.typography.fonts.bold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   recoverySubtitle: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
+    color: theme.colors.textPrimary,
+    fontSize: theme.typography.sizes.lg,
+    fontFamily: theme.typography.fonts.semiBold,
   },
 });

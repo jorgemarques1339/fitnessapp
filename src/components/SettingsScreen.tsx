@@ -5,6 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Activity, Instagram, Shield, Smartphone, HeartPulse } from 'lucide-react-native';
 
 import { useWorkoutStore } from '../store/useWorkoutStore';
+import { theme } from '../theme/theme';
+import AnimatedPressable from './common/AnimatedPressable';
 
 export default function SettingsScreen() {
   const healthSyncEnabled = useWorkoutStore(state => state.healthSyncEnabled);
@@ -29,9 +31,9 @@ export default function SettingsScreen() {
               </View>
             </View>
             <Switch
-              trackColor={{ false: 'rgba(255,255,255,0.1)', true: '#00E676' }}
-              thumbColor="#FFF"
-              ios_backgroundColor="rgba(255,255,255,0.1)"
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor={theme.colors.textPrimary}
+              ios_backgroundColor={theme.colors.border}
               onValueChange={setHealthSyncEnabled}
               value={healthSyncEnabled}
             />
@@ -73,15 +75,16 @@ export default function SettingsScreen() {
         </BlurView>
       </View>
 
-      <TouchableOpacity 
+      <AnimatedPressable 
         style={styles.dangerZoneBtn} 
         onPress={() => {
-          // Warning: No confirmation dialog mapped in mockup
           clearHistory();
         }}
+        hapticFeedback="heavy"
+        scaleTo={0.96}
       >
         <Text style={styles.dangerText}>Apagar Todo o Histórico (Danger)</Text>
-      </TouchableOpacity>
+      </AnimatedPressable>
 
     </ScrollView>
   );
@@ -90,34 +93,34 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: theme.spacing.xl,
     paddingTop: 20,
   },
   pageTitle: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: '#FFF',
+    fontSize: theme.typography.sizes.display,
+    fontFamily: theme.typography.fonts.displayBlack,
+    color: theme.colors.textPrimary,
     letterSpacing: -1,
-    marginBottom: 30,
+    marginBottom: theme.spacing.xl,
   },
   section: {
-    marginBottom: 30,
+    marginBottom: theme.spacing.xl,
   },
   sectionHeader: {
-    color: 'rgba(255,255,255,0.5)',
-    fontWeight: '800',
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fonts.bold,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    marginBottom: 10,
-    fontSize: 12,
+    marginBottom: theme.spacing.sm,
+    fontSize: theme.typography.sizes.sm,
     marginLeft: 4,
   },
   glassCard: {
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderRadius: theme.radii.lg,
+    padding: theme.spacing.cardPadding,
     overflow: 'hidden',
+    ...theme.shadows.soft,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
   },
   settingRow: {
     flexDirection: 'row',
@@ -133,34 +136,36 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 12,
+    borderRadius: theme.radii.md,
     backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: theme.spacing.md,
   },
   settingTitle: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    fontSize: theme.typography.sizes.lg,
+    fontFamily: theme.typography.fonts.bold,
     marginBottom: 4,
   },
   settingDesc: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 13,
+    color: theme.colors.textSecondary,
+    fontSize: theme.typography.sizes.md,
+    fontFamily: theme.typography.fonts.regular,
     lineHeight: 18,
   },
   dangerZoneBtn: {
-    marginTop: 20,
+    marginTop: theme.spacing.xxl,
     paddingVertical: 16,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 51, 102, 0.3)',
-    borderRadius: 16,
-    backgroundColor: 'rgba(255, 51, 102, 0.1)'
+    borderRadius: theme.radii.lg,
+    backgroundColor: 'rgba(255, 51, 102, 0.05)'
   },
   dangerText: {
-    color: '#FF3366',
-    fontWeight: '800',
+    color: theme.colors.danger,
+    fontFamily: theme.typography.fonts.black,
+    textTransform: 'uppercase',
+    fontSize: theme.typography.sizes.md,
+    letterSpacing: 0.5,
   }
 });

@@ -1,9 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
-import { CartesianChart, Line, useChartPressState } from 'victory-native';
-import { vec, LinearGradient as SkiaGradient, Circle } from '@shopify/react-native-skia';
 import { Save, TrendingUp, Scale, ChevronDown } from 'lucide-react-native';
 
 import { useWorkoutStore } from '../store/useWorkoutStore';
@@ -14,19 +11,13 @@ import AnimatedPressable from './common/AnimatedPressable';
 import SimpleWebChart from './common/SimpleWebChart';
 
 export default function ProfileScreen() {
-  const isWeb = Platform.OS === 'web';
-
   const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
   const bodyWeightLogs = useWorkoutStore(state => state.bodyWeightLogs);
   const logBodyWeight = useWorkoutStore(state => state.logBodyWeight);
-
+  
   const [weightInput, setWeightInput] = useState('');
-
-  // By default, select the first exercise from the DB that has some history, or just the first one.
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>(EXERCISE_DATABASE[0].id);
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
-
-  const screenWidth = Dimensions.get('window').width;
 
   const handleSaveWeight = () => {
     const w = parseFloat(weightInput);
@@ -40,26 +31,12 @@ export default function ProfileScreen() {
     return get1RMTrendData(completedWorkouts, selectedExerciseId);
   }, [completedWorkouts, selectedExerciseId]);
 
-  const bwChartData = useMemo(() => {
-    const recent = bodyWeightLogs.slice(-10);
-    if (recent.length === 0) return { labels: ['N/A'], data: [0] };
-
-    return {
-      labels: recent.map(log => {
-        const d = new Date(log.date);
-        return `${d.getDate()}/${d.getMonth() + 1}`;
-      }),
-      data: recent.map(log => log.weightKg)
-    };
-  }, [bodyWeightLogs]);
-
   const selectedExerciseName = EXERCISE_DATABASE.find(e => e.id === selectedExerciseId)?.name || 'Exercício';
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
       <Text style={styles.pageTitle}>Meu Perfil</Text>
 
-      {/* Bodyweight Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Scale color="#38BDF8" size={24} />
@@ -77,7 +54,7 @@ export default function ProfileScreen() {
               onChangeText={setWeightInput}
             />
             <Text style={styles.kgLabel}>KG</Text>
-
+            
             <AnimatedPressable style={styles.saveBtn} onPress={handleSaveWeight} hapticFeedback="medium">
               <Save color={theme.colors.background} size={20} />
             </AnimatedPressable>
@@ -85,57 +62,21 @@ export default function ProfileScreen() {
 
           {bodyWeightLogs.length > 0 && (
             <View style={{ height: 180, marginTop: 10 }}>
-              {!isWeb ? (
-                <CartesianChart
-                  data={bodyWeightLogs.slice(-10).map((log, i) => ({ x: i, y: log.weightKg }))}
-                  xKey="x"
-                  yKeys={["y"]}
-                  axisOptions={{
-                    tickCount: 5,
-                    labelColor: theme.colors.textMuted,
-                    lineColor: theme.colors.border,
-                    formatYLabel: (v) => `${v}kg`,
-                    formatXLabel: (v) => {
-                      const log = bodyWeightLogs.slice(-10)[v];
-                      if (!log) return '';
-                      const d = new Date(log.date);
-                      return `${d.getDate()}/${d.getMonth() + 1}`;
-                    }
-                  }}
-                >
-                  {({ points, chartBounds }) => (
-                    <Line
-                      points={points.y}
-                      color={theme.colors.secondary}
-                      strokeWidth={3}
-                      curveType="natural"
-                    >
-                      <SkiaGradient
-                        start={vec(0, chartBounds.top)}
-                        end={vec(0, chartBounds.bottom)}
-                        colors={["rgba(56, 189, 248, 0.3)", "transparent"]}
-                      />
-                    </Line>
-                  )}
-                </CartesianChart>
-              ) : (
-                <SimpleWebChart
-                  data={bodyWeightLogs.slice(-10).map((log, i) => ({ x: i, y: log.weightKg }))}
-                  labels={bodyWeightLogs.slice(-10).map(log => {
+              <SimpleWebChart 
+                 data={bodyWeightLogs.slice(-10).map((log, i) => ({ x: i, y: log.weightKg }))}
+                 labels={bodyWeightLogs.slice(-10).map(log => {
                     const d = new Date(log.date);
-                    return `${d.getDate()}/${d.getMonth() + 1}`;
-                  })}
-                  color={theme.colors.secondary}
-                  height={180}
-                  ySuffix="kg"
-                />
-              )}
+                    return `${d.getDate()}/${d.getMonth()+1}`;
+                 })}
+                 color={theme.colors.secondary}
+                 height={180}
+                 ySuffix="kg"
+              />
             </View>
           )}
         </BlurView>
       </View>
 
-      {/* 1RM Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <TrendingUp color="#00E676" size={24} />
@@ -144,11 +85,9 @@ export default function ProfileScreen() {
         <Text style={styles.sectionDesc}>Evolução da carga máxima para 1 repetição limpa (Fórmula de Epley).</Text>
 
         <BlurView intensity={20} tint="dark" style={styles.glassCard}>
-
-          <AnimatedPressable
-            style={styles.dropdownBtn}
+          <AnimatedPressable 
+            style={styles.dropdownBtn} 
             onPress={() => setIsExercisePickerOpen(!isExercisePickerOpen)}
-            hapticFeedback="light"
           >
             <Text style={styles.dropdownText} numberOfLines={1}>{selectedExerciseName}</Text>
             <ChevronDown color={theme.colors.textPrimary} size={20} />
@@ -157,16 +96,15 @@ export default function ProfileScreen() {
           {isExercisePickerOpen && (
             <View style={styles.pickerList}>
               {EXERCISE_DATABASE.map(ex => (
-                <AnimatedPressable
-                  key={ex.id}
+                <AnimatedPressable 
+                  key={ex.id} 
                   style={styles.pickerItem}
                   onPress={() => {
                     setSelectedExerciseId(ex.id);
                     setIsExercisePickerOpen(false);
                   }}
-                  hapticFeedback="light"
                 >
-                  <Text style={[styles.pickerItemText, selectedExerciseId === ex.id && { color: theme.colors.primary, fontFamily: theme.typography.fonts.bold }]}>
+                  <Text style={[styles.pickerItemText, selectedExerciseId === ex.id && { color: theme.colors.primary }]}>
                     {ex.name}
                   </Text>
                 </AnimatedPressable>
@@ -176,48 +114,18 @@ export default function ProfileScreen() {
 
           {!isExercisePickerOpen && (
             <View style={{ height: 240, marginTop: 10 }}>
-              {rmChartData.data.reduce((a, b) => a + b, 0) === 0 ? (
+              {rmChartData.data.reduce((a,b)=>a+b, 0) === 0 ? (
                 <View style={styles.emptyChart}>
                   <Text style={styles.emptyChartText}>Não há histórico suficiente para calcular o 1RM deste exercício.</Text>
                 </View>
               ) : (
-                !isWeb ? (
-                  <CartesianChart
-                    data={rmChartData.data.map((v, i) => ({ x: i, y: v }))}
-                    xKey="x"
-                    yKeys={["y"]}
-                    axisOptions={{
-                      tickCount: 5,
-                      labelColor: theme.colors.textMuted,
-                      lineColor: theme.colors.border,
-                      formatYLabel: (v) => `${Math.round(v)}kg`,
-                      formatXLabel: (v) => rmChartData.labels[v] || '',
-                    }}
-                  >
-                    {({ points, chartBounds }) => (
-                      <Line
-                        points={points.y}
-                        color={theme.colors.primary}
-                        strokeWidth={3}
-                        curveType="natural"
-                      >
-                        <SkiaGradient
-                          start={vec(0, chartBounds.top)}
-                          end={vec(0, chartBounds.bottom)}
-                          colors={["rgba(0, 230, 118, 0.3)", "transparent"]}
-                        />
-                      </Line>
-                    )}
-                  </CartesianChart>
-                ) : (
-                  <SimpleWebChart
-                    data={rmChartData.data.map((v, i) => ({ x: i, y: v }))}
-                    labels={rmChartData.labels}
-                    color={theme.colors.primary}
-                    height={240}
-                    ySuffix="kg"
-                  />
-                )
+                <SimpleWebChart 
+                   data={rmChartData.data.map((v, i) => ({ x: i, y: v }))}
+                   labels={rmChartData.labels}
+                   color={theme.colors.primary}
+                   height={240}
+                   ySuffix="kg"
+                />
               )}
             </View>
           )}
@@ -226,8 +134,6 @@ export default function ProfileScreen() {
     </ScrollView>
   );
 }
-
-// Removed chartConfigBW and chartConfigRM as they are no longer needed.
 
 const styles = StyleSheet.create({
   container: {
@@ -297,14 +203,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.sm,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  chartWrapper: {
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  chart: {
-    borderRadius: theme.radii.md,
-    paddingRight: 40,
   },
   emptyChart: {
     height: 160,
