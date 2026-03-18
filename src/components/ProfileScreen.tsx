@@ -16,7 +16,7 @@ import AnimatedPressable from './common/AnimatedPressable';
 import MuscleHeatmap from './MuscleHeatmap';
 import SimpleWebChart from './common/SimpleWebChart';
 import SessionHistoryTab from './SessionHistoryTab';
-import MiniTonnageChart from './MiniTonnageChart';
+import FluidChart from './common/FluidChart';
 
 export default function ProfileScreen() {
   const isWeb = Platform.OS === 'web';
@@ -283,7 +283,7 @@ export default function ProfileScreen() {
           </View>
           
           <View style={{ marginBottom: 20 }}>
-            <MiniTonnageChart data={tonnageData} />
+            <FluidChart data={tonnageData} height={60} />
           </View>
 
           <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>

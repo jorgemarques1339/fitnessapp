@@ -12,6 +12,13 @@ const COLORS_OLED = {
   textInverse: '#000000',
   border: 'rgba(255, 255, 255, 0.12)',
   borderLight: 'rgba(255, 255, 255, 0.25)',
+  gradients: {
+    success: ['#00E676', '#00C853'],
+    warning: ['#FFA000', '#FF8F00'],
+    danger: ['#FF3366', '#E91E63'],
+    vibrant: ['#00E676', '#38BDF8', '#FFD700'],
+    premium: ['rgba(255,255,255,0.15)', 'rgba(255,255,255,0.02)'],
+  }
 };
 
 const COLORS_FROSTED = {
@@ -28,6 +35,13 @@ const COLORS_FROSTED = {
   textInverse: '#FFFFFF',
   border: 'rgba(0, 0, 0, 0.08)',
   borderLight: 'rgba(0, 0, 0, 0.15)',
+  gradients: {
+    success: ['#059669', '#047857'],
+    warning: ['#B45309', '#92400E'],
+    danger: ['#DC2626', '#B91C1C'],
+    vibrant: ['#059669', '#0284C7', '#B45309'],
+    premium: ['rgba(0,0,0,0.05)', 'rgba(0,0,0,0.01)'],
+  }
 };
 
 export const themeBase = {

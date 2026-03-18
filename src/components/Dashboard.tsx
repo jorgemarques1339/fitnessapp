@@ -9,7 +9,8 @@ import {
   useWindowDimensions, 
   Pressable, 
   GestureResponderEvent,
-  Modal
+  Modal,
+  LayoutAnimation
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -28,6 +29,17 @@ import { soundManager } from '../utils/SoundManager';
 import { calculateMuscleFatigue, MuscleFatigue } from '../utils/fatigue';
 import WeeklyDashboard from './WeeklyDashboard';
 import AICoachCard from './AICoachCard';
+import PremiumCard from './common/PremiumCard';
+import EmptyWorkoutIllustration from './common/EmptyWorkoutIllustration';
+import StatusPill from './common/StatusPill';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withRepeat, 
+  withSequence, 
+  withTiming, 
+  Easing 
+} from 'react-native-reanimated';
 
 
 interface DashboardProps {
@@ -44,6 +56,11 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
   const theme = useAppTheme();
 
   const [isBuilderVisible, setIsBuilderVisible] = React.useState(false);
+  
+  const toggleBuilder = (visible: boolean) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsBuilderVisible(visible);
+  };
 
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -62,6 +79,7 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
   const confirmDelete = () => {
     if (routineToDelete) {
       soundManager.play('pop');
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       deleteCustomRoutine(routineToDelete.id);
       setRoutineToDelete(null);
     }
@@ -115,7 +133,10 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                 hapticFeedback="light"
                 scaleTo={0.97}
               >
-                <BlurView intensity={theme.isDark ? 30 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+                <PremiumCard 
+                  style={styles.recoveryMargin}
+                  variant="alert"
+                >
                   <View style={styles.recoveryContent}>
                     <View style={styles.recoveryIconBox}>
                       <Activity color={theme.colors.danger} size={24} />
@@ -126,7 +147,7 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                     </View>
                     <ChevronRight color={theme.colors.textMuted} size={20} />
                   </View>
-                </BlurView>
+                </PremiumCard>
               </AnimatedPressable>
             )}
 
@@ -138,52 +159,17 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
               showsHorizontalScrollIndicator={false} 
               contentContainerStyle={styles.fatigueScroll}
             >
-              {calculateMuscleFatigue(safeWorkouts).map((item) => {
-                const muscleNames: Record<string, string> = {
-                  'Chest': 'Peito',
-                  'Back': 'Costas',
-                  'Shoulders': 'Ombros',
-                  'Biceps': 'Bíceps',
-                  'Triceps': 'Tríceps',
-                  'Quads': 'Quadríceps',
-                  'Hamstrings': 'Isquios',
-                  'Glutes': 'Glúteos',
-                  'Calves': 'Gémeos',
-                  'Core': 'Core'
-                };
-                
-                const statusColor = item.status === 'Ready' ? '#00E676' : item.status === 'Recovering' ? '#FFA000' : theme.colors.danger;
-
-                return (
-                  <View key={item.muscle} style={[styles.fatigueCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
-                    <View style={styles.fatigueTop}>
-                      <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-                      <Text style={[styles.fatigueLabel, { color: theme.colors.textMuted }]}>{muscleNames[item.muscle] || item.muscle}</Text>
-                    </View>
-                    
-                    <View style={styles.fatigueBody}>
-                      <Text style={[styles.fatiguePercent, { color: theme.colors.textPrimary }]}>{item.recoveryPercent}%</Text>
-                      <View style={styles.fatigueBarBase}>
-                        <View style={[
-                          styles.fatigueBar, 
-                          { 
-                            width: `${item.recoveryPercent}%`, 
-                            backgroundColor: statusColor 
-                          }
-                        ]} />
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
+              {calculateMuscleFatigue(safeWorkouts).map((item) => (
+                <FatigueCard key={item.muscle} item={item} theme={theme} />
+              ))}
             </ScrollView>
 
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>Meus Treinos</Text>
-              <AnimatedPressable 
+                <AnimatedPressable 
                 onPress={() => {
                   soundManager.play('pop');
-                  setIsBuilderVisible(true);
+                  toggleBuilder(true);
                 }} 
                 hapticFeedback="light"
               >
@@ -196,7 +182,18 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
 
             {customRoutines.length === 0 ? (
               <View style={styles.emptyCustomState}>
-                <Text style={styles.emptyCustomText}>Ainda não criou treinos próprios.</Text>
+                <EmptyWorkoutIllustration />
+                <Text style={[styles.emptyCustomText, { color: theme.colors.textPrimary }]}>Nada por aqui ainda...</Text>
+                <Text style={[styles.emptyCustomSubtext, { color: theme.colors.textMuted }]}>
+                  Cria o teu primeiro treino personalizado para começares a evoluir!
+                </Text>
+                <TouchableOpacity 
+                  onPress={() => toggleBuilder(true)}
+                  style={[styles.emptyCreateBtn, { backgroundColor: theme.colors.primary }]}
+                >
+                  <Plus color="#000" size={18} />
+                  <Text style={styles.emptyCreateBtnText}>Criar Treino</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.routinesGrid}>
@@ -207,10 +204,10 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                         soundManager.play('click');
                         onSelectRoutine(routine);
                       }}
-                      style={[styles.cardContainer, { backgroundColor: theme.colors.surfaceHighlight }]}
+                      style={styles.cardContainer}
                       hapticFeedback="medium"
                     >
-                      <BlurView intensity={theme.isDark ? 25 : 45} tint={theme.isDark ? "dark" : "light"} style={styles.glassCard}>
+                      <PremiumCard variant="ghost" intensity={theme.isDark ? 30 : 50}>
                         <View style={[styles.cardIndicator, { backgroundColor: theme.colors.accent }]} />
                         <View style={styles.cardContent}>
                           <View style={styles.cardHeader}>
@@ -236,12 +233,12 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                           <Text style={styles.cardSubtitle}>{routine.subtitle}</Text>
                           
                           <View style={styles.tagContainer}>
-                            <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "light" : "dark"} style={[styles.glassTag, { borderColor: theme.colors.border }]}>
+                            <View style={[styles.glassTag, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
                               <Text style={styles.tagText}>{routine.exercises.length} Excs</Text>
-                            </BlurView>
+                            </View>
                           </View>
                         </View>
-                      </BlurView>
+                      </PremiumCard>
                     </AnimatedPressable>
                   </MagneticView>
                 ))}
@@ -258,10 +255,10 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                         soundManager.play('click');
                         onSelectRoutine(routine);
                     }}
-                    style={[styles.cardContainer, { backgroundColor: theme.colors.surfaceHighlight }]}
+                    style={styles.cardContainer}
                     hapticFeedback="medium"
                   >
-                    <BlurView intensity={theme.isDark ? 25 : 45} tint={theme.isDark ? "dark" : "light"} style={styles.glassCard}>
+                    <PremiumCard variant="ghost" intensity={theme.isDark ? 30 : 50}>
                       <View style={[styles.cardIndicator, { backgroundColor: theme.colors.secondary }]} />
                       <View style={styles.cardContent}>
                         <View style={styles.cardHeader}>
@@ -272,12 +269,12 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                         <Text style={styles.cardSubtitle}>{routine.subtitle}</Text>
                         
                         <View style={styles.tagContainer}>
-                          <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "light" : "dark"} style={[styles.glassTag, { borderColor: theme.colors.border }]}>
+                          <View style={[styles.glassTag, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
                             <Text style={styles.tagText}>{routine.exercises.length} Excs</Text>
-                          </BlurView>
+                          </View>
                         </View>
                       </View>
-                    </BlurView>
+                    </PremiumCard>
                   </AnimatedPressable>
                 </MagneticView>
               ))}
@@ -287,7 +284,7 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
 
         <RoutineBuilderModal 
           visible={isBuilderVisible}
-          onClose={() => setIsBuilderVisible(false)}
+          onClose={() => toggleBuilder(false)}
           onSave={(routine) => saveCustomRoutine(routine)}
         />
 
@@ -323,6 +320,75 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
         </Modal>
       </SafeAreaView>
     </LinearGradient>
+  );
+}
+
+function FatigueCard({ item, theme }: { item: any, theme: any }) {
+  const muscleNames: Record<string, string> = {
+    'Chest': 'Peito',
+    'Back': 'Costas',
+    'Shoulders': 'Ombros',
+    'Biceps': 'Bíceps',
+    'Triceps': 'Tríceps',
+    'Quads': 'Quadríceps',
+    'Hamstrings': 'Isquios',
+    'Glutes': 'Glúteos',
+    'Calves': 'Gémeos',
+    'Core': 'Core'
+  };
+
+  const isCritical = item.recoveryPercent < 30;
+  const statusColor = item.status === 'Ready' ? '#00E676' : item.status === 'Recovering' ? '#FFA000' : theme.colors.danger;
+
+  const pulse = useSharedValue(1);
+  React.useEffect(() => {
+    if (isCritical) {
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(0.6, { duration: 1000, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.sin) })
+        ),
+        -1,
+        true
+      );
+    }
+  }, [isCritical]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: pulse.value,
+  }));
+
+  return (
+    <Animated.View 
+      style={[
+        styles.fatigueCard, 
+        { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border },
+        isCritical && { borderColor: theme.colors.danger },
+        isCritical && animatedStyle
+      ]}
+    >
+      <View style={styles.fatigueTop}>
+        <Text style={[styles.fatigueLabel, { color: theme.colors.textMuted }]}>{muscleNames[item.muscle] || item.muscle}</Text>
+        <StatusPill 
+          label={item.status === 'Ready' ? 'Pronto' : item.status === 'Recovering' ? 'Médio' : 'Baixo'} 
+          type={item.status === 'Ready' ? 'success' : item.status === 'Recovering' ? 'warning' : 'danger'}
+          style={styles.miniPill}
+        />
+      </View>
+      
+      <View style={styles.fatigueBody}>
+        <Text style={[styles.fatiguePercent, { color: theme.colors.textPrimary }]}>{item.recoveryPercent}%</Text>
+        <View style={styles.fatigueBarBase}>
+          <View style={[
+            styles.fatigueBar, 
+            { 
+              width: `${item.recoveryPercent}%`, 
+              backgroundColor: statusColor 
+            }
+          ]} />
+        </View>
+      </View>
+    </Animated.View>
   );
 }
 
@@ -391,36 +457,61 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   emptyCustomState: {
-    padding: theme.spacing.lg,
-    borderRadius: theme.radii.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderStyle: 'dashed',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: theme.spacing.xl * 2,
+    backgroundColor: 'transparent',
   },
   emptyCustomText: {
-    color: theme.colors.textMuted,
+    fontSize: theme.typography.sizes.xl,
+    fontFamily: theme.typography.fonts.displayBlack,
+    color: theme.colors.textPrimary,
+    marginTop: theme.spacing.md,
+    textAlign: 'center',
+  },
+  emptyCustomSubtext: {
+    fontSize: theme.typography.sizes.sm,
     fontFamily: theme.typography.fonts.medium,
-    fontSize: theme.typography.sizes.md,
-    fontStyle: 'italic',
+    color: theme.colors.textMuted,
+    textAlign: 'center',
+    paddingHorizontal: theme.spacing.xl * 2,
+    marginTop: theme.spacing.xs,
+    lineHeight: 20,
+  },
+  emptyCreateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    paddingVertical: theme.spacing.md,
+    borderRadius: theme.radii.round,
+    marginTop: theme.spacing.xl,
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  emptyCreateBtnText: {
+    color: '#000',
+    fontFamily: theme.typography.fonts.bold,
+    fontSize: theme.typography.sizes.sm,
   },
   routinesGrid: {
     gap: theme.spacing.md,
+    marginTop: theme.spacing.md,
   },
   cardContainer: {
-    overflow: 'hidden',
     borderRadius: theme.radii.lg,
-    backgroundColor: 'rgba(255, 255, 255, 0.03)',
-  },
-  glassCard: {
-    flexDirection: 'row',
-    borderRadius: theme.radii.lg,
-    overflow: 'hidden',
-    ...theme.shadows.soft,
+    marginBottom: theme.spacing.md,
   },
   cardIndicator: {
     width: 6,
-    backgroundColor: theme.colors.secondary,
+    height: '60%',
+    position: 'absolute',
+    left: 0,
+    top: '20%',
+    borderRadius: 3,
   },
   cardContent: {
     flex: 1,
@@ -460,7 +551,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.radii.md,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   tagText: {
     color: theme.colors.textPrimary,
@@ -518,21 +608,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   fatigueTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: 4,
     marginBottom: 8,
   },
-  statusDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
+  miniPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 50,
   },
   fatigueLabel: {
     fontSize: 9,
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 1,
+    marginBottom: 2,
   },
   fatigueBody: {
     flexDirection: 'column',

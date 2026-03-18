@@ -19,6 +19,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { CompletedWorkout } from '../store/useWorkoutStore';
 import { RoutineDef } from '../data/routines';
+import { theme } from '../theme/theme';
 import { useAppTheme } from '../hooks/useAppTheme';
 import {
   getWorkoutRecommendation,
@@ -26,6 +27,8 @@ import {
   getMuscleVolumeAdvice,
   MuscleVolumeAdvice,
 } from '../utils/aiCoach';
+import PremiumCard from './common/PremiumCard';
+import StatusPill from './common/StatusPill';
 
 interface Props {
   completedWorkouts: CompletedWorkout[];
@@ -65,15 +68,16 @@ export default function AICoachCard({ completedWorkouts, routines, onSelectRouti
       {/* ── 1. Deload Alert (shown first if urgent) ── */}
       {deload.needsDeload && (
         <Animated.View entering={FadeInDown.duration(400)}>
-          <LinearGradient
-            colors={['rgba(255,100,0,0.18)', 'rgba(255,60,0,0.08)']}
-            style={[styles.alertCard, { borderColor: 'rgba(255,120,0,0.4)' }]}
+          <PremiumCard
+            variant="alert"
+            style={styles.alertCardMargin}
+            innerStyle={styles.alertCardPadding}
           >
             <View style={styles.alertRow}>
               <AlertTriangle color="#FF6B35" size={20} />
               <Text style={styles.alertTitle}>SEMANA DE DELOAD RECOMENDADA</Text>
             </View>
-            <Text style={[styles.alertReason, { color: 'rgba(255,255,255,0.7)' }]}>
+            <Text style={[styles.alertReason, { color: theme.isDark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }]}>
               {deload.reason}
             </Text>
             <View style={[styles.alertTip, { backgroundColor: 'rgba(255,107,53,0.15)' }]}>
@@ -81,84 +85,85 @@ export default function AICoachCard({ completedWorkouts, routines, onSelectRouti
                 💡 {deload.recommendation}
               </Text>
             </View>
-          </LinearGradient>
+          </PremiumCard>
         </Animated.View>
       )}
 
       {/* ── 2. Daily Workout Recommendation ── */}
       {recommendation.bestRoutine && (
         <Animated.View entering={FadeInDown.duration(400).delay(80)}>
-          <BlurView
-            intensity={theme.isDark ? 20 : 40}
-            tint={theme.isDark ? 'dark' : 'light'}
-            style={[styles.card, { borderColor: 'rgba(0,230,118,0.25)' }]}
+          <PremiumCard
+            variant="primary"
+            style={styles.cardMargin}
           >
-            <View style={styles.cardRow}>
-              <View style={styles.recommendBadge}>
-                <Text style={styles.recommendEmoji}>💪</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.cardLabel, { color: theme.colors.textMuted }]}>TREINO RECOMENDADO HOJE</Text>
-                <Text style={[styles.routineTitle, { color: theme.colors.textPrimary }]} numberOfLines={2}>
-                  {recommendation.bestRoutine.title}
-                </Text>
-              </View>
-            </View>
-
-            {/* Recovery mini-bars for this routine's muscles */}
-            <View style={styles.recoveryRow}>
-              {recommendation.recoverySnapshot.map((m, i) => (
-                <View key={i} style={styles.recoveryItem}>
-                  <View style={styles.recoveryBarTrack}>
-                    <View style={[
-                      styles.recoveryBarFill,
-                      {
-                        width: `${m.pct}%` as any,
-                        backgroundColor: m.pct >= 80 ? '#00E676' : m.pct >= 50 ? '#FFA000' : '#FF6B35',
-                      }
-                    ]} />
-                  </View>
-                  <Text style={[styles.recoveryLabel, { color: theme.colors.textMuted }]}>{m.muscle}</Text>
+            <View style={styles.cardPadding}>
+              <View style={styles.cardRow}>
+                <View style={styles.recommendBadge}>
+                  <Text style={styles.recommendEmoji}>💪</Text>
                 </View>
-              ))}
-            </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.cardLabel, { color: theme.colors.textMuted }]}>TREINO RECOMENDADO HOJE</Text>
+                  <Text style={[styles.routineTitle, { color: theme.colors.textPrimary }]} numberOfLines={2}>
+                    {recommendation.bestRoutine.title}
+                  </Text>
+                </View>
+              </View>
 
-            <Text style={[styles.cardReason, { color: theme.colors.textSecondary }]}>
-              {recommendation.reason}
-            </Text>
+              {/* Recovery mini-bars for this routine's muscles */}
+              <View style={styles.recoveryRow}>
+                {recommendation.recoverySnapshot.map((m, i) => (
+                  <View key={i} style={styles.recoveryItem}>
+                    <View style={styles.recoveryBarTrack}>
+                      <View style={[
+                        styles.recoveryBarFill,
+                        {
+                          width: `${m.pct}%` as any,
+                          backgroundColor: m.pct >= 80 ? '#00E676' : m.pct >= 50 ? '#FFA000' : '#FF6B35',
+                        }
+                      ]} />
+                    </View>
+                    <Text style={[styles.recoveryLabel, { color: theme.colors.textMuted }]}>{m.muscle}</Text>
+                  </View>
+                ))}
+              </View>
 
-            {recommendation.fatiguredMuscleNames.length > 0 && (
-              <Text style={[styles.fatigueNote, { color: 'rgba(255,160,0,0.9)' }]}>
-                ⏳ A recuperar: {recommendation.fatiguredMuscleNames.slice(0, 3).join(', ')}
+              <Text style={[styles.cardReason, { color: theme.colors.textSecondary }]}>
+                {recommendation.reason}
               </Text>
-            )}
 
-            <TouchableOpacity
-              onPress={() => onSelectRoutine(recommendation.bestRoutine!)}
-              style={styles.startButton}
-              activeOpacity={0.8}
-            >
-              <LinearGradient
-                colors={['#00E676', '#00BCD4']}
-                style={styles.startGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+              {recommendation.fatiguredMuscleNames.length > 0 && (
+                <Text style={[styles.fatigueNote, { color: 'rgba(255,160,0,0.9)' }]}>
+                  ⏳ A recuperar: {recommendation.fatiguredMuscleNames.slice(0, 3).join(', ')}
+                </Text>
+              )}
+
+              <TouchableOpacity
+                onPress={() => onSelectRoutine(recommendation.bestRoutine!)}
+                style={styles.startButton}
+                activeOpacity={0.8}
               >
-                <Zap color="#000" size={16} />
-                <Text style={styles.startButtonText}>Iniciar Este Treino</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </BlurView>
+                <LinearGradient
+                  colors={['#00E676', '#00BCD4']}
+                  style={styles.startGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Zap color="#000" size={16} />
+                  <Text style={styles.startButtonText}>Iniciar Este Treino</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </PremiumCard>
         </Animated.View>
       )}
 
       {/* ── 3. Volume Adjustment Advice ── */}
       {hasVolumeData && (
         <Animated.View entering={FadeInDown.duration(400).delay(160)}>
-          <BlurView
+          <PremiumCard
+            variant="default"
             intensity={theme.isDark ? 20 : 40}
-            tint={theme.isDark ? 'dark' : 'light'}
-            style={[styles.card, { borderColor: theme.colors.border }]}
+            innerStyle={styles.volumeCardPadding}
           >
             <TouchableOpacity
               onPress={() => setVolumeExpanded(v => !v)}
@@ -187,7 +192,7 @@ export default function AICoachCard({ completedWorkouts, routines, onSelectRouti
                 </Text>
               </View>
             )}
-          </BlurView>
+          </PremiumCard>
         </Animated.View>
       )}
     </View>
@@ -213,7 +218,11 @@ function VolumeRow({ item }: { item: MuscleVolumeAdvice }) {
         <Text style={[styles.muscleName, { color: theme.colors.textPrimary }]}>{item.musclePt}</Text>
       </View>
       <View style={styles.volumeRight}>
-        <Text style={[styles.trendBadge, { color, borderColor: color }]}>{trendStr}</Text>
+        <StatusPill 
+          label={trendStr} 
+          type={item.advice === 'increase' ? 'success' : item.advice === 'decrease' ? 'danger' : 'neutral'}
+          style={styles.trendPill}
+        />
         <Text style={[styles.weeklySetsBadge, { color: theme.colors.textMuted }]}>{item.weeklySets} séries</Text>
       </View>
       <Text style={[styles.volumeMessage, { color: theme.colors.textSecondary }]}>{item.message}</Text>
@@ -240,9 +249,10 @@ const styles = StyleSheet.create({
   },
 
   // Alert Card (deload)
-  alertCard: {
-    borderRadius: 18,
-    borderWidth: 1,
+  alertCardMargin: {
+    marginVertical: 4,
+  },
+  alertCardPadding: {
     padding: 16,
     gap: 10,
   },
@@ -255,7 +265,7 @@ const styles = StyleSheet.create({
     color: '#FF6B35',
     fontWeight: '900',
     fontSize: 12,
-    letterSpacing: 0.5,
+    letterSpacing: 1,
     textTransform: 'uppercase',
   },
   alertReason: {
@@ -264,16 +274,12 @@ const styles = StyleSheet.create({
   },
   alertTip: {
     padding: 10,
-    borderRadius: 10,
+    borderRadius: 12,
   },
 
   // Recommendation Card
-  card: {
-    borderRadius: 18,
-    borderWidth: 1,
+  volumeCardPadding: {
     padding: 14,
-    overflow: 'hidden',
-    gap: 10,
   },
   cardRow: {
     flexDirection: 'row',
@@ -338,7 +344,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   startButton: {
-    borderRadius: 30,
+    borderRadius: theme.radii.round,
     overflow: 'hidden',
     shadowColor: '#00E676',
     shadowOffset: { width: 0, height: 4 },
@@ -393,13 +399,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  trendBadge: {
-    fontSize: 11,
-    fontWeight: '800',
-    borderWidth: 1,
-    borderRadius: 6,
+  cardMargin: {
+    marginVertical: 4,
+  },
+  cardPadding: {
+    padding: 14,
+    gap: 10,
+  },
+  trendPill: {
+    minWidth: 45,
     paddingHorizontal: 6,
-    paddingVertical: 1,
+    paddingVertical: 2,
   },
   weeklySetsBadge: {
     fontSize: 10,

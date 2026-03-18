@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, KeyboardAvoidingView, Platform, useWindowDimensions, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { calculateProgression, SetData } from '../utils/progression';
@@ -17,6 +18,7 @@ import { soundManager } from '../utils/SoundManager';
 import ExerciseSelector from './logger/ExerciseSelector';
 import RestTimerOverlay from './logger/RestTimerOverlay';
 import LoggingInterface from './logger/LoggingInterface';
+import SuccessGlow from './common/SuccessGlow';
 
 export default function WorkoutLogger() {
   const insets = useSafeAreaInsets();
@@ -52,6 +54,7 @@ export default function WorkoutLogger() {
   const [suggestedWeight, setSuggestedWeight] = useState<number | undefined>(undefined);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [exerciseToSwap, setExerciseToSwap] = useState<ExerciseDef | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Timer Hook
   const { remainingSeconds, isActive, startTimer, stopTimer } = useWorkoutTimer();
@@ -102,7 +105,19 @@ export default function WorkoutLogger() {
       note: currentNote.trim() || undefined,
     });
     
-    soundManager.play('complete');
+    // Check for Personal Record (PR) - if current weight > max weight in previous session
+    const prevLog = getPreviousExerciseLog(currentExercise.id);
+    const prevMaxWeight = prevLog?.sets.reduce((max, s) => Math.max(max, parseFloat(s.weightKg)), 0) || 0;
+    const isPR = parseFloat(currentWeight) > prevMaxWeight && prevMaxWeight > 0;
+
+    if (isPR) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setShowSuccess(true);
+      soundManager.play('success');
+    } else {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      soundManager.play('complete');
+    }
     
     // AI Progression Logic (Update suggestion after each set)
     const simulatedArrayForAI = [...currentExerciseSets, {
@@ -240,6 +255,10 @@ export default function WorkoutLogger() {
                 setExerciseToSwap(null);
               }}
             />
+
+            {showSuccess && (
+              <SuccessGlow onAnimationComplete={() => setShowSuccess(false)} />
+            )}
 
           </View>
         </KeyboardAvoidingView>

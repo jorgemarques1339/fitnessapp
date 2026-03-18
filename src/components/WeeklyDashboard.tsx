@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingUp, TrendingDown, Minus, Dumbbell, Calendar } from 'lucide-react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, Easing } from 'react-native-reanimated';
 
 import { CompletedWorkout } from '../store/useWorkoutStore';
 import { useAppTheme } from '../hooks/useAppTheme';
@@ -130,8 +130,28 @@ function MuscleBar({ item, maxSets, index }: { item: MuscleVolume; maxSets: numb
     item.status === 'above'   ? '#FF6B35' :
                                 '#FFA000';
 
+  const isAbove = item.status === 'above';
+  const pulse = useSharedValue(1);
+
+  useEffect(() => {
+    if (isAbove) {
+      pulse.value = withRepeat(
+        withSequence(
+          withTiming(0.7, { duration: 1000, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.sin) })
+        ),
+        -1,
+        true
+      );
+    }
+  }, [isAbove]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: pulse.value,
+  }));
+
   return (
-    <Animated.View entering={FadeInDown.delay(index * 50)} style={styles.barRow}>
+    <Animated.View entering={FadeInDown.delay(index * 50)} style={[styles.barRow, isAbove && animatedStyle]}>
       <Text style={[styles.barLabel, { color: theme.colors.textSecondary }]}>{item.musclePt}</Text>
       <View style={styles.barTrackWrapper}>
         {/* Green hypertrophy zone (10–20 sets) */}
