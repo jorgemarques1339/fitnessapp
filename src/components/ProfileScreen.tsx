@@ -4,13 +4,16 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CartesianChart, Line, useChartPressState } from 'victory-native';
 import { vec, LinearGradient as SkiaGradient, Circle } from '@shopify/react-native-skia';
-import { Save, TrendingUp, Scale, ChevronDown } from 'lucide-react-native';
+import { Save, TrendingUp, Scale, ChevronDown, Activity } from 'lucide-react-native';
 
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { get1RMTrendData } from '../utils/math';
 import { EXERCISE_DATABASE } from '../data/exercises';
 import { theme } from '../theme/theme';
+import { useAppTheme } from '../hooks/useAppTheme';
+import { soundManager } from '../utils/SoundManager';
 import AnimatedPressable from './common/AnimatedPressable';
+import MuscleHeatmap from './MuscleHeatmap';
 import SimpleWebChart from './common/SimpleWebChart';
 
 export default function ProfileScreen() {
@@ -19,12 +22,14 @@ export default function ProfileScreen() {
   const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
   const bodyWeightLogs = useWorkoutStore(state => state.bodyWeightLogs);
   const logBodyWeight = useWorkoutStore(state => state.logBodyWeight);
+  const theme = useAppTheme();
 
   const [weightInput, setWeightInput] = useState('');
 
   // By default, select the first exercise from the DB that has some history, or just the first one.
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>(EXERCISE_DATABASE[0].id);
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'stats' | 'heatmap'>('stats');
 
   const screenWidth = Dimensions.get('window').width;
 
@@ -56,173 +61,220 @@ export default function ProfileScreen() {
   const selectedExerciseName = EXERCISE_DATABASE.find(e => e.id === selectedExerciseId)?.name || 'Exercício';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-      <Text style={styles.pageTitle}>Meu Perfil</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+      <Text style={[styles.pageTitle, { color: theme.colors.textPrimary }]}>Meu Perfil</Text>
 
-      {/* Bodyweight Section */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Scale color="#38BDF8" size={24} />
-          <Text style={styles.sectionTitle}>Peso Corporal</Text>
-        </View>
+      {/* Profile Tabs */}
+      <View style={[styles.tabContainer, { backgroundColor: theme.colors.surfaceHighlight }]}>
+        <AnimatedPressable 
+          style={[styles.tab, activeTab === 'stats' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+          onPress={() => {
+            soundManager.play('click');
+            setActiveTab('stats');
+          }}
+        >
+          <Text style={[styles.tabText, { color: activeTab === 'stats' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Estatísticas</Text>
+        </AnimatedPressable>
+        <AnimatedPressable 
+          style={[styles.tab, activeTab === 'heatmap' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+          onPress={() => {
+            soundManager.play('click');
+            setActiveTab('heatmap');
+          }}
+        >
+          <Text style={[styles.tabText, { color: activeTab === 'heatmap' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Mapa Muscular</Text>
+        </AnimatedPressable>
+      </View>
 
-        <BlurView intensity={20} tint="dark" style={styles.glassCard}>
-          <View style={styles.weightInputRow}>
-            <TextInput
-              style={styles.weightInput}
-              keyboardType="numeric"
-              placeholder="Ex: 80.5"
-              placeholderTextColor="rgba(255,255,255,0.3)"
-              value={weightInput}
-              onChangeText={setWeightInput}
-            />
-            <Text style={styles.kgLabel}>KG</Text>
+      {activeTab === 'stats' ? (
+        <>
+          {/* Bodyweight Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Scale color={theme.colors.secondary} size={24} />
+              <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Peso Corporal</Text>
+            </View>
 
-            <AnimatedPressable style={styles.saveBtn} onPress={handleSaveWeight} hapticFeedback="medium">
-              <Save color={theme.colors.background} size={20} />
-            </AnimatedPressable>
+            <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+              <View style={[styles.weightInputRow, { backgroundColor: theme.colors.surfaceHighlight }]}>
+                <TextInput
+                  style={[styles.weightInput, { color: theme.colors.textPrimary }]}
+                  keyboardType="numeric"
+                  placeholder="Ex: 80.5"
+                  placeholderTextColor={theme.colors.textMuted}
+                  value={weightInput}
+                  onChangeText={setWeightInput}
+                />
+                <Text style={styles.kgLabel}>KG</Text>
+                
+                <AnimatedPressable 
+                  style={[styles.saveBtn, { backgroundColor: theme.colors.secondary }]} 
+                  onPress={() => {
+                    soundManager.play('pop');
+                    handleSaveWeight();
+                  }} 
+                  hapticFeedback="medium"
+                >
+                  <Save color={theme.colors.background} size={20} />
+                </AnimatedPressable>
+              </View>
+
+              {bodyWeightLogs.length > 0 && (
+                <View style={{ height: 180, marginTop: 10 }}>
+                  {!isWeb ? (
+                    <CartesianChart
+                      data={bodyWeightLogs.slice(-10).map((log, i) => ({ x: i, y: log.weightKg }))}
+                      xKey="x"
+                      yKeys={["y"]}
+                      axisOptions={{
+                        tickCount: 5,
+                        labelColor: theme.colors.textMuted,
+                        lineColor: theme.colors.border,
+                        formatYLabel: (v) => `${v}kg`,
+                        formatXLabel: (v) => {
+                          const log = bodyWeightLogs.slice(-10)[v];
+                          if (!log) return '';
+                          const d = new Date(log.date);
+                          return `${d.getDate()}/${d.getMonth() + 1}`;
+                        }
+                      }}
+                    >
+                      {({ points, chartBounds }) => (
+                        <Line
+                          points={points.y}
+                          color={theme.colors.secondary}
+                          strokeWidth={3}
+                          curveType="natural"
+                        >
+                          <SkiaGradient
+                            start={vec(0, chartBounds.top)}
+                            end={vec(0, chartBounds.bottom)}
+                            colors={["rgba(56, 189, 248, 0.3)", "transparent"]}
+                          />
+                        </Line>
+                      )}
+                    </CartesianChart>
+                  ) : (
+                    <SimpleWebChart
+                      data={bodyWeightLogs.slice(-10).map((log, i) => ({ x: i, y: log.weightKg }))}
+                      labels={bodyWeightLogs.slice(-10).map(log => {
+                        const d = new Date(log.date);
+                        return `${d.getDate()}/${d.getMonth() + 1}`;
+                      })}
+                      color={theme.colors.secondary}
+                      height={180}
+                      ySuffix="kg"
+                    />
+                  )}
+                </View>
+              )}
+            </BlurView>
           </View>
 
-          {bodyWeightLogs.length > 0 && (
-            <View style={{ height: 180, marginTop: 10 }}>
-              {!isWeb ? (
-                <CartesianChart
-                  data={bodyWeightLogs.slice(-10).map((log, i) => ({ x: i, y: log.weightKg }))}
-                  xKey="x"
-                  yKeys={["y"]}
-                  axisOptions={{
-                    tickCount: 5,
-                    labelColor: theme.colors.textMuted,
-                    lineColor: theme.colors.border,
-                    formatYLabel: (v) => `${v}kg`,
-                    formatXLabel: (v) => {
-                      const log = bodyWeightLogs.slice(-10)[v];
-                      if (!log) return '';
-                      const d = new Date(log.date);
-                      return `${d.getDate()}/${d.getMonth() + 1}`;
-                    }
-                  }}
-                >
-                  {({ points, chartBounds }) => (
-                    <Line
-                      points={points.y}
-                      color={theme.colors.secondary}
-                      strokeWidth={3}
-                      curveType="natural"
+          {/* 1RM Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <TrendingUp color={theme.colors.primary} size={24} />
+              <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Força Bruta (1RM Estimado)</Text>
+            </View>
+            <Text style={[styles.sectionDesc, { color: theme.colors.textSecondary }]}>Evolução da carga máxima para 1 repetição limpa (Fórmula de Epley).</Text>
+
+            <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+              
+              <AnimatedPressable 
+                style={[styles.dropdownBtn, { backgroundColor: theme.colors.surfaceHighlight }]} 
+                onPress={() => {
+                  soundManager.play('click');
+                  setIsExercisePickerOpen(!isExercisePickerOpen);
+                }}
+                hapticFeedback="light"
+              >
+                <Text style={[styles.dropdownText, { color: theme.colors.textPrimary }]} numberOfLines={1}>{selectedExerciseName}</Text>
+                <ChevronDown color={theme.colors.textPrimary} size={20} />
+              </AnimatedPressable>
+
+              {isExercisePickerOpen && (
+                <View style={styles.pickerList}>
+                  {EXERCISE_DATABASE.map(ex => (
+                    <AnimatedPressable 
+                      key={ex.id} 
+                      style={styles.pickerItem}
+                      onPress={() => {
+                        setSelectedExerciseId(ex.id);
+                        setIsExercisePickerOpen(false);
+                      }}
+                      hapticFeedback="light"
                     >
-                      <SkiaGradient
-                        start={vec(0, chartBounds.top)}
-                        end={vec(0, chartBounds.bottom)}
-                        colors={["rgba(56, 189, 248, 0.3)", "transparent"]}
-                      />
-                    </Line>
-                  )}
-                </CartesianChart>
-              ) : (
-                <SimpleWebChart
-                  data={bodyWeightLogs.slice(-10).map((log, i) => ({ x: i, y: log.weightKg }))}
-                  labels={bodyWeightLogs.slice(-10).map(log => {
-                    const d = new Date(log.date);
-                    return `${d.getDate()}/${d.getMonth() + 1}`;
-                  })}
-                  color={theme.colors.secondary}
-                  height={180}
-                  ySuffix="kg"
-                />
-              )}
-            </View>
-          )}
-        </BlurView>
-      </View>
-
-      {/* 1RM Section */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <TrendingUp color="#00E676" size={24} />
-          <Text style={styles.sectionTitle}>Força Bruta (1RM Estimado)</Text>
-        </View>
-        <Text style={styles.sectionDesc}>Evolução da carga máxima para 1 repetição limpa (Fórmula de Epley).</Text>
-
-        <BlurView intensity={20} tint="dark" style={styles.glassCard}>
-
-          <AnimatedPressable
-            style={styles.dropdownBtn}
-            onPress={() => setIsExercisePickerOpen(!isExercisePickerOpen)}
-            hapticFeedback="light"
-          >
-            <Text style={styles.dropdownText} numberOfLines={1}>{selectedExerciseName}</Text>
-            <ChevronDown color={theme.colors.textPrimary} size={20} />
-          </AnimatedPressable>
-
-          {isExercisePickerOpen && (
-            <View style={styles.pickerList}>
-              {EXERCISE_DATABASE.map(ex => (
-                <AnimatedPressable
-                  key={ex.id}
-                  style={styles.pickerItem}
-                  onPress={() => {
-                    setSelectedExerciseId(ex.id);
-                    setIsExercisePickerOpen(false);
-                  }}
-                  hapticFeedback="light"
-                >
-                  <Text style={[styles.pickerItemText, selectedExerciseId === ex.id && { color: theme.colors.primary, fontFamily: theme.typography.fonts.bold }]}>
-                    {ex.name}
-                  </Text>
-                </AnimatedPressable>
-              ))}
-            </View>
-          )}
-
-          {!isExercisePickerOpen && (
-            <View style={{ height: 240, marginTop: 10 }}>
-              {rmChartData.data.reduce((a, b) => a + b, 0) === 0 ? (
-                <View style={styles.emptyChart}>
-                  <Text style={styles.emptyChartText}>Não há histórico suficiente para calcular o 1RM deste exercício.</Text>
+                      <Text style={[styles.pickerItemText, selectedExerciseId === ex.id && { color: theme.colors.primary, fontFamily: theme.typography.fonts.bold }]}>
+                        {ex.name}
+                      </Text>
+                    </AnimatedPressable>
+                  ))}
                 </View>
-              ) : (
-                !isWeb ? (
-                  <CartesianChart
-                    data={rmChartData.data.map((v, i) => ({ x: i, y: v }))}
-                    xKey="x"
-                    yKeys={["y"]}
-                    axisOptions={{
-                      tickCount: 5,
-                      labelColor: theme.colors.textMuted,
-                      lineColor: theme.colors.border,
-                      formatYLabel: (v) => `${Math.round(v)}kg`,
-                      formatXLabel: (v) => rmChartData.labels[v] || '',
-                    }}
-                  >
-                    {({ points, chartBounds }) => (
-                      <Line
-                        points={points.y}
-                        color={theme.colors.primary}
-                        strokeWidth={3}
-                        curveType="natural"
-                      >
-                        <SkiaGradient
-                          start={vec(0, chartBounds.top)}
-                          end={vec(0, chartBounds.bottom)}
-                          colors={["rgba(0, 230, 118, 0.3)", "transparent"]}
-                        />
-                      </Line>
-                    )}
-                  </CartesianChart>
-                ) : (
-                  <SimpleWebChart
-                    data={rmChartData.data.map((v, i) => ({ x: i, y: v }))}
-                    labels={rmChartData.labels}
-                    color={theme.colors.primary}
-                    height={240}
-                    ySuffix="kg"
-                  />
-                )
               )}
-            </View>
-          )}
-        </BlurView>
-      </View>
+
+              {!isExercisePickerOpen && (
+                <View style={{ height: 240, marginTop: 10 }}>
+                  {rmChartData.data.reduce((a,b)=>a+b, 0) === 0 ? (
+                    <View style={styles.emptyChart}>
+                      <Text style={styles.emptyChartText}>Não há histórico suficiente para calcular o 1RM deste exercício.</Text>
+                    </View>
+                  ) : (
+                    !isWeb ? (
+                      <CartesianChart
+                        data={rmChartData.data.map((v, i) => ({ x: i, y: v }))}
+                        xKey="x"
+                        yKeys={["y"]}
+                        axisOptions={{
+                          tickCount: 5,
+                          labelColor: theme.colors.textMuted,
+                          lineColor: theme.colors.border,
+                          formatYLabel: (v) => `${Math.round(v)}kg`,
+                          formatXLabel: (v) => rmChartData.labels[v] || '',
+                        }}
+                      >
+                        {({ points, chartBounds }) => (
+                          <Line
+                            points={points.y}
+                            color={theme.colors.primary}
+                            strokeWidth={3}
+                            curveType="natural"
+                          >
+                            <SkiaGradient
+                              start={vec(0, chartBounds.top)}
+                              end={vec(0, chartBounds.bottom)}
+                              colors={["rgba(0, 230, 118, 0.3)", "transparent"]}
+                            />
+                          </Line>
+                        )}
+                      </CartesianChart>
+                    ) : (
+                      <SimpleWebChart 
+                        data={rmChartData.data.map((v, i) => ({ x: i, y: v }))}
+                        labels={rmChartData.labels}
+                        color={theme.colors.primary}
+                        height={240}
+                        ySuffix="kg"
+                      />
+                    )
+                  )}
+                </View>
+              )}
+            </BlurView>
+          </View>
+        </>
+      ) : (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Activity color={theme.colors.primary} size={24} />
+            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Intensidade de Volume</Text>
+          </View>
+          
+          <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+            <MuscleHeatmap completedWorkouts={completedWorkouts} />
+          </BlurView>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -234,6 +286,30 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: theme.spacing.xl,
     paddingTop: 20,
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    marginBottom: theme.spacing.xl,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: theme.radii.md,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: theme.radii.sm,
+  },
+  activeTab: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  tabText: {
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fonts.bold,
+    fontSize: theme.typography.sizes.sm,
+  },
+  activeTabText: {
+    color: theme.colors.textPrimary,
   },
   pageTitle: {
     fontSize: theme.typography.sizes.display,

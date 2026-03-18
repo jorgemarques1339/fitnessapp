@@ -4,6 +4,9 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Search, ArrowRightLeft } from 'lucide-react-native';
 import { EXERCISE_DATABASE, ExerciseDef } from '../data/exercises';
+import { useAppTheme } from '../hooks/useAppTheme';
+import { soundManager } from '../utils/SoundManager';
+import { theme } from '../theme/theme';
 
 interface ExerciseSwapModalProps {
   visible: boolean;
@@ -14,6 +17,7 @@ interface ExerciseSwapModalProps {
 
 export default function ExerciseSwapModal({ visible, onClose, onSelectSwap, exerciseToReplace }: ExerciseSwapModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const theme = useAppTheme();
 
   if (!visible || !exerciseToReplace) return null;
 
@@ -34,27 +38,33 @@ export default function ExerciseSwapModal({ visible, onClose, onSelectSwap, exer
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <LinearGradient colors={['#0F172A', '#000000']} style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Substituir Máquina</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X color="#FFF" size={24} />
+      <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={[styles.container, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+          <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Substituir Máquina</Text>
+          <TouchableOpacity 
+            onPress={() => {
+              soundManager.play('click');
+              onClose();
+            }} 
+            style={[styles.closeButton, { backgroundColor: theme.colors.surfaceHighlight }]}
+          >
+            <X color={theme.colors.textPrimary} size={24} />
           </TouchableOpacity>
         </View>
 
-        <View style={styles.contextBox}>
-          <Text style={styles.contextLabel}>A TROCAR</Text>
-          <Text style={styles.contextExercise}>{exerciseToReplace.name}</Text>
+        <View style={[styles.contextBox, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.secondary }]}>
+          <Text style={[styles.contextLabel, { color: theme.colors.secondary }]}>A TROCAR</Text>
+          <Text style={[styles.contextExercise, { color: theme.colors.textPrimary }]}>{exerciseToReplace.name}</Text>
         </View>
 
-        <View style={styles.searchBar}>
-          <Search color="rgba(255,255,255,0.5)" size={20} style={styles.searchIcon} />
+        <View style={[styles.searchBar, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+          <Search color={theme.colors.textMuted} size={20} style={styles.searchIcon} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: theme.colors.textPrimary }]}
             value={searchQuery}
             onChangeText={setSearchQuery}
             placeholder="Procurar alternativa..."
-            placeholderTextColor="rgba(255,255,255,0.3)"
+            placeholderTextColor={theme.colors.textMuted}
           />
         </View>
 
@@ -73,13 +83,13 @@ export default function ExerciseSwapModal({ visible, onClose, onSelectSwap, exer
                 activeOpacity={0.7}
                 style={styles.dbItemContainer}
               >
-                <BlurView intensity={20} tint="dark" style={[styles.dbItemGlass, isMatch && { borderLeftColor: '#00E676', borderLeftWidth: 3 }]}>
+                <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.dbItemGlass, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }, isMatch && { borderLeftColor: theme.colors.primary, borderLeftWidth: 3 }]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.dbItemTitle}>{ex.name}</Text>
-                    {ex.category && <Text style={styles.dbItemCategory}>{ex.category} {isMatch ? '(Recomendado)' : ''}</Text>}
+                    <Text style={[styles.dbItemTitle, { color: theme.colors.textPrimary }]}>{ex.name}</Text>
+                    {ex.category && <Text style={[styles.dbItemCategory, { color: theme.colors.textSecondary }]}>{ex.category} {isMatch ? '(Recomendado)' : ''}</Text>}
                   </View>
-                  <View style={styles.swapBtn}>
-                    <ArrowRightLeft color="#00E676" size={16} />
+                  <View style={[styles.swapBtn, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.primary }]}>
+                    <ArrowRightLeft color={theme.colors.primary} size={16} />
                   </View>
                 </BlurView>
               </TouchableOpacity>

@@ -34,6 +34,14 @@ export default function AnimatedPressable({
 
   const handlePressIn = (e: any) => {
     scale.value = withSpring(scaleTo, { damping: 15, stiffness: 300 });
+    
+    // Mechanical click feel on press in
+    if (hapticFeedback !== 'none') {
+      try {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      } catch (err) {}
+    }
+    
     if (onPressIn) onPressIn(e);
   };
 
@@ -45,10 +53,11 @@ export default function AnimatedPressable({
   const handlePress = (e: any) => {
     if (hapticFeedback !== 'none') {
       try {
-        if (hapticFeedback === 'light') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        else if (hapticFeedback === 'medium') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        // Selection/Confirmation feels
+        if (hapticFeedback === 'medium') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         else if (hapticFeedback === 'heavy') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
         else if (hapticFeedback === 'success') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        // Light is handled in PressIn for the manual-touch feel
       } catch (err) {}
     }
     

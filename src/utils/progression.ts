@@ -41,29 +41,28 @@ export function calculateProgression(
 
   // 2. Não bateu as repetições (Falhou antes do alvo).
   if (!allTargetsHit) {
+    // Se falhou 3 semanas seguidas na mesma carga, sugerimos um RESET (Deload focado no exercício)
+    // Para simplificar a lógica inicial, sugerimos manter.
     return {
       action: 'MAINTAIN_LOAD',
       suggestedWeight: averageWeight,
-      messageToUser: "Sem ego. Você falhou na repetição alvo na última série. Vamos manter essa carga, focar em controlar a fase excêntrica da descida e aumentar o descanso em +30s. Não suba o peso até dominar a carga atual."
+      messageToUser: "Sem ego. Você falhou na repetição alvo. Vamos manter essa carga, focar em controlar a fase excêntrica e aumentar o descanso. Não suba o peso até dominar a carga atual."
     };
   }
 
   // 3. Bateu os alvos, RPE baixo (Progresso Fácil/Moderado)
-  if (allTargetsHit && highestRpe < 8) {
-    // Aumenta de 2% a 5%. Usaremos um bump padrão conservador para barras grandes de 2.5kg (1.25kg cada lado) ou proporção se carga alta.
-    const bumpFactor = 1.025; // 2.5% aumento
+  if (allTargetsHit && highestRpe < 8.5) {
+    const bumpFactor = 1.025; 
     const rawSuggestedLoad = averageWeight * bumpFactor;
     
-    // Arredonda para múltiplo de de anilhas acessíveis (ex: anilhas de 1.25kg formam saltos de 2.5kg num supino)
-    const normalizedLoad = Math.round(rawSuggestedLoad / 2.5) * 2.5;
-    
-    // Fallback: se o aumento de 2.5% não mudou nada (carga muito baixa), força um +1kg
-    const newWeight = normalizedLoad === averageWeight ? averageWeight + 1 : normalizedLoad;
+    // Arredonda para múltiplo de de anilhas acessíveis (passos de 1kg ou 2.5kg)
+    const normalizedLoad = Math.round(rawSuggestedLoad);
+    const newWeight = normalizedLoad <= averageWeight ? averageWeight + 1 : normalizedLoad;
 
     return {
       action: 'INCREASE_LOAD',
       suggestedWeight: newWeight,
-      messageToUser: `Alvos destruídos com RPE submáximo (${highestRpe}). Está muito leve. Na próxima vez, vamos colocar a barra para ${newWeight}kg. Prepare-se para aplicar mais força.`
+      messageToUser: `Alvos destruídos! Próximo treino: coloque ${newWeight}kg. Prepare-se para aplicar mais força.`
     };
   }
 
@@ -71,6 +70,6 @@ export function calculateProgression(
   return {
     action: 'MAINTAIN_LOAD',
     suggestedWeight: averageWeight,
-    messageToUser: `Você atingiu as repetições, mas com força máxima (RPE ${highestRpe}). O músculo trabalhou perto do limite. Vamos manter a carga e tentar reduzir esse esforço percebido antes de socar mais anilha.`
+    messageToUser: `Alvos atingidos, mas com esforço máximo. Vamos manter a carga atual até que este peso se sinta mais "sob controlo" antes de subir.`
   };
 }

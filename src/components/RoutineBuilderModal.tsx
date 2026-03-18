@@ -3,8 +3,11 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView,
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Plus, Save, Minus, Search } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { EXERCISE_DATABASE, ExerciseDef } from '../data/exercises';
 import { RoutineDef } from '../data/routines';
+import { useAppTheme } from '../hooks/useAppTheme';
+import { soundManager } from '../utils/SoundManager';
 
 interface RoutineBuilderModalProps {
   visible: boolean;
@@ -14,6 +17,7 @@ interface RoutineBuilderModalProps {
 }
 
 export default function RoutineBuilderModal({ visible, onClose, onSave, initialRoutine }: RoutineBuilderModalProps) {
+  const theme = useAppTheme();
   const [title, setTitle] = useState(initialRoutine?.title || '');
   const [subtitle, setSubtitle] = useState(initialRoutine?.subtitle || '');
   const [selectedExercises, setSelectedExercises] = useState<ExerciseDef[]>(initialRoutine?.exercises || []);
@@ -23,6 +27,10 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
 
   const handleToggleExercise = (exercise: ExerciseDef) => {
     const isSelected = selectedExercises.some(e => e.id === exercise.id);
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (e) {}
+
     if (isSelected) {
       setSelectedExercises(selectedExercises.filter(e => e.id !== exercise.id));
     } else {
@@ -31,6 +39,10 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
   };
 
   const updateTargetSets = (id: string, delta: number) => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (e) {}
+    
     setSelectedExercises(selectedExercises.map(ex => {
       if (ex.id === id) {
         return { ...ex, targetSets: Math.max(1, Math.min(10, ex.targetSets + delta)) };
@@ -40,10 +52,7 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
   };
 
   const handleSave = () => {
-    if (!title.trim() || selectedExercises.length === 0) {
-      // Could show an alert here
-      return;
-    }
+    if (!title.trim() || selectedExercises.length === 0) return;
 
     const newRoutine: RoutineDef = {
       id: initialRoutine?.id || `custom_${Date.now()}`,
@@ -52,9 +61,13 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
       exercises: selectedExercises
     };
 
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      soundManager.play('success');
+    } catch (e) {}
+
     onSave(newRoutine);
     
-    // Reset form if it was a new creation
     if (!initialRoutine) {
       setTitle('');
       setSubtitle('');
@@ -71,11 +84,11 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      <LinearGradient colors={['#0F172A', '#000000']} style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>{initialRoutine ? 'Editar Treino' : 'Criar Novo Treino'}</Text>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <X color="#FFF" size={24} />
+      <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.container}>
+        <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
+          <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>{initialRoutine ? 'Editar Treino' : 'Criar Novo Treino'}</Text>
+          <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: theme.colors.surfaceHighlight }]}>
+            <X color={theme.colors.textPrimary} size={24} />
           </TouchableOpacity>
         </View>
 
@@ -149,16 +162,16 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
 
           {/* Database Section */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Base de Dados de Exercícios</Text>
+            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Base de Dados de Exercícios</Text>
             
-            <View style={styles.searchBar}>
-              <Search color="rgba(255,255,255,0.5)" size={20} style={styles.searchIcon} />
+            <View style={[styles.searchBar, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+              <Search color={theme.colors.textMuted} size={20} style={styles.searchIcon} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: theme.colors.textPrimary }]}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Procurar por nome ou grupo muscular..."
-                placeholderTextColor="rgba(255,255,255,0.3)"
+                placeholderTextColor={theme.colors.textMuted}
               />
             </View>
 
@@ -172,13 +185,13 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
                     activeOpacity={0.7}
                     style={styles.dbItemContainer}
                   >
-                    <BlurView intensity={isSelected ? 40 : 15} tint={isSelected ? "light" : "dark"} style={[styles.dbItemGlass, isSelected && styles.dbItemSelected]}>
+                    <BlurView intensity={isSelected ? 40 : 15} tint={isSelected ? "light" : "dark"} style={[styles.dbItemGlass, isSelected && styles.dbItemSelected, { borderColor: theme.colors.border }]}>
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.dbItemTitle, isSelected && { color: '#000' }]}>{ex.name}</Text>
-                        <Text style={[styles.dbItemCategory, isSelected && { color: 'rgba(0,0,0,0.6)' }]}>{ex.category}</Text>
+                        <Text style={[styles.dbItemTitle, isSelected ? { color: '#000' } : { color: theme.colors.textPrimary }]}>{ex.name}</Text>
+                        <Text style={[styles.dbItemCategory, isSelected ? { color: 'rgba(0,0,0,0.6)' } : { color: theme.colors.secondary }]}>{ex.category}</Text>
                       </View>
-                      <View style={[styles.addBtn, isSelected ? { backgroundColor: '#FF3366' } : { backgroundColor: 'rgba(56, 189, 248, 0.2)' }]}>
-                        {isSelected ? <X color="#FFF" size={18} /> : <Plus color="#38BDF8" size={18} />}
+                      <View style={[styles.addBtn, isSelected ? { backgroundColor: theme.colors.danger } : { backgroundColor: 'rgba(56, 189, 248, 0.2)' }]}>
+                        {isSelected ? <X color="#FFF" size={18} /> : <Plus color={theme.colors.secondary} size={18} />}
                       </View>
                     </BlurView>
                   </TouchableOpacity>
@@ -190,15 +203,15 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
         </ScrollView>
 
         {/* Footer Actions */}
-        <BlurView intensity={50} tint="dark" style={styles.footer}>
+        <BlurView intensity={theme.isDark ? 50 : 80} tint={theme.isDark ? "dark" : "light"} style={[styles.footer, { borderTopColor: theme.colors.border }]}>
           <TouchableOpacity 
             style={[styles.saveBtnWrapper, (!title.trim() || selectedExercises.length === 0) && { opacity: 0.5 }]} 
             onPress={handleSave}
             disabled={!title.trim() || selectedExercises.length === 0}
           >
-            <LinearGradient colors={['#00E676', '#00C853']} style={styles.saveBtnGradient}>
-              <Save color="#000" size={20} style={{ marginRight: 8 }} />
-              <Text style={styles.saveBtnText}>Guardar Treino</Text>
+            <LinearGradient colors={[theme.colors.accent, '#FFA000']} style={styles.saveBtnGradient}>
+              <Save color={theme.colors.textInverse} size={20} style={{ marginRight: 8 }} />
+              <Text style={[styles.saveBtnText, { color: theme.colors.textInverse }]}>Guardar Treino</Text>
             </LinearGradient>
           </TouchableOpacity>
         </BlurView>

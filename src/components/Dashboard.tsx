@@ -1,17 +1,33 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, useWindowDimensions } from 'react-native';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  Platform, 
+  useWindowDimensions, 
+  Pressable, 
+  GestureResponderEvent,
+  Modal
+} from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import { ChevronRight, Play, Activity, Plus } from 'lucide-react-native';
+import { ChevronRight, Play, Activity, Plus, Trash2 } from 'lucide-react-native';
+import { Alert } from 'react-native';
 
 import { ROUTINES, RoutineDef } from '../data/routines';
 import { useWorkoutStore } from '../store/useWorkoutStore';
-import TonnageChart from './TonnageChart';
+import MiniTonnageChart from './MiniTonnageChart';
 import RoutineBuilderModal from './RoutineBuilderModal';
-import WeeklyProgressRing from './WeeklyProgressRing';
 import { theme } from '../theme/theme';
+import { useAppTheme } from '../hooks/useAppTheme';
 import AnimatedPressable from './common/AnimatedPressable';
+import MagneticView from './common/MagneticView';
+import { soundManager } from '../utils/SoundManager';
+import { calculateMuscleFatigue, MuscleFatigue } from '../utils/fatigue';
+
 
 interface DashboardProps {
   onSelectRoutine: (routine: RoutineDef) => void;
@@ -23,6 +39,8 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
   const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
   const customRoutines = useWorkoutStore(state => state.customRoutines);
   const saveCustomRoutine = useWorkoutStore(state => state.saveCustomRoutine);
+  const deleteCustomRoutine = useWorkoutStore(state => state.deleteCustomRoutine);
+  const theme = useAppTheme();
 
   const [isBuilderVisible, setIsBuilderVisible] = React.useState(false);
 
@@ -32,23 +50,33 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
   const contentMaxWidth = 768;
 
   const safeWorkouts = completedWorkouts || [];
-  const recentWorkouts = [...safeWorkouts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-6);
+  const recentWorkouts = [...safeWorkouts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-7);
   
-  let tonnageLabels = recentWorkouts.map((w, i) => `T${i + 1}`);
-  let tonnageData = recentWorkouts.map(w => w.totalTonnageKg / 1000);
+  const tonnageData = recentWorkouts.map(w => w.totalTonnageKg / 1000);
 
-  if (tonnageData.length === 0) {
-    tonnageLabels = ['Início', 'Hoje'];
-    tonnageData = [0, 0];
-  } else if (tonnageData.length === 1) {
-    tonnageLabels = ['', 'T1'];
-    tonnageData = [0, tonnageData[0]];
-  }
+  const [routineToDelete, setRoutineToDelete] = React.useState<{id: string, title: string} | null>(null);
+
+  const handleDeletePress = (id: string, title: string) => {
+    soundManager.play('click');
+    setRoutineToDelete({ id, title });
+  };
+
+  const confirmDelete = () => {
+    if (routineToDelete) {
+      soundManager.play('pop');
+      deleteCustomRoutine(routineToDelete.id);
+      setRoutineToDelete(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setRoutineToDelete(null);
+  };
 
   return (
     <LinearGradient
       colors={[theme.colors.surface, theme.colors.background]}
-      style={styles.background}
+      style={[styles.background, { backgroundColor: theme.colors.background }]}
     >
       <SafeAreaView style={styles.safeArea}>
         <ScrollView 
@@ -69,24 +97,21 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
               <Text style={styles.subtitle}>Pronto para destruir metas hoje?</Text>
             </View>
 
-            <WeeklyProgressRing completed={safeWorkouts.length % 5} total={5} />
-
             <View style={styles.chartWrapper}>
-              <TonnageChart 
-                title="Progresso de Tonelagem (Kg)" 
-                labels={tonnageLabels} 
-                data={tonnageData} 
-              />
+              <MiniTonnageChart data={tonnageData.length > 0 ? tonnageData : [0, 0, 0, 0, 0, 0, 0]} />
             </View>
 
             {activeRoutine && (
               <AnimatedPressable 
-                onPress={onResumeWorkout} 
+                onPress={() => {
+                  soundManager.play('click');
+                  onResumeWorkout();
+                }} 
                 style={styles.recoveryMargin}
                 hapticFeedback="light"
                 scaleTo={0.97}
               >
-                <BlurView intensity={30} tint="dark" style={styles.glassCard}>
+                <BlurView intensity={theme.isDark ? 30 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
                   <View style={styles.recoveryContent}>
                     <View style={styles.recoveryIconBox}>
                       <Activity color={theme.colors.danger} size={24} />
@@ -101,10 +126,64 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
               </AnimatedPressable>
             )}
 
+            <View style={styles.fatigueHeader}>
+              <Text style={styles.sectionTitle}>Recuperação Muscular</Text>
+            </View>
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false} 
+              contentContainerStyle={styles.fatigueScroll}
+            >
+              {calculateMuscleFatigue(safeWorkouts).map((item) => {
+                const muscleNames: Record<string, string> = {
+                  'Chest': 'Peito',
+                  'Back': 'Costas',
+                  'Shoulders': 'Ombros',
+                  'Biceps': 'Bíceps',
+                  'Triceps': 'Tríceps',
+                  'Quads': 'Quadríceps',
+                  'Hamstrings': 'Isquios',
+                  'Glutes': 'Glúteos',
+                  'Calves': 'Gémeos',
+                  'Core': 'Core'
+                };
+                
+                const statusColor = item.status === 'Ready' ? '#00E676' : item.status === 'Recovering' ? '#FFA000' : theme.colors.danger;
+
+                return (
+                  <View key={item.muscle} style={[styles.fatigueCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+                    <View style={styles.fatigueTop}>
+                      <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                      <Text style={[styles.fatigueLabel, { color: theme.colors.textMuted }]}>{muscleNames[item.muscle] || item.muscle}</Text>
+                    </View>
+                    
+                    <View style={styles.fatigueBody}>
+                      <Text style={[styles.fatiguePercent, { color: theme.colors.textPrimary }]}>{item.recoveryPercent}%</Text>
+                      <View style={styles.fatigueBarBase}>
+                        <View style={[
+                          styles.fatigueBar, 
+                          { 
+                            width: `${item.recoveryPercent}%`, 
+                            backgroundColor: statusColor 
+                          }
+                        ]} />
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+
             <View style={styles.sectionHeaderRow}>
               <Text style={styles.sectionTitle}>Meus Treinos</Text>
-              <AnimatedPressable onPress={() => setIsBuilderVisible(true)} hapticFeedback="light">
-                <BlurView intensity={20} tint="light" style={styles.createBtn}>
+              <AnimatedPressable 
+                onPress={() => {
+                  soundManager.play('pop');
+                  setIsBuilderVisible(true);
+                }} 
+                hapticFeedback="light"
+              >
+                <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "light" : "dark"} style={[styles.createBtn, { borderColor: theme.colors.secondary }]}>
                   <Plus color={theme.colors.secondary} size={16} style={{ marginRight: 6 }} />
                   <Text style={styles.createBtnText}>Novo</Text>
                 </BlurView>
@@ -118,14 +197,68 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
             ) : (
               <View style={styles.routinesGrid}>
                 {customRoutines.map((routine) => (
+                  <MagneticView key={routine.id}>
+                    <AnimatedPressable 
+                      onPress={() => {
+                        soundManager.play('click');
+                        onSelectRoutine(routine);
+                      }}
+                      style={[styles.cardContainer, { backgroundColor: theme.colors.surfaceHighlight }]}
+                      hapticFeedback="medium"
+                    >
+                      <BlurView intensity={theme.isDark ? 25 : 45} tint={theme.isDark ? "dark" : "light"} style={styles.glassCard}>
+                        <View style={[styles.cardIndicator, { backgroundColor: theme.colors.accent }]} />
+                        <View style={styles.cardContent}>
+                          <View style={styles.cardHeader}>
+                            <Text style={styles.cardTitle}>{routine.title}</Text>
+                            <View style={styles.cardActions}>
+                              <Pressable 
+                                onPress={(e: GestureResponderEvent) => {
+                                  e.stopPropagation();
+                                  handleDeletePress(routine.id, routine.title);
+                                }}
+                                style={({ pressed }: { pressed: boolean }) => [
+                                  styles.deleteBtn,
+                                  { opacity: pressed ? 0.3 : 1, zIndex: 999 }
+                                ]}
+                                hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
+                              >
+                                <Trash2 color={theme.colors.danger} size={18} opacity={0.6} />
+                              </Pressable>
+                              <Play color={theme.colors.textSecondary} size={20} />
+                            </View>
+                          </View>
+                          
+                          <Text style={styles.cardSubtitle}>{routine.subtitle}</Text>
+                          
+                          <View style={styles.tagContainer}>
+                            <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "light" : "dark"} style={[styles.glassTag, { borderColor: theme.colors.border }]}>
+                              <Text style={styles.tagText}>{routine.exercises.length} Excs</Text>
+                            </BlurView>
+                          </View>
+                        </View>
+                      </BlurView>
+                    </AnimatedPressable>
+                  </MagneticView>
+                ))}
+              </View>
+            )}
+
+            <Text style={[styles.sectionTitle, { marginTop: 40 }]}>Planos Predefinidos</Text>
+            
+            <View style={styles.routinesGrid}>
+              {ROUTINES.map((routine) => (
+                <MagneticView key={routine.id}>
                   <AnimatedPressable 
-                    key={routine.id}
-                    onPress={() => onSelectRoutine(routine)}
-                    style={styles.cardContainer}
+                    onPress={() => {
+                        soundManager.play('click');
+                        onSelectRoutine(routine);
+                    }}
+                    style={[styles.cardContainer, { backgroundColor: theme.colors.surfaceHighlight }]}
                     hapticFeedback="medium"
                   >
-                    <BlurView intensity={25} tint="dark" style={styles.glassCard}>
-                      <View style={[styles.cardIndicator, { backgroundColor: theme.colors.accent }]} />
+                    <BlurView intensity={theme.isDark ? 25 : 45} tint={theme.isDark ? "dark" : "light"} style={styles.glassCard}>
+                      <View style={[styles.cardIndicator, { backgroundColor: theme.colors.secondary }]} />
                       <View style={styles.cardContent}>
                         <View style={styles.cardHeader}>
                           <Text style={styles.cardTitle}>{routine.title}</Text>
@@ -135,45 +268,14 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                         <Text style={styles.cardSubtitle}>{routine.subtitle}</Text>
                         
                         <View style={styles.tagContainer}>
-                          <BlurView intensity={20} tint="light" style={styles.glassTag}>
+                          <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "light" : "dark"} style={[styles.glassTag, { borderColor: theme.colors.border }]}>
                             <Text style={styles.tagText}>{routine.exercises.length} Excs</Text>
                           </BlurView>
                         </View>
                       </View>
                     </BlurView>
                   </AnimatedPressable>
-                ))}
-              </View>
-            )}
-
-            <Text style={[styles.sectionTitle, { marginTop: 40 }]}>Planos Predefinidos</Text>
-            
-            <View style={styles.routinesGrid}>
-              {ROUTINES.map((routine) => (
-                <AnimatedPressable 
-                  key={routine.id}
-                  onPress={() => onSelectRoutine(routine)}
-                  style={styles.cardContainer}
-                  hapticFeedback="medium"
-                >
-                  <BlurView intensity={25} tint="dark" style={styles.glassCard}>
-                    <View style={styles.cardIndicator} />
-                    <View style={styles.cardContent}>
-                      <View style={styles.cardHeader}>
-                        <Text style={styles.cardTitle}>{routine.title}</Text>
-                        <Play color={theme.colors.textSecondary} size={20} />
-                      </View>
-                      
-                      <Text style={styles.cardSubtitle}>{routine.subtitle}</Text>
-                      
-                      <View style={styles.tagContainer}>
-                        <BlurView intensity={20} tint="light" style={styles.glassTag}>
-                          <Text style={styles.tagText}>{routine.exercises.length} Excs</Text>
-                        </BlurView>
-                      </View>
-                    </View>
-                  </BlurView>
-                </AnimatedPressable>
+                </MagneticView>
               ))}
             </View>
           </View>
@@ -184,6 +286,37 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
           onClose={() => setIsBuilderVisible(false)}
           onSave={(routine) => saveCustomRoutine(routine)}
         />
+
+        <Modal
+          transparent
+          visible={!!routineToDelete}
+          animationType="fade"
+          onRequestClose={cancelDelete}
+        >
+          <View style={styles.modalOverlay}>
+            <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
+            <AnimatedPressable style={styles.confirmCard} onPress={() => {}} scaleTo={1} hapticFeedback="none">
+              <View style={[styles.confirmCardInner, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+                <View style={[styles.confirmIconContainer, { backgroundColor: theme.colors.surfaceHighlight }]}>
+                  <Trash2 color={theme.colors.danger} size={32} />
+                </View>
+                <Text style={[styles.confirmTitle, { color: theme.colors.textPrimary }]}>Eliminar Treino?</Text>
+                <Text style={[styles.confirmSubtitle, { color: theme.colors.textSecondary }]}>
+                  Tens a certeza que queres apagar "{routineToDelete?.title}"? Esta ação não pode ser desfeita.
+                </Text>
+                
+                <View style={styles.confirmActions}>
+                  <TouchableOpacity onPress={cancelDelete} style={[styles.confirmBtn, { backgroundColor: theme.colors.surfaceHighlight }]}>
+                    <Text style={[styles.confirmBtnText, { color: theme.colors.textPrimary }]}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={confirmDelete} style={[styles.confirmBtn, { backgroundColor: theme.colors.danger }]}>
+                    <Text style={[styles.confirmBtnText, { color: '#fff' }]}>Eliminar</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </AnimatedPressable>
+          </View>
+        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -295,6 +428,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: theme.spacing.xs,
   },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  deleteBtn: {
+    padding: 4,
+  },
   cardTitle: {
     fontSize: theme.typography.sizes.lg,
     fontFamily: theme.typography.fonts.bold,
@@ -356,5 +497,115 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     fontSize: theme.typography.sizes.lg,
     fontFamily: theme.typography.fonts.semiBold,
+  },
+  fatigueHeader: {
+    marginTop: 20,
+    marginBottom: 16,
+  },
+  fatigueScroll: {
+    paddingRight: 20,
+    gap: 12,
+    marginBottom: 40,
+  },
+  fatigueCard: {
+    padding: 12,
+    borderRadius: 18,
+    width: 130,
+    borderWidth: 1,
+  },
+  fatigueTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  statusDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+  },
+  fatigueLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  fatigueBody: {
+    flexDirection: 'column',
+  },
+  fatigueBarBase: {
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 1.5,
+    marginTop: 6,
+    overflow: 'hidden',
+  },
+  fatigueBar: {
+    height: '100%',
+    borderRadius: 1.5,
+  },
+  fatiguePercent: {
+    fontSize: 18,
+    fontWeight: 'normal',
+    fontFamily: theme.typography.fonts.displayBlack,
+    letterSpacing: -0.5,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 1000,
+  },
+  confirmCard: {
+    width: '100%',
+    maxWidth: 340,
+  },
+  confirmCardInner: {
+    padding: 24,
+    borderRadius: 24,
+    borderWidth: 1,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  confirmIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  confirmTitle: {
+    fontSize: theme.typography.sizes.xl,
+    fontFamily: theme.typography.fonts.bold,
+    marginBottom: 8,
+  },
+  confirmSubtitle: {
+    fontSize: theme.typography.sizes.md,
+    fontFamily: theme.typography.fonts.regular,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  confirmActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  confirmBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  confirmBtnText: {
+    fontSize: theme.typography.sizes.md,
+    fontFamily: theme.typography.fonts.bold,
   },
 });

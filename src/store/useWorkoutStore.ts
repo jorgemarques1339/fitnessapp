@@ -1,25 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RoutineDef, ExerciseDef } from '../data/routines';
-
-const isWeb = typeof window !== 'undefined';
-
-// Safe storage for web fallback
-const webStorage = {
-  getItem: (name: string) => {
-    const value = localStorage.getItem(name);
-    return Promise.resolve(value);
-  },
-  setItem: (name: string, value: string) => {
-    localStorage.setItem(name, value);
-    return Promise.resolve();
-  },
-  removeItem: (name: string) => {
-    localStorage.removeItem(name);
-    return Promise.resolve();
-  },
-};
+import { safeStorage } from './storage';
 
 export interface SetLog {
   setNumber: number;
@@ -73,6 +55,9 @@ interface WorkoutState {
   setHealthSyncEnabled: (val: boolean) => void;
   sessionStartTime: number | null;
 
+  themeMode: 'oled' | 'frosted';
+  setThemeMode: (mode: 'oled' | 'frosted') => void;
+
   startWorkout: (routine: RoutineDef) => void;
   finishWorkout: () => void;
   abortWorkout: () => void; 
@@ -93,7 +78,9 @@ interface WorkoutState {
   getPreviousExerciseLog: (exerciseId: string) => ExerciseLog | null;
 }
 
-export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
+export const useWorkoutStore = create<WorkoutState>()(
+  persist(
+    (set, get) => ({
       isInLogger: false,
       setIsInLogger: (val) => set({ isInLogger: val }),
 
@@ -111,6 +98,9 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
       healthSyncEnabled: true,
       setHealthSyncEnabled: (val) => set({ healthSyncEnabled: val }),
       sessionStartTime: null,
+
+      themeMode: 'oled',
+      setThemeMode: (mode) => set({ themeMode: mode }),
 
       startWorkout: (routine) => set({
         activeRoutine: routine,
@@ -174,23 +164,17 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
         const { activeRoutine, sessionLogs } = get();
         if (!activeRoutine) return;
 
-        // Ensure we don't accidentally mutate the original reference if it's from predefined/custom lists
         const newActiveRoutine = { ...activeRoutine };
         newActiveRoutine.exercises = [...activeRoutine.exercises];
         
         const exerciseIndex = newActiveRoutine.exercises.findIndex(e => e.id === oldExerciseId);
         if (exerciseIndex >= 0) {
-          // Keep the same target sets if possible, or fallback to new
           const existingTargetSets = newActiveRoutine.exercises[exerciseIndex].targetSets;
           newActiveRoutine.exercises[exerciseIndex] = {
             ...newExercise,
             targetSets: existingTargetSets
           };
-
-          // Also remove any existing logs for the old exercise in this session, 
-          // because it's been replaced.
           const cleanedLogs = sessionLogs.filter(log => log.exerciseId !== oldExerciseId);
-
           set({ 
             activeRoutine: newActiveRoutine,
             sessionLogs: cleanedLogs
@@ -214,7 +198,6 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
 
         let finalLogs = [...sessionLogs];
         
-        // Se ainda estiver num exercício ativo e houver sets, temos de guardar antes de fechar
         if (!isExerciseSelectionMode && currentExerciseSets.length > 0) {
           const currentExercise = activeRoutine.exercises[currentExerciseIndex];
           const filteredLogs = finalLogs.filter(log => log.exerciseId !== currentExercise.id);
@@ -237,7 +220,6 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
 
         const durationMs = sessionStartTime ? (Date.now() - sessionStartTime) : 0;
         const minutes = durationMs / 1000 / 60;
-        // Mock health formula: 4 cals/min + effort factor based on tonnage
         const calories = Math.round((minutes * 4) + (sessionTotalTonnage * 0.02));
 
         const newWorkout: CompletedWorkout = {
@@ -282,7 +264,7 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
 
       deleteCustomRoutine: (id) => {
         const { customRoutines } = get();
-        set({ customRoutines: customRoutines.filter(r => r.id !== id) });
+        set({ customRoutines: customRoutines.filter(r => r.id.toString() !== id.toString()) });
       },
 
       logBodyWeight: (weightKg) => {
@@ -291,7 +273,6 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
           date: new Date().toISOString(),
           weightKg
         };
-        // Keep only the last 30 logs to avoid bloating storage
         const updatedLogs = [...bodyWeightLogs, newLog].slice(-30);
         set({ bodyWeightLogs: updatedLogs });
       },
@@ -309,5 +290,17 @@ export const useWorkoutStore = create<WorkoutState>()((set, get) => ({
       clearHistory: () => {
         set({ completedWorkouts: [] });
       }
-    })
+    }),
+    {
+      name: 'workout-storage',
+      storage: createJSONStorage(() => safeStorage),
+      partialize: (state) => ({
+        completedWorkouts: state.completedWorkouts,
+        customRoutines: state.customRoutines,
+        bodyWeightLogs: state.bodyWeightLogs,
+        healthSyncEnabled: state.healthSyncEnabled,
+        themeMode: state.themeMode,
+      }),
+    }
+  )
 );

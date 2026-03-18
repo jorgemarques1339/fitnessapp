@@ -1,10 +1,22 @@
+export type MuscleGroup = 
+  | 'Chest' 
+  | 'Back' 
+  | 'Shoulders' 
+  | 'Biceps' 
+  | 'Triceps' 
+  | 'Quads' 
+  | 'Hamstrings' 
+  | 'Glutes' 
+  | 'Calves' 
+  | 'Core';
+
 export interface ExerciseDef {
   id: string;
   name: string;
   targetSets: number;
   notes: string;
   videoUrl?: string;
-  category?: 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core';
+  category?: MuscleGroup;
 }
 
 export const EXERCISE_DATABASE: ExerciseDef[] = [
@@ -53,7 +65,7 @@ export const EXERCISE_DATABASE: ExerciseDef[] = [
     targetSets: 3,
     notes: 'Contração pesada no fim do movimento.',
     videoUrl: 'https://media.tenor.com/I2vMlp_m-zQAAAAC/rope-push-down.gif',
-    category: 'Arms'
+    category: 'Triceps'
   },
   {
     id: 'triceps2',
@@ -61,7 +73,7 @@ export const EXERCISE_DATABASE: ExerciseDef[] = [
     targetSets: 3,
     notes: 'Foca no alongamento da cabeça longa do tríceps.',
     videoUrl: 'https://media.tenor.com/kS9Y-m1v2S8AAAAC/overhead-tricep-extension.gif',
-    category: 'Arms'
+    category: 'Triceps'
   },
   {
     id: 'costas1',
@@ -101,7 +113,7 @@ export const EXERCISE_DATABASE: ExerciseDef[] = [
     targetSets: 3,
     notes: 'Carga pesada para volume do bíceps.',
     videoUrl: 'https://media.tenor.com/E-9X_m1W_V8AAAAC/ez-bar-curl.gif',
-    category: 'Arms'
+    category: 'Biceps'
   },
   {
     id: 'biceps2',
@@ -109,49 +121,49 @@ export const EXERCISE_DATABASE: ExerciseDef[] = [
     targetSets: 3,
     notes: 'Máximo alongamento. Trabalhe com halteres controlando a excêntrica.',
     videoUrl: 'https://media.tenor.com/kS9X_m1W_V8AAAAC/incline-bicep-curl.gif',
-    category: 'Arms'
+    category: 'Biceps'
   },
   {
     id: 'perna1',
     name: 'Agachamento Livre ou Hack Squat',
     targetSets: 4,
     notes: 'Exercício base pesado. Desça até quebrar os 90 graus se a mobilidade permitir.',
-    category: 'Legs'
+    category: 'Quads'
   },
   {
     id: 'perna2',
     name: 'Leg Press',
     targetSets: 4,
     notes: 'Pés mais abaixo na plataforma para focar nos quadríceps.',
-    category: 'Legs'
+    category: 'Quads'
   },
   {
     id: 'perna3',
     name: 'Peso Morto Romeno (RDL)',
     targetSets: 4,
     notes: 'Crucial para isquiotibiais. Mantenha as pernas semi-estendidas e sinta o alongamento.',
-    category: 'Legs'
+    category: 'Hamstrings'
   },
   {
     id: 'perna4',
     name: 'Cadeira Extensora',
     targetSets: 3,
     notes: 'Faça as últimas repetições até à falha para definir.',
-    category: 'Legs'
+    category: 'Quads'
   },
   {
     id: 'perna5',
     name: 'Mesa Flexora',
     targetSets: 3,
     notes: 'Isolamento forte para a parte de trás da coxa.',
-    category: 'Legs'
+    category: 'Hamstrings'
   },
   {
     id: 'perna6',
     name: 'Elevação de Gémeos',
     targetSets: 4,
     notes: 'Pode ser em pé ou no Leg Press.',
-    category: 'Legs'
+    category: 'Calves'
   },
   {
     id: 'ombro_dia4_1',
@@ -179,27 +191,27 @@ export const EXERCISE_DATABASE: ExerciseDef[] = [
     name: 'Encolhimentos com Halteres',
     targetSets: 3,
     notes: 'Trapézios densos. Segure o pico de contração por 1 segundo.',
-    category: 'Shoulders'
+    category: 'Back'
   },
   {
     id: 'biceps_dia4_1',
     name: 'Curl Martelo com Halteres',
     targetSets: 3,
     notes: 'Trabalha o braquial. Empurra o bíceps para fora, braço parece maior.',
-    category: 'Arms'
+    category: 'Biceps'
   },
   {
     id: 'biceps_dia4_2',
     name: 'Curl Concentrado ou Banco Scott',
     targetSets: 3,
     notes: 'Pico de contração do bíceps superior.',
-    category: 'Arms'
+    category: 'Biceps'
   },
   {
     id: 'triceps_dia4_1',
     name: 'Skullcrushers (Barra W) ou Kickback',
     targetSets: 3,
     notes: 'Troca para kickback se o cotovelo estiver fatigado para o treino de peito do dia a seguir.',
-    category: 'Arms'
+    category: 'Triceps'
   }
 ];

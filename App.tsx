@@ -1,10 +1,7 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StyleSheet, View, Text, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import * as Notifications from 'expo-notifications';
-import { BlurView } from 'expo-blur';
-import { Home, User, Settings } from 'lucide-react-native';
 import {
   useFonts,
   Inter_400Regular,
@@ -15,12 +12,18 @@ import {
 } from '@expo-google-fonts/inter';
 import { Outfit_700Bold, Outfit_900Black } from '@expo-google-fonts/outfit';
 
+import * as Notifications from 'expo-notifications';
+import { BlurView } from 'expo-blur';
+import { Home, User, Settings as SettingsIcon } from 'lucide-react-native';
+
+import { useWorkoutStore } from './src/store/useWorkoutStore';
+import { useAppTheme } from './src/hooks/useAppTheme';
+
 import Dashboard from './src/components/Dashboard';
-import WorkoutLogger from './src/components/WorkoutLogger';
 import ProfileScreen from './src/components/ProfileScreen';
 import SettingsScreen from './src/components/SettingsScreen';
-import { RoutineDef } from './src/data/routines';
-import { useWorkoutStore } from './src/store/useWorkoutStore';
+import WorkoutLogger from './src/components/WorkoutLogger';
+import TrophyScreen from './src/components/TrophyScreen';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -31,6 +34,108 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
+
+const { width } = Dimensions.get('window');
+
+function MainApp() {
+  const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
+  const [currentTab, setCurrentTab] = React.useState<'dashboard' | 'profile' | 'settings'>('dashboard');
+  
+  const isInLogger = useWorkoutStore(state => state.isInLogger);
+  const lastCompletedWorkout = useWorkoutStore(state => state.lastCompletedWorkout);
+  const startWorkout = useWorkoutStore(state => state.startWorkout);
+  const setIsInLogger = useWorkoutStore(state => state.setIsInLogger);
+
+  const handleSelectRoutine = (routine: any) => {
+    startWorkout(routine);
+  };
+
+  const handleResumeWorkout = () => {
+    setIsInLogger(true);
+  };
+
+  if (lastCompletedWorkout) {
+    return <TrophyScreen />;
+  }
+
+  if (isInLogger) {
+    return <WorkoutLogger />;
+  }
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View style={{ flex: 1 }}>
+        {currentTab === 'dashboard' && (
+          <Dashboard 
+            onSelectRoutine={handleSelectRoutine}
+            onResumeWorkout={handleResumeWorkout}
+          />
+        )}
+        {currentTab === 'profile' && <ProfileScreen />}
+        {currentTab === 'settings' && <SettingsScreen />}
+      </View>
+
+      {/* Glassmorphic Tab Bar */}
+      <View style={[
+        styles.tabBarContainer,
+        { paddingBottom: Math.max(insets.bottom, 20) }
+      ]}>
+        <BlurView 
+          intensity={theme.isDark ? 30 : 60} 
+          tint={theme.isDark ? "dark" : "light"}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={[styles.tabBar, { borderTopColor: theme.colors.border }]}>
+          <TouchableOpacity 
+            onPress={() => setCurrentTab('dashboard')}
+            style={styles.tabItem}
+          >
+            <Home 
+              size={24} 
+              color={currentTab === 'dashboard' ? theme.colors.primary : theme.colors.textMuted} 
+              strokeWidth={currentTab === 'dashboard' ? 2.5 : 2}
+            />
+            <Text style={[
+              styles.tabText,
+              { color: currentTab === 'dashboard' ? theme.colors.primary : theme.colors.textMuted }
+            ]}>Início</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            onPress={() => setCurrentTab('profile')}
+            style={styles.tabItem}
+          >
+            <User 
+              size={24} 
+              color={currentTab === 'profile' ? theme.colors.primary : theme.colors.textMuted}
+              strokeWidth={currentTab === 'profile' ? 2.5 : 2}
+            />
+            <Text style={[
+              styles.tabText,
+              { color: currentTab === 'profile' ? theme.colors.primary : theme.colors.textMuted }
+            ]}>Perfil</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            onPress={() => setCurrentTab('settings')}
+            style={styles.tabItem}
+          >
+            <SettingsIcon 
+              size={24} 
+              color={currentTab === 'settings' ? theme.colors.primary : theme.colors.textMuted}
+              strokeWidth={currentTab === 'settings' ? 2.5 : 2}
+            />
+            <Text style={[
+              styles.tabText,
+              { color: currentTab === 'settings' ? theme.colors.primary : theme.colors.textMuted }
+            ]}>Definições</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+}
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -43,102 +148,44 @@ export default function App() {
     'Outfit-Black': Outfit_900Black,
   });
 
-  const isInLogger = useWorkoutStore(state => state.isInLogger);
-  const activeRoutine = useWorkoutStore(state => state.activeRoutine);
-  const startWorkout = useWorkoutStore(state => state.startWorkout);
-  const getPreviousExerciseLog = useWorkoutStore(state => state.getPreviousExerciseLog);
-
-  const [currentTab, setCurrentTab] = React.useState<'dashboard'|'profile'|'settings'>('dashboard');
-
   if (!fontsLoaded) {
     return null;
   }
 
-  const handleSelectRoutine = (routine: any) => {
-    startWorkout(routine);
-  };
-
-  const handleResumeWorkout = () => {
-    useWorkoutStore.setState({ isInLogger: true });
-  };
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider style={styles.container}>
-        {isInLogger && activeRoutine ? (
-          <WorkoutLogger />
-        ) : (
-          <View style={{ flex: 1, backgroundColor: '#0F172A' }}>
-            {currentTab === 'dashboard' ? (
-              <Dashboard
-                onSelectRoutine={handleSelectRoutine}
-                onResumeWorkout={handleResumeWorkout}
-              />
-            ) : currentTab === 'profile' ? (
-              <ProfileScreen />
-            ) : (
-              <SettingsScreen />
-            )}
-
-            {/* Simple Bottom Tab Navigation */}
-            <BlurView intensity={50} tint="dark" style={styles.tabBar}>
-              <TouchableOpacity
-                style={styles.tabItem}
-                onPress={() => setCurrentTab('dashboard')}
-              >
-                <Home color={currentTab === 'dashboard' ? '#38BDF8' : 'rgba(255,255,255,0.4)'} size={24} />
-                <Text style={[styles.tabText, currentTab === 'dashboard' && { color: '#38BDF8' }]}>Treino</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.tabItem}
-                onPress={() => setCurrentTab('profile')}
-              >
-                <User color={currentTab === 'profile' ? '#00E676' : 'rgba(255,255,255,0.4)'} size={24} />
-                <Text style={[styles.tabText, currentTab === 'profile' && { color: '#00E676' }]}>Perfil</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.tabItem}
-                onPress={() => setCurrentTab('settings')}
-              >
-                <Settings color={currentTab === 'settings' ? '#FFD700' : 'rgba(255,255,255,0.4)'} size={24} />
-                <Text style={[styles.tabText, currentTab === 'settings' && { color: '#FFD700' }]}>Definições</Text>
-              </TouchableOpacity>
-            </BlurView>
-          </View>
-        )}
+      <SafeAreaProvider>
+        <MainApp />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  tabBar: {
-    flexDirection: 'row',
+  tabBarContainer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    paddingBottom: 24, // Safe area bottom
-    paddingTop: 12,
+    height: 85,
+    overflow: 'hidden',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    height: '100%',
+    paddingTop: 10,
+    alignItems: 'center',
+    justifyContent: 'space-around',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.05)',
   },
   tabItem: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flex: 1,
   },
   tabText: {
-    fontSize: 10,
+    fontSize: 11,
+    fontFamily: 'Inter-Medium',
     marginTop: 4,
-    color: 'rgba(255,255,255,0.4)',
-    fontWeight: '700',
-    textTransform: 'uppercase',
   }
 });

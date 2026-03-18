@@ -10,6 +10,6 @@ if (!sourceExts.includes('cjs')) sourceExts.push('cjs');
 
 // Resolution order: react-native, then browser, then module, then main
 config.resolver.resolverMainFields = ['react-native', 'browser', 'module', 'main'];
-config.resolver.unstable_enablePackageExports = true;
+config.resolver.unstable_enablePackageExports = false;
 
 module.exports = config;

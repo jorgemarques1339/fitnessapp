@@ -6,35 +6,73 @@ import { Activity, Instagram, Shield, Smartphone, HeartPulse } from 'lucide-reac
 
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { theme } from '../theme/theme';
+import { useAppTheme } from '../hooks/useAppTheme';
 import AnimatedPressable from './common/AnimatedPressable';
+import { soundManager } from '../utils/SoundManager';
+import { Moon, Sun } from 'lucide-react-native';
 
 export default function SettingsScreen() {
   const healthSyncEnabled = useWorkoutStore(state => state.healthSyncEnabled);
   const setHealthSyncEnabled = useWorkoutStore(state => state.setHealthSyncEnabled);
+  const themeMode = useWorkoutStore(state => state.themeMode);
+  const setThemeMode = useWorkoutStore(state => state.setThemeMode);
   const clearHistory = useWorkoutStore(state => state.clearHistory);
+  const theme = useAppTheme();
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-      <Text style={styles.pageTitle}>Definições</Text>
+      <Text style={[styles.pageTitle, { color: theme.colors.textPrimary }]}>Definições</Text>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionHeader}>Experiência Sensorial</Text>
+        <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+          <View style={styles.themeToggleRow}>
+            <TouchableOpacity 
+              style={[styles.themeOption, themeMode === 'oled' && styles.activeThemeOption, { borderColor: themeMode === 'oled' ? theme.colors.primary : 'transparent' }]}
+              onPress={() => {
+                soundManager.play('pop');
+                setThemeMode('oled');
+              }}
+            >
+              <Moon color={themeMode === 'oled' ? theme.colors.primary : theme.colors.textMuted} size={20} />
+              <Text style={[styles.themeOptionText, { color: themeMode === 'oled' ? theme.colors.textPrimary : theme.colors.textMuted }]}>OLED Black</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.themeOption, themeMode === 'frosted' && styles.activeThemeOption, { borderColor: themeMode === 'frosted' ? theme.colors.primary : 'transparent' }]}
+              onPress={() => {
+                soundManager.play('pop');
+                setThemeMode('frosted');
+              }}
+            >
+              <Sun color={themeMode === 'frosted' ? theme.colors.primary : theme.colors.textMuted} size={20} />
+              <Text style={[styles.themeOptionText, { color: themeMode === 'frosted' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Frosted White</Text>
+            </TouchableOpacity>
+          </View>
+        </BlurView>
+      </View>
 
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Integrações e Saúde</Text>
-        <BlurView intensity={20} tint="dark" style={styles.glassCard}>
+        <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <View style={styles.iconCircle}>
-                <HeartPulse color="#FF3366" size={20} />
+              <View style={[styles.iconCircle, { backgroundColor: theme.colors.surfaceHighlight }]}>
+                <HeartPulse color={theme.colors.danger} size={20} />
               </View>
               <View>
-                <Text style={styles.settingTitle}>Apple Health / Google Fit</Text>
-                <Text style={styles.settingDesc}>Sincronizar Calorias e Duração ativamente no final do treino.</Text>
+                <Text style={[styles.settingTitle, { color: theme.colors.textPrimary }]}>Apple Health / Google Fit</Text>
+                <Text style={[styles.settingDesc, { color: theme.colors.textSecondary }]}>Sincronizar Calorias e Duração ativamente no final do treino.</Text>
               </View>
             </View>
             <Switch
               trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
               thumbColor={theme.colors.textPrimary}
               ios_backgroundColor={theme.colors.border}
-              onValueChange={setHealthSyncEnabled}
+              onValueChange={(val) => {
+                soundManager.play('click');
+                setHealthSyncEnabled(val);
+              }}
               value={healthSyncEnabled}
             />
           </View>
@@ -43,15 +81,15 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Social</Text>
-        <BlurView intensity={20} tint="dark" style={styles.glassCard}>
+        <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
-              <View style={styles.iconCircle}>
+              <View style={[styles.iconCircle, { backgroundColor: theme.colors.surfaceHighlight }]}>
                 <Instagram color="#E1306C" size={20} />
               </View>
               <View>
-                <Text style={styles.settingTitle}>Badge Social (Stories)</Text>
-                <Text style={styles.settingDesc}>Use o botão partilhar no final do treino para gerar um badge auto-ajustado.</Text>
+                <Text style={[styles.settingTitle, { color: theme.colors.textPrimary }]}>Badge Social (Stories)</Text>
+                <Text style={[styles.settingDesc, { color: theme.colors.textSecondary }]}>Use o botão partilhar no final do treino para gerar um badge auto-ajustado.</Text>
               </View>
             </View>
           </View>
@@ -60,15 +98,15 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Geral</Text>
-        <BlurView intensity={20} tint="dark" style={styles.glassCard}>
+        <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
           <View style={[styles.settingRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
             <View style={styles.settingInfo}>
-              <View style={styles.iconCircle}>
-                <Shield color="#38BDF8" size={20} />
+              <View style={[styles.iconCircle, { backgroundColor: theme.colors.surfaceHighlight }]}>
+                <Shield color={theme.colors.secondary} size={20} />
               </View>
               <View>
-                <Text style={styles.settingTitle}>Dados e Privacidade</Text>
-                <Text style={styles.settingDesc}>Os seus dados mantêm-se 100% locais.</Text>
+                <Text style={[styles.settingTitle, { color: theme.colors.textPrimary }]}>Dados e Privacidade</Text>
+                <Text style={[styles.settingDesc, { color: theme.colors.textSecondary }]}>Os seus dados mantêm-se 100% locais.</Text>
               </View>
             </View>
           </View>
@@ -167,5 +205,27 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontSize: theme.typography.sizes.md,
     letterSpacing: 0.5,
+  },
+  themeToggleRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  themeOption: {
+    flex: 1,
+    padding: 12,
+    borderRadius: theme.radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  activeThemeOption: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  themeOptionText: {
+    fontSize: 10,
+    marginTop: 6,
+    fontFamily: theme.typography.fonts.bold,
+    textTransform: 'uppercase',
   }
 });

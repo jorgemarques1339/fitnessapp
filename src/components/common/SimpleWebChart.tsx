@@ -89,18 +89,6 @@ export default function SimpleWebChart({
             strokeWidth="2"
           />
         ))}
-
-        {/* Labels (Simple Sample) */}
-        {data.length > 1 && (
-          <>
-            <Text style={[styles.axisLabel, { position: 'absolute', left: getX(0), bottom: 10 }]}>
-              {labels[0]}
-            </Text>
-            <Text style={[styles.axisLabel, { position: 'absolute', right: width - getX(data.length - 1), bottom: 10 }]}>
-              {labels[data.length - 1]}
-            </Text>
-          </>
-        )}
       </Svg>
 
       {/* Absolute positioned labels for better alignment on Web */}

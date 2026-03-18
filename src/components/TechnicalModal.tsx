@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Image, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
+import { useAppTheme } from '../hooks/useAppTheme';
 
 interface TechnicalModalProps {
   visible: boolean;
@@ -10,16 +11,17 @@ interface TechnicalModalProps {
 }
 
 export default function TechnicalModal({ visible, onClose, exerciseName, videoUrl }: TechnicalModalProps) {
+  const theme = useAppTheme();
   if (!visible) return null;
 
   return (
     <View style={styles.fullscreenOverlay}>
-      <BlurView intensity={90} tint="dark" style={StyleSheet.absoluteFill} />
+      <BlurView intensity={90} tint={theme.isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
       
       <View style={styles.centeredView}>
-        <View style={styles.modalView}>
-          <Text style={styles.modalTitle}>{exerciseName}</Text>
-          <Text style={styles.subtitle}>Foco Técnico & Execução</Text>
+        <View style={[styles.modalView, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+          <Text style={[styles.modalTitle, { color: theme.colors.textPrimary }]}>{exerciseName}</Text>
+          <Text style={[styles.subtitle, { color: theme.colors.secondary }]}>Foco Técnico & Execução</Text>
           
           <View style={styles.mediaContainer}>
             {videoUrl ? (
@@ -38,14 +40,18 @@ export default function TechnicalModal({ visible, onClose, exerciseName, videoUr
                 />
               )
             ) : (
-              <View style={styles.placeholderBox}>
-                <Text style={styles.placeholderText}>Demonstração não disponível</Text>
+              <View style={[styles.placeholderBox, { backgroundColor: theme.colors.background }]}>
+                <Text style={[styles.placeholderText, { color: theme.colors.textMuted }]}>Demonstração não disponível</Text>
               </View>
             )}
           </View>
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose} activeOpacity={0.8}>
-            <Text style={styles.textStyle}>Fechar Visualização</Text>
+          <TouchableOpacity 
+            style={[styles.closeButton, { backgroundColor: theme.colors.secondary, shadowColor: theme.colors.secondary }]} 
+            onPress={onClose} 
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.textStyle, { color: theme.colors.background }]}>Fechar Visualização</Text>
           </TouchableOpacity>
         </View>
       </View>
