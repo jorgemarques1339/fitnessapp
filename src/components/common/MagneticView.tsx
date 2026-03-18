@@ -20,6 +20,8 @@ export default function MagneticView({ children, disabled }: MagneticViewProps) 
   const scale = useSharedValue(1);
 
   const gesture = Gesture.Pan()
+    .activeOffsetX([-20, 20])
+    .activeOffsetY([-20, 20])
     .enabled(!disabled)
     .onStart(() => {
       scale.value = withSpring(0.98);

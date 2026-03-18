@@ -123,7 +123,10 @@ export default function ExerciseSelector({
         </AnimatedPressable>
       </ScrollView>
 
-      <View style={[styles.stickyFooterBase, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View 
+        style={[styles.stickyFooterBase, { paddingBottom: Math.max(insets.bottom, 20) }]}
+        pointerEvents="box-none"
+      >
         <LinearGradient
           colors={['transparent', theme.colors.background]}
           style={styles.footerGradient}
