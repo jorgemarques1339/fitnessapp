@@ -91,12 +91,12 @@ export default function WorkoutLogger() {
   }, [currentExerciseIndex, currentExercise.id, stopTimer, getPreviousExerciseLog, activeRoutine.id, completedWorkouts.length, currentExercise.targetSets]);
 
   const handleLogSet = () => {
-    if (!currentWeight || !currentReps || !currentRpe) return;
+    if (!currentWeight || !currentReps) return;
 
     logSet({
       weightKg: currentWeight,
       reps: currentReps,
-      rpe: currentRpe,
+      rpe: '8',
     });
     
     soundManager.play('complete');
@@ -114,7 +114,7 @@ export default function WorkoutLogger() {
       reps: parseInt(s.reps, 10),
       targetReps: currentExercise.targetSets,
       restSeconds: 90,
-      rpe: parseFloat(s.rpe)
+      rpe: 8
     }));
     
     const routineCompletions = completedWorkouts.filter(w => w.routineId === activeRoutine.id).length;
@@ -124,7 +124,6 @@ export default function WorkoutLogger() {
     setSuggestedWeight(progression.suggestedWeight);
 
     startTimer(90);
-    setCurrentRpe('');
     setCurrentReps('');
   };
 
@@ -162,8 +161,6 @@ export default function WorkoutLogger() {
                 setCurrentWeight={setCurrentWeight}
                 currentReps={currentReps}
                 setCurrentReps={setCurrentReps}
-                currentRpe={currentRpe}
-                setCurrentRpe={setCurrentRpe}
                 onLogSet={handleLogSet}
                 onReturnToSelection={returnToSelection}
                 onAbortWorkout={abortWorkout}

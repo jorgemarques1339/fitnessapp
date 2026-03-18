@@ -6,7 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import AnimatedPressable from '../common/AnimatedPressable';
-import SwipeButton from '../SwipeButton';
+
 import { ExerciseDef } from '../../data/routines';
 
 interface LoggingInterfaceProps {
@@ -18,8 +18,6 @@ interface LoggingInterfaceProps {
   setCurrentWeight: (v: string) => void;
   currentReps: string;
   setCurrentReps: (v: string) => void;
-  currentRpe: string;
-  setCurrentRpe: (v: string) => void;
   onLogSet: () => void;
   onReturnToSelection: () => void;
   onAbortWorkout: () => void;
@@ -38,8 +36,6 @@ export default function LoggingInterface({
   setCurrentWeight,
   currentReps,
   setCurrentReps,
-  currentRpe,
-  setCurrentRpe,
   onLogSet,
   onReturnToSelection,
   onAbortWorkout,
@@ -103,9 +99,6 @@ export default function LoggingInterface({
 
               <View style={styles.setRight}>
                 <Text style={[styles.setStatText, { color: theme.colors.textPrimary }]}>{set.reps} reps</Text>
-                <View style={[styles.rpeBadge, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.danger, borderWidth: 1 }]}>
-                  <Text style={[styles.rpeText, { color: theme.colors.danger }]}>@ {set.rpe}</Text>
-                </View>
               </View>
             </BlurView>
           </Animated.View>
@@ -127,7 +120,7 @@ export default function LoggingInterface({
         <View style={styles.inputArea}>
           <View style={styles.inputGroup}>
             <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 8, gap: 4 }}>
-              <Text style={styles.label}>Peso</Text>
+              <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Peso</Text>
               {suggestedWeight && (
                 <View style={[styles.aiBadge, { backgroundColor: theme.colors.secondary }]}>
                   <Text style={styles.aiBadgeText}>Sugestão IA: {suggestedWeight}kg</Text>
@@ -146,7 +139,7 @@ export default function LoggingInterface({
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Reps</Text>
+            <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Repetições</Text>
             <BlurView intensity={40} tint="dark" style={styles.inputGlass}>
               <TextInput
                 style={styles.input}
@@ -157,23 +150,24 @@ export default function LoggingInterface({
               />
             </BlurView>
           </View>
-
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>RPE</Text>
-            <BlurView intensity={40} tint="dark" style={styles.inputGlass}>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={currentRpe}
-                onChangeText={setCurrentRpe}
-                placeholderTextColor="rgba(255,255,255,0.2)"
-              />
-            </BlurView>
-          </View>
         </View>
 
         {!isReadyToAdvance ? (
-          <SwipeButton onComplete={onLogSet} title="Deslize para Registrar" />
+          <TouchableOpacity
+            onPress={onLogSet}
+            style={[styles.registerButton, (!currentWeight || !currentReps) && styles.registerButtonDisabled]}
+            activeOpacity={0.8}
+            disabled={!currentWeight || !currentReps}
+          >
+            <LinearGradient
+              colors={(!currentWeight || !currentReps) ? ['#2a2a2a', '#1a1a1a'] : ['#00E676', '#00BCD4']}
+              style={styles.registerGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={[styles.registerButtonText, (!currentWeight || !currentReps) && { color: 'rgba(255,255,255,0.3)' }]}>Registar Série</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         ) : (
           <AnimatedPressable 
             style={styles.nextButtonGlow} 
@@ -330,6 +324,31 @@ const styles = StyleSheet.create({
     bottom: 0,
     opacity: 0.95,
   },
+  registerButton: {
+    borderRadius: 100,
+    overflow: 'hidden',
+    shadowColor: '#00E676',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  registerButtonDisabled: {
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  registerGradient: {
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  registerButtonText: {
+    color: '#000',
+    fontWeight: '900',
+    fontSize: 17,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
   inputArea: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -356,6 +375,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '900',
     textAlign: 'center',
+    color: '#FFFFFF',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
   nextButtonGlow: {
