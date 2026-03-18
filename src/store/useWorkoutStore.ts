@@ -8,6 +8,7 @@ export interface SetLog {
   weightKg: string;
   reps: string;
   rpe: string;
+  note?: string;
 }
 
 export interface ExerciseLog {

@@ -27,6 +27,8 @@ import AnimatedPressable from './common/AnimatedPressable';
 import MagneticView from './common/MagneticView';
 import { soundManager } from '../utils/SoundManager';
 import { calculateMuscleFatigue, MuscleFatigue } from '../utils/fatigue';
+import WeeklyDashboard from './WeeklyDashboard';
+import AICoachCard from './AICoachCard';
 
 
 interface DashboardProps {
@@ -100,6 +102,16 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
             <View style={styles.chartWrapper}>
               <MiniTonnageChart data={tonnageData.length > 0 ? tonnageData : [0, 0, 0, 0, 0, 0, 0]} />
             </View>
+
+            {/* Weekly Dashboard: streak + stats + volume by muscle */}
+            <WeeklyDashboard completedWorkouts={safeWorkouts} />
+
+            {/* AI Coach: workout recommendation + deload + volume advice */}
+            <AICoachCard
+              completedWorkouts={safeWorkouts}
+              routines={[...ROUTINES, ...customRoutines]}
+              onSelectRoutine={onSelectRoutine}
+            />
 
             {activeRoutine && (
               <AnimatedPressable 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,18 +10,25 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue 
 } from 'react-native-reanimated';
-import { Trophy, Clock, Weight, CheckCircle2, Share2, Target } from 'lucide-react-native';
+import { Trophy, Clock, Weight, CheckCircle2, Share2, Target, TrendingUp } from 'lucide-react-native';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 
 import { useWorkoutStore } from '../store/useWorkoutStore';
+import { detectPRs, PR } from '../utils/weeklyStats';
 
 export default function TrophyScreen() {
   const lastWorkout = useWorkoutStore(state => state.lastCompletedWorkout);
   const clearTrophy = useWorkoutStore(state => state.clearLastCompletedWorkout);
+  const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
   const scale = useSharedValue(0.8);
 
   const badgeRef = useRef<View>(null);
+
+  const prs = useMemo(() => {
+    if (!lastWorkout) return [];
+    return detectPRs(completedWorkouts, lastWorkout);
+  }, [lastWorkout, completedWorkouts]);
 
   useEffect(() => {
     scale.value = withSpring(1);
@@ -104,6 +111,35 @@ export default function TrophyScreen() {
             </Text>
           </BlurView>
         </Animated.View>
+
+        {/* PR Section */}
+        {prs.length > 0 && (
+          <Animated.View entering={FadeInDown.delay(1300)} style={styles.prSection}>
+            <LinearGradient
+              colors={['rgba(255,215,0,0.15)', 'rgba(255,150,0,0.08)']}
+              style={styles.prCard}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.prHeader}>
+                <Text style={styles.prHeaderEmoji}>🏆</Text>
+                <Text style={styles.prTitle}>NOVOS RECORDES PESSOAIS!</Text>
+              </View>
+              {prs.map((pr, i) => (
+                <View key={i} style={styles.prRow}>
+                  <TrendingUp color="#FFD700" size={16} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.prExercise}>{pr.exerciseName}</Text>
+                    <Text style={styles.prValue}>
+                      {pr.type === 'weight' ? `${pr.newValue}kg` : `${pr.newValue}kg 1RM`}
+                      <Text style={styles.prPrev}>  (antes: {pr.previousBest}{pr.type === 'weight' ? 'kg' : 'kg'})</Text>
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </LinearGradient>
+          </Animated.View>
+        )}
 
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
@@ -381,5 +417,57 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 1,
     marginTop: 4,
-  }
+  },
+  // PR Section
+  prSection: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  prCard: {
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,215,0,0.3)',
+  },
+  prHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  prHeaderEmoji: {
+    fontSize: 24,
+  },
+  prTitle: {
+    color: '#FFD700',
+    fontWeight: '900',
+    fontSize: 13,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  prRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(255,215,0,0.08)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+  },
+  prExercise: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  prValue: {
+    color: '#FFD700',
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  prPrev: {
+    color: 'rgba(255,255,255,0.4)',
+    fontWeight: '500',
+    fontSize: 12,
+  },
 });

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, KeyboardAvoidingView, Platform, useWindowDimensions, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, KeyboardAvoidingView, Platform, useWindowDimensions, StyleSheet } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -46,6 +47,7 @@ export default function WorkoutLogger() {
   const [currentWeight, setCurrentWeight] = useState('');
   const [currentReps, setCurrentReps] = useState('');
   const [currentRpe, setCurrentRpe] = useState('');
+  const [currentNote, setCurrentNote] = useState('');
   const [aiMessage, setAiMessage] = useState('');
   const [suggestedWeight, setSuggestedWeight] = useState<number | undefined>(undefined);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -97,6 +99,7 @@ export default function WorkoutLogger() {
       weightKg: currentWeight,
       reps: currentReps,
       rpe: '8',
+      note: currentNote.trim() || undefined,
     });
     
     soundManager.play('complete');
@@ -125,9 +128,36 @@ export default function WorkoutLogger() {
 
     startTimer(90);
     setCurrentReps('');
+    setCurrentNote('');
   };
 
   const isReadyToAdvance = currentExerciseSets.length >= currentExercise.targetSets;
+
+  // Previous session sets for the current exercise
+  const previousSets = React.useMemo(() => {
+    const prevLog = getPreviousExerciseLog(currentExercise.id);
+    return prevLog?.sets ?? [];
+  }, [currentExercise.id]);
+
+  // Progress bar: exercises with >= targetSets logged sets
+  const completedExercisesCount = React.useMemo(() => {
+    return activeRoutine.exercises.filter(ex => {
+      const log = sessionLogs.find(l => l.exerciseId === ex.id);
+      return log && log.sets.length >= ex.targetSets;
+    }).length;
+  }, [sessionLogs, activeRoutine.exercises]);
+
+  const totalExercises = activeRoutine.exercises.length;
+  const progressPct = totalExercises > 0 ? completedExercisesCount / totalExercises : 0;
+
+  // Animated progress bar width
+  const progressWidth = useSharedValue(0);
+  useEffect(() => {
+    progressWidth.value = withTiming(progressPct, { duration: 600 });
+  }, [progressPct]);
+  const animProgressStyle = useAnimatedStyle(() => ({
+    width: `${progressWidth.value * 100}%` as any,
+  }));
 
   return (
     <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={[styles.background, { backgroundColor: theme.colors.background }]}>
@@ -140,6 +170,16 @@ export default function WorkoutLogger() {
             styles.container,
             isLargeScreen && { alignSelf: 'center', width: '100%', maxWidth: contentMaxWidth }
           ]}>
+
+            {/* Progress Bar Widget */}
+            <View style={styles.progressBarContainer}>
+              <View style={[styles.progressBarTrack, { backgroundColor: 'rgba(255,255,255,0.07)' }]}>
+                <Animated.View style={[styles.progressBarFill, animProgressStyle]} />
+              </View>
+              <Text style={[styles.progressLabel, { color: completedExercisesCount === totalExercises ? '#00E676' : theme.colors.textMuted }]}>
+                {completedExercisesCount}/{totalExercises} exercícios
+              </Text>
+            </View>
             
             {isExerciseSelectionMode ? (
               <ExerciseSelector 
@@ -161,6 +201,9 @@ export default function WorkoutLogger() {
                 setCurrentWeight={setCurrentWeight}
                 currentReps={currentReps}
                 setCurrentReps={setCurrentReps}
+                currentNote={currentNote}
+                setCurrentNote={setCurrentNote}
+                previousSets={previousSets}
                 onLogSet={handleLogSet}
                 onReturnToSelection={returnToSelection}
                 onAbortWorkout={abortWorkout}
@@ -217,5 +260,34 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  progressBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingTop: 6,
+    paddingBottom: 4,
+  },
+  progressBarTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 2,
+    backgroundColor: '#00E676',
+    shadowColor: '#00E676',
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 0 },
+  },
+  progressLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    minWidth: 80,
+    textAlign: 'right',
   },
 });
