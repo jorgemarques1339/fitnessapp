@@ -15,7 +15,7 @@ export const get1RMTrendData = (completedWorkouts: any[], exerciseId: string): {
   );
 
   sortedWorkouts.forEach(workout => {
-    const exLog = workout.logs.find((l: any) => l.exerciseId === exerciseId);
+    const exLog = workout.exerciseLogs?.find((l: any) => l.exerciseId === exerciseId);
     if (exLog && exLog.sets.length > 0) {
       // Find the best set of this session using Epley
       let sessionBest1RM = 0;

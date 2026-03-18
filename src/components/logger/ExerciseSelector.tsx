@@ -8,6 +8,9 @@ import MagneticView from '../common/MagneticView';
 import { soundManager } from '../../utils/SoundManager';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RoutineDef, ExerciseDef } from '../../data/routines';
+import { useWorkoutStore } from '../../store/useWorkoutStore';
+import { getUnderTrainedMuscles } from '../../utils/recovery';
+import { theme } from '../../theme/theme';
 
 interface ExerciseSelectorProps {
   activeRoutine: RoutineDef;
@@ -29,6 +32,11 @@ export default function ExerciseSelector({
   insets
 }: ExerciseSelectorProps) {
   const theme = useAppTheme();
+  const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
+  
+  const recommendedMuscles = React.useMemo(() => 
+    getUnderTrainedMuscles(completedWorkouts), 
+  [completedWorkouts]);
 
   return (
     <View style={styles.container}>
@@ -52,6 +60,7 @@ export default function ExerciseSelector({
           const log = sessionLogs.find(l => l.exerciseId === exercise.id);
           const completedSetsCount = log ? log.sets.length : 0;
           const isComplete = completedSetsCount >= exercise.targetSets;
+          const isRecommended = exercise.category && recommendedMuscles.includes(exercise.category);
           
           return (
             <MagneticView key={exercise.id}>
@@ -69,14 +78,21 @@ export default function ExerciseSelector({
                   style={styles.exerciseListCard}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ 
-                      color: isComplete ? theme.colors.textMuted : theme.colors.textPrimary, 
-                      fontSize: 18, 
-                      fontFamily: theme.typography.fonts.bold, 
-                      marginBottom: 4 
-                    }}>
-                      {exercise.name}
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <Text style={{ 
+                        color: isComplete ? theme.colors.textMuted : theme.colors.textPrimary, 
+                        fontSize: 18, 
+                        fontFamily: theme.typography.fonts.bold, 
+                        marginBottom: 4 
+                      }}>
+                        {exercise.name}
+                      </Text>
+                      {isRecommended && !isComplete && (
+                        <View style={[styles.recBadge, { backgroundColor: theme.colors.primary + '20', borderColor: theme.colors.primary }]}>
+                          <Text style={[styles.recBadgeText, { color: theme.colors.primary }]}>Recomendado</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={{ color: theme.colors.textSecondary, fontSize: 13, fontFamily: theme.typography.fonts.medium }}>
                       {completedSetsCount} de {exercise.targetSets} séries concluídas
                     </Text>
@@ -243,5 +259,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textTransform: 'uppercase',
     letterSpacing: 1,
+  },
+  recBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+  recBadgeText: {
+    fontSize: 9,
+    fontFamily: theme.typography.fonts.bold,
+    textTransform: 'uppercase',
   },
 });

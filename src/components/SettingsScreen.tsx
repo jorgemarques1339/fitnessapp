@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Activity, Instagram, Shield, Smartphone, HeartPulse, Download, Upload, FileText, Database, ChevronRight } from 'lucide-react-native';
+import { Activity, Instagram, Shield, Smartphone, HeartPulse, Download, Upload, FileText, Database, ChevronRight, ShieldCheck, AlertCircle } from 'lucide-react-native';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
@@ -25,7 +25,22 @@ export default function SettingsScreen() {
   const customRoutines = useWorkoutStore(state => state.customRoutines);
   const bodyWeightLogs = useWorkoutStore(state => state.bodyWeightLogs);
   const importData = useWorkoutStore(state => state.importData);
+  const lastBackupDate = useWorkoutStore(state => state.lastBackupDate);
+  const setLastBackupDate = useWorkoutStore(state => state.setLastBackupDate);
+  const availablePlates = useWorkoutStore(state => state.availablePlates);
+  const setAvailablePlates = useWorkoutStore(state => state.setAvailablePlates);
   const theme = useAppTheme();
+
+  const getBackupStatus = () => {
+    if (!lastBackupDate) return { text: 'Segurança Crítica', color: theme.colors.danger };
+    const last = new Date(lastBackupDate).getTime();
+    const now = Date.now();
+    const diffDays = (now - last) / (1000 * 60 * 60 * 24);
+
+    if (diffDays < 3) return { text: 'Dados Protegidos', color: '#00E676' };
+    if (diffDays < 7) return { text: 'Backup Recomendado', color: '#FFD700' };
+    return { text: 'Backup em Falta', color: theme.colors.danger };
+  };
 
   const handleExportJSON = async () => {
     soundManager.play('click');
@@ -51,6 +66,7 @@ export default function SettingsScreen() {
       const fileUri = (FileSystem as any).cacheDirectory + fileName;
       await FileSystem.writeAsStringAsync(fileUri, jsonString);
       await Sharing.shareAsync(fileUri);
+      setLastBackupDate(new Date().toISOString());
     }
   };
 
@@ -200,6 +216,44 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
+        <Text style={styles.sectionHeader}>Meus Equipamentos</Text>
+        <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+          <Text style={[styles.settingDesc, { color: theme.colors.textSecondary, marginBottom: 20 }]}>Selecione as anilhas que tem disponíveis. O calculador de barra usará apenas estas.</Text>
+          
+          <View style={styles.platesGrid}>
+            {[25, 20, 15, 10, 5, 2.5, 1.25].map(weight => {
+              const isSelected = availablePlates.includes(weight);
+              return (
+                <TouchableOpacity 
+                  key={weight}
+                  style={[
+                    styles.plateToggle, 
+                    { backgroundColor: isSelected ? theme.colors.primary : theme.colors.surfaceHighlight },
+                    isSelected && { borderColor: theme.colors.primary }
+                  ]}
+                  onPress={() => {
+                    soundManager.play('pop');
+                    if (isSelected) {
+                      setAvailablePlates(availablePlates.filter(p => p !== weight));
+                    } else {
+                      setAvailablePlates([...availablePlates, weight].sort((a, b) => b - a));
+                    }
+                  }}
+                >
+                  <Text style={[styles.plateWeightText, { color: isSelected ? theme.colors.background : theme.colors.textPrimary }]}>
+                    {weight}
+                  </Text>
+                  <Text style={[styles.plateUnitText, { color: isSelected ? theme.colors.background : theme.colors.textMuted }]}>
+                    kg
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </BlurView>
+      </View>
+
+      <View style={styles.section}>
         <Text style={styles.sectionHeader}>Social</Text>
         <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
           <View style={styles.settingRow}>
@@ -217,35 +271,57 @@ export default function SettingsScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionHeader}>Gestão de Dados (Pro)</Text>
+        <Text style={styles.sectionHeader}>Segurança e Backup (Premium)</Text>
         <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
           
-          <TouchableOpacity style={styles.dataButton} onPress={handleExportJSON}>
-            <View style={styles.dataButtonLeft}>
-              <Database color={theme.colors.primary} size={20} />
-              <Text style={[styles.dataButtonText, { color: theme.colors.textPrimary }]}>Exportar Backup (JSON)</Text>
+          <View style={styles.backupStatusRow}>
+            <View style={[styles.statusIndicator, { backgroundColor: getBackupStatus().color }]} />
+            <View>
+              <Text style={[styles.backupStatusTitle, { color: theme.colors.textPrimary }]}>{getBackupStatus().text}</Text>
+              <Text style={[styles.backupStatusDate, { color: theme.colors.textSecondary }]}>
+                {lastBackupDate 
+                  ? `Último backup: ${new Date(lastBackupDate).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+                  : 'Nenhum backup realizado'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: theme.colors.border, marginVertical: 15 }]} />
+
+          <TouchableOpacity style={styles.dataButtonPremium} onPress={handleExportJSON}>
+            <LinearGradient
+              colors={['#00E676', '#00C853']}
+              style={styles.premiumIconCircle}
+            >
+              <Database color="#FFF" size={20} />
+            </LinearGradient>
+            <View style={styles.dataButtonContent}>
+              <Text style={[styles.dataButtonTitle, { color: theme.colors.textPrimary }]}>Exportar Backup Local</Text>
+              <Text style={[styles.dataButtonDesc, { color: theme.colors.textSecondary }]}>Criptografado e pronto para restauro.</Text>
             </View>
             <Download color={theme.colors.textMuted} size={18} />
           </TouchableOpacity>
 
-          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-
-          <TouchableOpacity style={styles.dataButton} onPress={handleExportCSV}>
-            <View style={styles.dataButtonLeft}>
-              <FileText color={theme.colors.secondary} size={20} />
-              <Text style={[styles.dataButtonText, { color: theme.colors.textPrimary }]}>Exportar Treinos (CSV)</Text>
-            </View>
-            <Download color={theme.colors.textMuted} size={18} />
-          </TouchableOpacity>
-
-          <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-
-          <TouchableOpacity style={styles.dataButton} onPress={handleImportJSON}>
-            <View style={styles.dataButtonLeft}>
+          <TouchableOpacity style={styles.dataButtonPremium} onPress={handleImportJSON}>
+            <View style={[styles.premiumIconCircle, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
               <Upload color={theme.colors.accent} size={20} />
-              <Text style={[styles.dataButtonText, { color: theme.colors.textPrimary }]}>Importar Backup</Text>
+            </View>
+            <View style={styles.dataButtonContent}>
+              <Text style={[styles.dataButtonTitle, { color: theme.colors.textPrimary }]}>Importar de Ficheiro</Text>
+              <Text style={[styles.dataButtonDesc, { color: theme.colors.textSecondary }]}>Restaurar histórico e rotinas.</Text>
             </View>
             <ChevronRight color={theme.colors.textMuted} size={18} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.dataButtonPremium} onPress={handleExportCSV}>
+            <View style={[styles.premiumIconCircle, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+              <FileText color={theme.colors.secondary} size={20} />
+            </View>
+            <View style={styles.dataButtonContent}>
+              <Text style={[styles.dataButtonTitle, { color: theme.colors.textPrimary }]}>Relatório CSV</Text>
+              <Text style={[styles.dataButtonDesc, { color: theme.colors.textSecondary }]}>Ver histórico no Excel/Google Sheets.</Text>
+            </View>
+            <Download color={theme.colors.textMuted} size={18} />
           </TouchableOpacity>
 
         </BlurView>
@@ -402,5 +478,81 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 4,
     opacity: 0.5,
-  }
+  },
+  backupStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+    marginBottom: 5,
+  },
+  statusIndicator: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+  },
+  backupStatusTitle: {
+    fontSize: 18,
+    fontFamily: theme.typography.fonts.display,
+    letterSpacing: -0.5,
+  },
+  backupStatusDate: {
+    fontSize: 12,
+    fontFamily: theme.typography.fonts.medium,
+    marginTop: 2,
+    opacity: 0.8,
+  },
+  dataButtonPremium: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    gap: 15,
+  },
+  premiumIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dataButtonContent: {
+    flex: 1,
+  },
+  dataButtonTitle: {
+    fontSize: 15,
+    fontFamily: theme.typography.fonts.bold,
+    marginBottom: 2,
+  },
+  dataButtonDesc: {
+    fontSize: 12,
+    fontFamily: theme.typography.fonts.regular,
+    opacity: 0.6,
+  },
+  platesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'center',
+  },
+  plateToggle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plateWeightText: {
+    fontSize: 14,
+    fontFamily: theme.typography.fonts.black,
+  },
+  plateUnitText: {
+    fontSize: 9,
+    fontFamily: theme.typography.fonts.bold,
+    marginTop: -2,
+  },
 });

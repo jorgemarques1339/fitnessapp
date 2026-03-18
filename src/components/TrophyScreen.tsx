@@ -15,7 +15,9 @@ import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 
 import { useWorkoutStore } from '../store/useWorkoutStore';
-import { detectPRs, PR } from '../utils/weeklyStats';
+import { detectPRs, PR, getStreakDays } from '../utils/weeklyStats';
+import AchievementBadge from './common/AchievementBadge';
+import WorkoutShareCard from './logger/WorkoutShareCard';
 
 export default function TrophyScreen() {
   const lastWorkout = useWorkoutStore(state => state.lastCompletedWorkout);
@@ -70,15 +72,35 @@ export default function TrophyScreen() {
         style={StyleSheet.absoluteFill}
       />
       
+      <View style={{ height: 0, opacity: 0, position: 'absolute' }}>
+        <View ref={badgeRef} collapsable={false}>
+          <WorkoutShareCard 
+            workoutTitle={lastWorkout.routineTitle}
+            date={new Date(lastWorkout.date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' }).toUpperCase()}
+            totalVolume={(lastWorkout.totalTonnageKg / 1000).toFixed(1)}
+            duration={lastWorkout.durationMs ? Math.floor(lastWorkout.durationMs / 60000) + ' min' : '--'}
+            topExercises={lastWorkout.exerciseLogs.slice(0, 3).map(l => l.exerciseName)}
+          />
+        </View>
+      </View>
+      
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Animated.View entering={ZoomIn.duration(800)} style={[styles.trophyContainer, animatedIconStyle]}>
           <View style={styles.glow} />
           <Trophy color="#FFD700" size={120} strokeWidth={1.5} />
         </Animated.View>
 
-        <Animated.Text entering={FadeInUp.delay(300)} style={styles.title}>
-          Treino Concluído!
-        </Animated.Text>
+        <Animated.View entering={FadeInDown.delay(400)} style={styles.shareCardPreview}>
+          <View ref={badgeRef} collapsable={false}>
+            <WorkoutShareCard 
+              workoutTitle={lastWorkout.routineTitle}
+              date={new Date(lastWorkout.date).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' }).toUpperCase()}
+              totalVolume={(lastWorkout.totalTonnageKg / 1000).toFixed(1)}
+              duration={lastWorkout.durationMs ? Math.floor(lastWorkout.durationMs / 60000) + ' min' : '--'}
+              topExercises={lastWorkout.exerciseLogs.slice(0, 3).map(l => l.exerciseName)}
+            />
+          </View>
+        </Animated.View>
         
         <Animated.Text entering={FadeInUp.delay(500)} style={styles.subtitle}>
           {lastWorkout.routineTitle}
@@ -110,6 +132,22 @@ export default function TrophyScreen() {
               Hipertrofia garantida.
             </Text>
           </BlurView>
+        </Animated.View>
+
+        {/* ── NEW: Achievements Section ── */}
+        <Animated.View entering={FadeInDown.delay(1200)} style={styles.achievementsRow}>
+          {prs.some(p => p.exerciseName.toLowerCase().includes('agachamento') || p.exerciseName.toLowerCase().includes('squat')) && (
+            <AchievementBadge type="squat_king" />
+          )}
+          {prs.some(p => p.exerciseName.toLowerCase().includes('peso morto') || p.exerciseName.toLowerCase().includes('deadlift')) && (
+            <AchievementBadge type="deadlift_pro" />
+          )}
+          {lastWorkout.totalTonnageKg > 5000 && (
+            <AchievementBadge type="volume_warrior" />
+          )}
+          {getStreakDays(completedWorkouts) >= 3 && (
+            <AchievementBadge type="streak_hero" />
+          )}
         </Animated.View>
 
         {/* PR Section */}
@@ -165,39 +203,7 @@ export default function TrophyScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Hidden Badge for Sharing */}
-        <View style={styles.hiddenBadgeContainer} pointerEvents="none">
-          <View ref={badgeRef} style={styles.shareBadge}>
-            <LinearGradient
-              colors={['#0F172A', '#000000']}
-              style={StyleSheet.absoluteFillObject}
-            />
-            <View style={styles.badgePattern}>
-              <Trophy color="rgba(255, 215, 0, 0.1)" size={140} />
-            </View>
-            
-            <View style={styles.badgeHeader}>
-              <Text style={styles.badgeAppTitle}>FITNESSAPP PRO</Text>
-            </View>
-            
-            <Text style={styles.badgeTitle}>{lastWorkout.routineTitle}</Text>
-            
-            <View style={styles.badgeStats}>
-              <View style={styles.badgeStat}>
-                <Weight color="#00E676" size={20} />
-                <Text style={styles.badgeStatValue}>{(lastWorkout.totalTonnageKg / 1000).toFixed(1)}t</Text>
-                <Text style={styles.badgeStatLabel}>TONELADAS</Text>
-              </View>
-              
-              
-              <View style={styles.badgeStat}>
-                <CheckCircle2 color="#38BDF8" size={20} />
-                <Text style={styles.badgeStatValue}>{lastWorkout.totalSets}</Text>
-                <Text style={styles.badgeStatLabel}>SÉRIES</Text>
-              </View>
-            </View>
-          </View>
-        </View>
+        {/* Hidden Badge for Sharing removed as it is now replaced by WorkoutShareCard above */}
 
       </ScrollView>
     </View>
@@ -232,6 +238,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 50,
+  },
+  shareCardPreview: {
+    marginBottom: 40,
+    transform: [{ scale: 0.9 }],
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 20,
   },
   title: {
     fontSize: 32,
@@ -462,5 +477,79 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.4)',
     fontWeight: '500',
     fontSize: 12,
+  },
+  achievementsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    width: '100%',
+    marginBottom: 40,
+    flexWrap: 'wrap',
+  },
+  badgeDecoration: {
+    position: 'absolute',
+  },
+  badgeDate: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+  badgeTitleWrapper: {
+    width: '100%',
+    marginVertical: 40,
+    alignItems: 'center',
+  },
+  badgeDivider: {
+    width: 60,
+    height: 4,
+    backgroundColor: '#38BDF8',
+    marginTop: 15,
+    borderRadius: 2,
+  },
+  badgeMainStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 40,
+  },
+  badgeStatLarge: {
+    alignItems: 'flex-start',
+  },
+  badgeStatValueLarge: {
+    fontSize: 48,
+    fontWeight: '900',
+  },
+  badgePRList: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    padding: 20,
+    borderRadius: 20,
+    marginBottom: 40,
+  },
+  badgePRTitle: {
+    color: 'rgba(255,255,255,0.5)',
+    fontWeight: '800',
+    fontSize: 12,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  badgePRItem: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 5,
+  },
+  badgeFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    opacity: 0.6,
+  },
+  badgeFooterText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 2,
   },
 });

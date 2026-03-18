@@ -1,13 +1,16 @@
 import React, { useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Vibration } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Play, Focus, Clock, CheckCircle2 } from 'lucide-react-native';
+import { Play, Focus, Clock, CheckCircle2, Calculator, X } from 'lucide-react-native';
+import { Modal } from 'react-native';
 import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withTiming, withSequence, withSpring } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import AnimatedPressable from '../common/AnimatedPressable';
 import { ExerciseDef } from '../../data/routines';
 import { SetLog } from '../../store/useWorkoutStore';
+import RestTimer from './RestTimer';
+import PlateCalculator from './PlateCalculator';
 
 interface LoggingInterfaceProps {
   currentExercise: ExerciseDef;
@@ -28,6 +31,10 @@ interface LoggingInterfaceProps {
   isReadyToAdvance: boolean;
   suggestedWeight?: number;
   insets: { top: number; bottom: number };
+  timerActive: boolean;
+  remainingSeconds: number;
+  aiMessage: string;
+  onStopTimer: () => void;
 }
 
 export default function LoggingInterface({
@@ -48,11 +55,22 @@ export default function LoggingInterface({
   onShowTechnicalModal,
   isReadyToAdvance,
   suggestedWeight,
-  insets
+  insets,
+  timerActive,
+  remainingSeconds,
+  aiMessage,
+  onStopTimer,
 }: LoggingInterfaceProps) {
   const theme = useAppTheme();
+  
+  if (!currentExercise) return null;
+
   const targetSets = currentExercise.targetSets;
   const completedCount = currentExerciseSets.length;
+
+  const [restTimerVisible, setRestTimerVisible] = React.useState(false);
+  const [plateCalcVisible, setPlateCalcVisible] = React.useState(false);
+  const restingDuration = 90; // Default 90s
 
   // Best previous set (heaviest weight)
   const bestPrevSet = previousSets.length > 0
@@ -221,7 +239,10 @@ export default function LoggingInterface({
       </ScrollView>
 
       {/* Inputs & Actions - STICKY FOOTER */}
-      <View style={[styles.stickyFooterBase, { paddingBottom: Math.max(insets.bottom, 20) }]}>
+      <View 
+        style={[styles.stickyFooterBase, { paddingBottom: Math.max(insets.bottom, 20) }]}
+        pointerEvents="box-none"
+      >
         <LinearGradient
           colors={['transparent', theme.colors.background]}
           style={styles.footerGradient}
@@ -239,15 +260,25 @@ export default function LoggingInterface({
                 </View>
               )}
             </View>
-            <BlurView intensity={40} tint="dark" style={styles.inputGlass}>
-              <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={currentWeight}
-                onChangeText={setCurrentWeight}
-                placeholderTextColor="rgba(255,255,255,0.2)"
-              />
-            </BlurView>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <BlurView intensity={40} tint="dark" style={[styles.inputGlass, { flex: 1 }]}>
+                <TextInput
+                  style={styles.input}
+                  keyboardType="numeric"
+                  value={currentWeight}
+                  onChangeText={setCurrentWeight}
+                  placeholderTextColor="rgba(255,255,255,0.2)"
+                />
+              </BlurView>
+              <TouchableOpacity 
+                onPress={() => setPlateCalcVisible(true)}
+                style={styles.calcButton}
+              >
+                <BlurView intensity={50} tint="dark" style={styles.calcButtonBlur}>
+                  <Calculator color={theme.colors.primary} size={22} />
+                </BlurView>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.inputGroup}>
@@ -317,6 +348,44 @@ export default function LoggingInterface({
           <CheckCircle2 color="#000" size={72} strokeWidth={2} />
         </View>
       </Animated.View>
+
+      <RestTimer 
+        duration={90} // This is controlled by the logic in WorkoutLogger
+        isVisible={timerActive}
+        onFinished={onStopTimer}
+        onClose={onStopTimer}
+      />
+
+      {/* Plate Calculator Modal */}
+      <Modal
+        visible={plateCalcVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setPlateCalcVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <BlurView intensity={theme.isDark ? 30 : 60} tint={theme.isDark ? "dark" : "light"} style={styles.modalContent}>
+            <TouchableOpacity 
+              style={styles.closeModalBtn}
+              onPress={() => setPlateCalcVisible(false)}
+            >
+              <X color={theme.colors.textPrimary} size={24} />
+            </TouchableOpacity>
+            
+            <PlateCalculator 
+              targetWeight={parseFloat(currentWeight) || 0} 
+              barWeight={20} 
+            />
+            
+            <TouchableOpacity 
+              style={[styles.applyButton, { backgroundColor: theme.colors.primary }]}
+              onPress={() => setPlateCalcVisible(false)}
+            >
+              <Text style={{ color: '#000', fontWeight: '800' }}>FECHAR</Text>
+            </TouchableOpacity>
+          </BlurView>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -389,6 +458,43 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
     marginLeft: 4,
+  },
+  // ── Plate Calculator ──
+  calcButton: {
+    width: 48,
+    height: 52,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  calcButtonBlur: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    padding: 20,
+    paddingTop: 30,
+    minHeight: 450,
+  },
+  closeModalBtn: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    zIndex: 10,
+  },
+  applyButton: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 20,
   },
   // ── Previous session ──
   prevSessionCard: {

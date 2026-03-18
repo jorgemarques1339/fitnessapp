@@ -24,13 +24,13 @@ const COLORS_OLED = {
 const COLORS_FROSTED = {
   background: '#F8FAFC', // Crisp light background
   surface: '#FFFFFF',
-  surfaceHighlight: 'rgba(0, 0, 0, 0.03)',
+  surfaceHighlight: 'rgba(0, 0, 0, 0.1)',
   primary: '#059669', // Deeper green for light mode contrast
   secondary: '#0284C7', // Deeper blue
   accent: '#B45309', // Amber/Ochre
   danger: '#DC2626',
   textPrimary: '#0F172A',
-  textSecondary: '#475569',
+  textSecondary: '#334155',
   textMuted: '#94A3B8',
   textInverse: '#FFFFFF',
   border: 'rgba(0, 0, 0, 0.08)',

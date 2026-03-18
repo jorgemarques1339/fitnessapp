@@ -1,10 +1,9 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
-import { Canvas, RoundedRect, Circle, Group, Shadow, LinearGradient, vec } from '@shopify/react-native-skia';
+import { Canvas, RoundedRect, Circle, Group, LinearGradient, vec } from '@shopify/react-native-skia';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, Easing, useDerivedValue, interpolate } from 'react-native-reanimated';
 import { useAppTheme } from '../../hooks/useAppTheme';
 
-const { width } = Dimensions.get('window');
 const CANVAS_SIZE = 160;
 
 export default function EmptyWorkoutIllustration() {

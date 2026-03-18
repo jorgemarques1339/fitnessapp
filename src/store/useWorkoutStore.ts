@@ -57,6 +57,12 @@ interface WorkoutState {
 
   themeMode: 'oled' | 'frosted';
   setThemeMode: (mode: 'oled' | 'frosted') => void;
+  
+  lastBackupDate: string | null;
+  setLastBackupDate: (date: string) => void;
+
+  availablePlates: number[];
+  setAvailablePlates: (plates: number[]) => void;
 
   startWorkout: (routine: RoutineDef) => void;
   finishWorkout: () => void;
@@ -102,6 +108,12 @@ export const useWorkoutStore = create<WorkoutState>()(
 
       themeMode: 'oled',
       setThemeMode: (mode) => set({ themeMode: mode }),
+
+      lastBackupDate: null,
+      setLastBackupDate: (date) => set({ lastBackupDate: date }),
+
+      availablePlates: [25, 20, 15, 10, 5, 2.5, 1.25],
+      setAvailablePlates: (plates) => set({ availablePlates: plates }),
 
       startWorkout: (routine) => set({
         activeRoutine: routine,
@@ -300,6 +312,7 @@ export const useWorkoutStore = create<WorkoutState>()(
           completedWorkouts: data.completedWorkouts || [],
           customRoutines: data.customRoutines || [],
           bodyWeightLogs: data.bodyWeightLogs || [],
+          lastBackupDate: data.exportDate || data.lastBackupDate || null
         });
       }
     }),
@@ -312,6 +325,8 @@ export const useWorkoutStore = create<WorkoutState>()(
         bodyWeightLogs: state.bodyWeightLogs,
         healthSyncEnabled: state.healthSyncEnabled,
         themeMode: state.themeMode,
+        lastBackupDate: state.lastBackupDate,
+        availablePlates: state.availablePlates,
       }),
     }
   )

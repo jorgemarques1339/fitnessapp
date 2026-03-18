@@ -59,7 +59,15 @@ export default function PremiumCard({
     if (variant === 'alert') bgColor = 'rgba(255,100,0,0.05)';
     if (variant === 'ghost') bgColor = 'transparent';
 
-    return <View style={[StyleSheet.absoluteFill, { backgroundColor: bgColor }, styles.innerBackground]} />;
+    return (
+      <View 
+        style={[
+          StyleSheet.absoluteFill, 
+          { backgroundColor: bgColor, opacity: theme.isDark ? 0.95 : 1.0 }, 
+          styles.innerBackground
+        ]} 
+      />
+    );
   };
 
   const blurIntensity = intensity ?? (theme.isDark ? 30 : 60);
@@ -107,7 +115,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   innerBackground: {
-    opacity: 0.8,
+    // Opacity is now handled dynamically in the component for theme support
   },
   blur: {
     padding: 2,

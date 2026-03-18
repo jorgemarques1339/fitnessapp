@@ -42,12 +42,6 @@ export default function SuccessGlow({ onAnimationComplete }: SuccessGlowProps) {
     opacity: opacity.value,
   }));
 
-  // With modern Skia, we can just use Reanimated shared values in Canvas components
-  // But since we want to animate the Canvas itself or items inside, 
-  // we can use the Reanimated values directly if the version supports it, 
-  // or wrap them in useDerivedValue. 
-  // For simplicity and compatibility, we'll animate the container's opacity and scale.
-
   return (
     <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.container, animatedStyle]}>
       <Canvas style={StyleSheet.absoluteFill}>

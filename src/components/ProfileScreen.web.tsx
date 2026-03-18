@@ -12,6 +12,8 @@ import { soundManager } from '../utils/SoundManager';
 import AnimatedPressable from './common/AnimatedPressable';
 import SimpleWebChart from './common/SimpleWebChart';
 import MuscleHeatmap from './MuscleHeatmap';
+import SessionHistoryTab from './SessionHistoryTab';
+import FluidChart from './common/FluidChart';
 
 export default function ProfileScreen() {
   const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
@@ -22,7 +24,7 @@ export default function ProfileScreen() {
   const [weightInput, setWeightInput] = useState('');
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>(EXERCISE_DATABASE[0].id);
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'stats' | 'heatmap'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'heatmap' | 'history'>('stats');
 
   const handleSaveWeight = () => {
     const w = parseFloat(weightInput);
@@ -35,6 +37,16 @@ export default function ProfileScreen() {
   const rmChartData = useMemo(() => {
     return get1RMTrendData(completedWorkouts, selectedExerciseId);
   }, [completedWorkouts, selectedExerciseId]);
+  
+  const tonnageData = useMemo(() => {
+    const safeWorkouts = completedWorkouts || [];
+    const recentWorkouts = [...safeWorkouts]
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(-7);
+    
+    const data = recentWorkouts.map(w => w.totalTonnageKg / 1000);
+    return data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
+  }, [completedWorkouts]);
 
   const selectedExerciseName = EXERCISE_DATABASE.find(e => e.id === selectedExerciseId)?.name || 'Exercício';
 
@@ -61,6 +73,15 @@ export default function ProfileScreen() {
           }}
         >
           <Text style={[styles.tabText, { color: activeTab === 'heatmap' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Mapa Muscular</Text>
+        </AnimatedPressable>
+        <AnimatedPressable 
+          style={[styles.tab, activeTab === 'history' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+          onPress={() => {
+            soundManager.play('click');
+            setActiveTab('history');
+          }}
+        >
+          <Text style={[styles.tabText, { color: activeTab === 'history' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Histórico</Text>
         </AnimatedPressable>
       </View>
 
@@ -171,17 +192,23 @@ export default function ProfileScreen() {
             </BlurView>
           </View>
         </>
-      ) : (
+      ) : activeTab === 'heatmap' ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Activity color={theme.colors.primary} size={24} />
             <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Intensidade de Volume</Text>
           </View>
           
+          <View style={{ marginBottom: 20 }}>
+            <FluidChart data={tonnageData} height={60} />
+          </View>
+          
           <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
             <MuscleHeatmap completedWorkouts={completedWorkouts} />
           </BlurView>
         </View>
+      ) : (
+        <SessionHistoryTab completedWorkouts={completedWorkouts} />
       )}
     </ScrollView>
   );

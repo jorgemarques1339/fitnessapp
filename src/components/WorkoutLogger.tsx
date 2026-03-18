@@ -16,7 +16,6 @@ import { soundManager } from '../utils/SoundManager';
 
 // Refactored Sub-Components
 import ExerciseSelector from './logger/ExerciseSelector';
-import RestTimerOverlay from './logger/RestTimerOverlay';
 import LoggingInterface from './logger/LoggingInterface';
 import SuccessGlow from './common/SuccessGlow';
 
@@ -62,8 +61,14 @@ export default function WorkoutLogger() {
   if (!activeRoutine) return null;
   const currentExercise = activeRoutine.exercises[currentExerciseIndex];
 
+  // If we are in logging mode but somehow the exercise is missing, return to selection or show error
+  if (!isExerciseSelectionMode && !currentExercise) {
+    return null; 
+  }
+
   // Sync inputs with previous logs
   useEffect(() => {
+    if (!currentExercise) return;
     const prevLog = getPreviousExerciseLog(currentExercise.id);
     
     if (prevLog && prevLog.sets.length > 0) {
@@ -93,7 +98,7 @@ export default function WorkoutLogger() {
     setCurrentRpe('');
     stopTimer();
     setAiMessage('');
-  }, [currentExerciseIndex, currentExercise.id, stopTimer, getPreviousExerciseLog, activeRoutine.id, completedWorkouts.length, currentExercise.targetSets]);
+  }, [currentExerciseIndex, currentExercise?.id, stopTimer, getPreviousExerciseLog, activeRoutine.id, completedWorkouts.length, currentExercise?.targetSets]);
 
   const handleLogSet = () => {
     if (!currentWeight || !currentReps) return;
@@ -144,6 +149,11 @@ export default function WorkoutLogger() {
     startTimer(90);
     setCurrentReps('');
     setCurrentNote('');
+  };
+
+  const handleStopTimer = () => {
+    stopTimer();
+    setAiMessage('');
   };
 
   const isReadyToAdvance = currentExerciseSets.length >= currentExercise.targetSets;
@@ -226,16 +236,13 @@ export default function WorkoutLogger() {
                 isReadyToAdvance={isReadyToAdvance}
                 suggestedWeight={suggestedWeight}
                 insets={insets}
+                timerActive={isActive}
+                remainingSeconds={remainingSeconds}
+                aiMessage={aiMessage}
+                onStopTimer={handleStopTimer}
               />
             )}
 
-            {isActive && (
-              <RestTimerOverlay 
-                remainingSeconds={remainingSeconds}
-                aiMessage={aiMessage}
-                onSkip={stopTimer}
-              />
-            )}
 
             <TechnicalModal 
               visible={isModalVisible} 

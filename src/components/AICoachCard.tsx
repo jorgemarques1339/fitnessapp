@@ -27,8 +27,15 @@ import {
   getMuscleVolumeAdvice,
   MuscleVolumeAdvice,
 } from '../utils/aiCoach';
+import {
+  getPRPredictions,
+  getDynamicRPEAdvice,
+  PRPrediction,
+  DynamicRPEAdvice,
+} from '../utils/aiInsights';
 import PremiumCard from './common/PremiumCard';
 import StatusPill from './common/StatusPill';
+import PRGlow from './common/PRGlow';
 
 interface Props {
   completedWorkouts: CompletedWorkout[];
@@ -55,7 +62,18 @@ export default function AICoachCard({ completedWorkouts, routines, onSelectRouti
     [completedWorkouts]
   );
 
+  const prPredictions = useMemo(
+    () => getPRPredictions(completedWorkouts),
+    [completedWorkouts]
+  );
+
+  const rpeAdvice = useMemo(
+    () => getDynamicRPEAdvice(completedWorkouts),
+    [completedWorkouts]
+  );
+
   const hasVolumeData = volumeAdvice.length > 0;
+  const hasInsights = prPredictions.length > 0 || rpeAdvice.length > 0;
 
   return (
     <View style={styles.wrapper}>
@@ -102,7 +120,7 @@ export default function AICoachCard({ completedWorkouts, routines, onSelectRouti
                   <Text style={styles.recommendEmoji}>💪</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.cardLabel, { color: theme.colors.textMuted }]}>TREINO RECOMENDADO HOJE</Text>
+                  <Text style={[styles.cardLabel, { color: theme.colors.primary }]}>TREINO RECOMENDADO HOJE</Text>
                   <Text style={[styles.routineTitle, { color: theme.colors.textPrimary }]} numberOfLines={2}>
                     {recommendation.bestRoutine.title}
                   </Text>
@@ -157,7 +175,51 @@ export default function AICoachCard({ completedWorkouts, routines, onSelectRouti
         </Animated.View>
       )}
 
-      {/* ── 3. Volume Adjustment Advice ── */}
+      {/* ── 3. Performance Insights (PR Predictor & RPE) ── */}
+      {hasInsights && (
+        <Animated.View entering={FadeInDown.duration(400).delay(120)}>
+          <PremiumCard
+            variant="secondary"
+            style={styles.cardMargin}
+          >
+            <View style={styles.cardPadding}>
+              <View style={styles.cardRow}>
+                <Zap color={theme.colors.accent} size={18} />
+                <Text style={[styles.cardLabel, { color: theme.colors.accent }]}>PERFORMANCE INSIGHTS</Text>
+              </View>
+
+              {prPredictions.map((pr, i) => (
+                <View key={`pr-${i}`} style={styles.insightItem}>
+                  <View style={styles.glowContainer}>
+                    <PRGlow width={300} height={100} color={theme.colors.primary} />
+                  </View>
+                  <View style={styles.insightHeader}>
+                    <Text style={[styles.insightTitle, { color: theme.colors.textPrimary }]}>🎯 PR Ready: {pr.exerciseName}</Text>
+                    <StatusPill label="Go for it!" type="success" />
+                  </View>
+                  <Text style={[styles.insightDesc, { color: theme.colors.textSecondary }]}>
+                    Previsão de 1RM: <Text style={{ fontWeight: '800', color: theme.colors.primary }}>{pr.predicted1RM}kg</Text> (Melhor atual: {pr.currentBest1RM}kg)
+                  </Text>
+                </View>
+              ))}
+
+              {rpeAdvice.map((advice, i) => (
+                <View key={`rpe-${i}`} style={[styles.insightItem, { borderTopWidth: 1, borderColor: theme.colors.border, paddingTop: 10, marginTop: 10 }]}>
+                  <View style={styles.insightHeader}>
+                    <Text style={[styles.insightTitle, { color: theme.colors.textPrimary }]}>
+                      {advice.advice === 'increase_load' ? '⚖️ Ajuste de Carga' : '🔋 Recuperação'}
+                    </Text>
+                    {advice.priority === 'high' && <StatusPill label="Prioritário" type="danger" />}
+                  </View>
+                  <Text style={[styles.insightDesc, { color: theme.colors.textSecondary }]}>{advice.message}</Text>
+                </View>
+              ))}
+            </View>
+          </PremiumCard>
+        </Animated.View>
+      )}
+
+      {/* ── 4. Volume Adjustment Advice ── */}
       {hasVolumeData && (
         <Animated.View entering={FadeInDown.duration(400).delay(160)}>
           <PremiumCard
@@ -242,10 +304,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '900',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
 
   // Alert Card (deload)
@@ -298,16 +360,16 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   cardLabel: {
-    fontSize: 9,
-    fontWeight: '800',
-    letterSpacing: 1,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   routineTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 20,
+    fontSize: 18,
+    fontWeight: '900',
+    lineHeight: 24,
   },
   recoveryRow: {
     gap: 5,
@@ -329,19 +391,19 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
   recoveryLabel: {
-    width: 76,
-    fontSize: 10,
-    fontWeight: '600',
+    width: 85,
+    fontSize: 12,
+    fontWeight: '700',
     textAlign: 'right',
   },
   cardReason: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontStyle: 'italic',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '500',
   },
   fatigueNote: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
   },
   startButton: {
     borderRadius: theme.radii.round,
@@ -423,9 +485,37 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   volumeNote: {
-    fontSize: 9,
+    fontSize: 11,
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: 6,
+  },
+  // Insights
+  insightItem: {
+    marginTop: 8,
+    position: 'relative',
+    overflow: 'hidden',
+    borderRadius: 12,
+  },
+  glowContainer: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.5,
+  },
+  insightHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  insightTitle: {
+    fontSize: 16,
+    fontFamily: theme.typography.fonts.bold,
+    fontWeight: '800',
+  },
+  insightDesc: {
+    fontSize: 13,
+    lineHeight: 20,
+    opacity: 1,
+    fontWeight: '500',
   },
 });
