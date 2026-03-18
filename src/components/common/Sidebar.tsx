@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Home, User, Settings as SettingsIcon } from 'lucide-react-native';
+import { Home, User, Settings as SettingsIcon, Dumbbell } from 'lucide-react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { themeBase } from '../../theme/theme';
 import AnimatedPressable from './AnimatedPressable';
 
 interface SidebarProps {
-  currentTab: 'dashboard' | 'profile' | 'settings';
-  onTabChange: (tab: 'dashboard' | 'profile' | 'settings') => void;
+  currentTab: 'dashboard' | 'profile' | 'settings' | 'exercises';
+  onTabChange: (tab: 'dashboard' | 'profile' | 'settings' | 'exercises') => void;
 }
 
 export default function Sidebar({ currentTab, onTabChange }: SidebarProps) {
@@ -16,6 +16,7 @@ export default function Sidebar({ currentTab, onTabChange }: SidebarProps) {
   
   const navItems = [
     { id: 'dashboard', label: 'Início', icon: Home },
+    { id: 'exercises', label: 'Exercícios', icon: Dumbbell },
     { id: 'profile', label: 'Perfil', icon: User },
     { id: 'settings', label: 'Definições', icon: SettingsIcon },
   ] as const;

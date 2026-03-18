@@ -14,7 +14,7 @@ import { Outfit_700Bold, Outfit_900Black } from '@expo-google-fonts/outfit';
 
 import * as Notifications from 'expo-notifications';
 import { BlurView } from 'expo-blur';
-import { Home, User, Settings as SettingsIcon } from 'lucide-react-native';
+import { Home, User, Settings as SettingsIcon, Dumbbell } from 'lucide-react-native';
 import { useWindowDimensions } from 'react-native';
 
 import { useWorkoutStore } from './src/store/useWorkoutStore';
@@ -27,6 +27,7 @@ import WorkoutLogger from './src/components/WorkoutLogger';
 import TrophyScreen from './src/components/TrophyScreen';
 import Sidebar from './src/components/common/Sidebar';
 import ResponsiveContainer from './src/components/common/ResponsiveContainer';
+import ExerciseLibrary from './src/components/ExerciseLibrary';
 import { themeBase } from './src/theme/theme';
 
 Notifications.setNotificationHandler({
@@ -43,7 +44,7 @@ Notifications.setNotificationHandler({
 function MainApp() {
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
-  const [currentTab, setCurrentTab] = React.useState<'dashboard' | 'profile' | 'settings'>('dashboard');
+  const [currentTab, setCurrentTab] = React.useState<'dashboard' | 'profile' | 'settings' | 'exercises'>('dashboard');
   
   const isInLogger = useWorkoutStore(state => state.isInLogger);
   const lastCompletedWorkout = useWorkoutStore(state => state.lastCompletedWorkout);
@@ -83,6 +84,7 @@ function MainApp() {
               onResumeWorkout={handleResumeWorkout}
             />
           )}
+          {currentTab === 'exercises' && <ExerciseLibrary />}
           {currentTab === 'profile' && <ProfileScreen />}
           {currentTab === 'settings' && <SettingsScreen />}
         </ResponsiveContainer>
@@ -113,6 +115,21 @@ function MainApp() {
                 styles.tabText,
                 { color: currentTab === 'dashboard' ? theme.colors.primary : theme.colors.textMuted }
               ]}>Início</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => setCurrentTab('exercises')}
+              style={styles.tabItem}
+            >
+              <Dumbbell 
+                size={24} 
+                color={currentTab === 'exercises' ? theme.colors.primary : theme.colors.textMuted}
+                strokeWidth={currentTab === 'exercises' ? 2.5 : 2}
+              />
+              <Text style={[
+                styles.tabText,
+                { color: currentTab === 'exercises' ? theme.colors.primary : theme.colors.textMuted }
+              ]}>Exercícios</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 

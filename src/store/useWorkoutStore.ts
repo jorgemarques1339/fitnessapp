@@ -76,6 +76,7 @@ interface WorkoutState {
   clearLastCompletedWorkout: () => void;
 
   getPreviousExerciseLog: (exerciseId: string) => ExerciseLog | null;
+  importData: (data: any) => void;
 }
 
 export const useWorkoutStore = create<WorkoutState>()(
@@ -285,7 +286,21 @@ export const useWorkoutStore = create<WorkoutState>()(
       },
 
       clearHistory: () => {
-        set({ completedWorkouts: [] });
+        set({ 
+          completedWorkouts: [],
+          customRoutines: [],
+          bodyWeightLogs: [],
+          lastCompletedWorkout: null
+        });
+      },
+
+      importData: (data) => {
+        if (!data) return;
+        set({
+          completedWorkouts: data.completedWorkouts || [],
+          customRoutines: data.customRoutines || [],
+          bodyWeightLogs: data.bodyWeightLogs || [],
+        });
       }
     }),
     {
