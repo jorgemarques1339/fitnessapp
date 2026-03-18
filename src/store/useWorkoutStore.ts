@@ -25,7 +25,6 @@ export interface CompletedWorkout {
   totalSets: number;
   totalTonnageKg: number;
   durationMs?: number;
-  calories?: number;
   exerciseLogs: ExerciseLog[];
 }
 
@@ -220,8 +219,6 @@ export const useWorkoutStore = create<WorkoutState>()(
         });
 
         const durationMs = sessionStartTime ? (Date.now() - sessionStartTime) : 0;
-        const minutes = durationMs / 1000 / 60;
-        const calories = Math.round((minutes * 4) + (sessionTotalTonnage * 0.02));
 
         const newWorkout: CompletedWorkout = {
           id: Date.now().toString(),
@@ -231,7 +228,6 @@ export const useWorkoutStore = create<WorkoutState>()(
           totalSets: sessionTotalSets,
           totalTonnageKg: sessionTotalTonnage,
           durationMs,
-          calories,
           exerciseLogs: finalLogs,
         };
 

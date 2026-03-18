@@ -19,15 +19,11 @@ interface Props {
   completedWorkouts: CompletedWorkout[];
 }
 
-const DAY_LABELS = ['S', 'T', 'Q', 'Q', 'S', 'S', 'D'];
-
 export default function WeeklyDashboard({ completedWorkouts }: Props) {
   const theme = useAppTheme();
 
   const thisWeek = useMemo(() => getWorkoutsForWeek(completedWorkouts, 0), [completedWorkouts]);
   const lastWeek = useMemo(() => getWorkoutsForWeek(completedWorkouts, 1), [completedWorkouts]);
-  const streak = useMemo(() => getStreakDays(completedWorkouts), [completedWorkouts]);
-  const last7 = useMemo(() => getLast7DaysActivity(completedWorkouts), [completedWorkouts]);
   const volumeByMuscle = useMemo(() => getWeeklyVolumeByMuscle(thisWeek), [thisWeek]);
 
   const thisVolume = thisWeek.reduce((s, w) => s + w.totalTonnageKg, 0);
@@ -42,47 +38,6 @@ export default function WeeklyDashboard({ completedWorkouts }: Props) {
 
   return (
     <View style={styles.wrapper}>
-      {/* ── STREAK ── */}
-      <Animated.View entering={FadeInDown.duration(400)}>
-        <LinearGradient
-          colors={streak >= 3 ? ['#FF6B35', '#FF9500'] : ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.02)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.streakCard, { borderColor: streak >= 3 ? 'rgba(255,150,0,0.4)' : theme.colors.border }]}
-        >
-          <View style={styles.streakLeft}>
-            <Text style={styles.streakFlame}>🔥</Text>
-            <View>
-              <Text style={[styles.streakNumber, { color: streak >= 3 ? '#fff' : theme.colors.textPrimary }]}>
-                {streak}
-              </Text>
-              <Text style={[styles.streakLabel, { color: streak >= 3 ? 'rgba(255,255,255,0.8)' : theme.colors.textSecondary }]}>
-                {streak === 1 ? 'dia consecutivo' : streak === 0 ? 'dias — começa hoje!' : 'dias consecutivos'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Mini weekly calendar */}
-          <View style={styles.calendarRow}>
-            {last7.map((d, i) => {
-              const dayLabel = ['S','T','Q','Q','S','S','D'][(new Date(d.date).getDay() + 6) % 7];
-              return (
-                <View key={i} style={styles.calendarDay}>
-                  <Text style={[styles.calDayLabel, { color: streak >= 3 ? 'rgba(255,255,255,0.6)' : theme.colors.textMuted }]}>
-                    {dayLabel}
-                  </Text>
-                  <View style={[
-                    styles.calDot,
-                    d.trained
-                      ? { backgroundColor: streak >= 3 ? '#fff' : '#00E676' }
-                      : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: streak >= 3 ? 'rgba(255,255,255,0.3)' : theme.colors.border }
-                  ]} />
-                </View>
-              );
-            })}
-          </View>
-        </LinearGradient>
-      </Animated.View>
 
       {/* ── WEEKLY STATS ── */}
       <Animated.View entering={FadeInDown.duration(400).delay(80)} style={styles.statsRow}>
@@ -212,53 +167,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
 
-  // Streak
-  streakCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
-  },
-  streakLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  streakFlame: {
-    fontSize: 36,
-  },
-  streakNumber: {
-    fontSize: 32,
-    fontWeight: '900',
-    letterSpacing: -1,
-  },
-  streakLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  calendarRow: {
-    flexDirection: 'row',
-    gap: 4,
-    alignItems: 'center',
-  },
-  calendarDay: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  calDayLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  calDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-
-  // Stats row (3 cards)
+  // Muscle volume chart
   statsRow: {
     flexDirection: 'row',
     gap: 8,

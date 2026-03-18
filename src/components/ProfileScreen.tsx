@@ -16,6 +16,7 @@ import AnimatedPressable from './common/AnimatedPressable';
 import MuscleHeatmap from './MuscleHeatmap';
 import SimpleWebChart from './common/SimpleWebChart';
 import SessionHistoryTab from './SessionHistoryTab';
+import MiniTonnageChart from './MiniTonnageChart';
 
 export default function ProfileScreen() {
   const isWeb = Platform.OS === 'web';
@@ -58,6 +59,16 @@ export default function ProfileScreen() {
       data: recent.map(log => log.weightKg)
     };
   }, [bodyWeightLogs]);
+
+  const tonnageData = useMemo(() => {
+    const safeWorkouts = completedWorkouts || [];
+    const recentWorkouts = [...safeWorkouts]
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .slice(-7);
+    
+    const data = recentWorkouts.map(w => w.totalTonnageKg / 1000);
+    return data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
+  }, [completedWorkouts]);
 
   const selectedExerciseName = EXERCISE_DATABASE.find(e => e.id === selectedExerciseId)?.name || 'Exercício';
 
@@ -270,6 +281,11 @@ export default function ProfileScreen() {
             <Activity color={theme.colors.primary} size={24} />
             <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Intensidade de Volume</Text>
           </View>
+          
+          <View style={{ marginBottom: 20 }}>
+            <MiniTonnageChart data={tonnageData} />
+          </View>
+
           <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
             <MuscleHeatmap completedWorkouts={completedWorkouts} />
           </BlurView>

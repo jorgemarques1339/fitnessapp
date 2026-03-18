@@ -189,13 +189,6 @@ export default function TrophyScreen() {
                 <Text style={styles.badgeStatLabel}>TONELADAS</Text>
               </View>
               
-              {lastWorkout.calories ? (
-                <View style={styles.badgeStat}>
-                  <Target color="#FFD700" size={20} />
-                  <Text style={styles.badgeStatValue}>{lastWorkout.calories}</Text>
-                  <Text style={styles.badgeStatLabel}>KCAL</Text>
-                </View>
-              ) : null}
               
               <View style={styles.badgeStat}>
                 <CheckCircle2 color="#38BDF8" size={20} />

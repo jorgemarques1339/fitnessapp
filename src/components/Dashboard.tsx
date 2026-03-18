@@ -19,7 +19,6 @@ import { Alert } from 'react-native';
 
 import { ROUTINES, RoutineDef } from '../data/routines';
 import { useWorkoutStore } from '../store/useWorkoutStore';
-import MiniTonnageChart from './MiniTonnageChart';
 import RoutineBuilderModal from './RoutineBuilderModal';
 import { theme } from '../theme/theme';
 import { useAppTheme } from '../hooks/useAppTheme';
@@ -52,9 +51,6 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
   const contentMaxWidth = 768;
 
   const safeWorkouts = completedWorkouts || [];
-  const recentWorkouts = [...safeWorkouts].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(-7);
-  
-  const tonnageData = recentWorkouts.map(w => w.totalTonnageKg / 1000);
 
   const [routineToDelete, setRoutineToDelete] = React.useState<{id: string, title: string} | null>(null);
 
@@ -99,19 +95,15 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
               <Text style={styles.subtitle}>Pronto para destruir metas hoje?</Text>
             </View>
 
-            <View style={styles.chartWrapper}>
-              <MiniTonnageChart data={tonnageData.length > 0 ? tonnageData : [0, 0, 0, 0, 0, 0, 0]} />
-            </View>
-
-            {/* Weekly Dashboard: streak + stats + volume by muscle */}
-            <WeeklyDashboard completedWorkouts={safeWorkouts} />
-
             {/* AI Coach: workout recommendation + deload + volume advice */}
             <AICoachCard
               completedWorkouts={safeWorkouts}
               routines={[...ROUTINES, ...customRoutines]}
               onSelectRoutine={onSelectRoutine}
             />
+
+            {/* Weekly Dashboard: streak + stats + volume by muscle */}
+            <WeeklyDashboard completedWorkouts={safeWorkouts} />
 
             {activeRoutine && (
               <AnimatedPressable 

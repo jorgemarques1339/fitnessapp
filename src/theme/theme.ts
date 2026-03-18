@@ -31,6 +31,16 @@ const COLORS_FROSTED = {
 };
 
 export const themeBase = {
+  breakpoints: {
+    mobile: 0,
+    tablet: 768,
+    desktop: 1024,
+  },
+  layout: {
+    maxContentWidth: 1200,
+    sidebarWidth: 260,
+    tabBarHeight: 85,
+  },
   spacing: {
     xs: 4,
     sm: 8,

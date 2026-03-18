@@ -15,6 +15,7 @@ import { Outfit_700Bold, Outfit_900Black } from '@expo-google-fonts/outfit';
 import * as Notifications from 'expo-notifications';
 import { BlurView } from 'expo-blur';
 import { Home, User, Settings as SettingsIcon } from 'lucide-react-native';
+import { useWindowDimensions } from 'react-native';
 
 import { useWorkoutStore } from './src/store/useWorkoutStore';
 import { useAppTheme } from './src/hooks/useAppTheme';
@@ -24,6 +25,9 @@ import ProfileScreen from './src/components/ProfileScreen';
 import SettingsScreen from './src/components/SettingsScreen';
 import WorkoutLogger from './src/components/WorkoutLogger';
 import TrophyScreen from './src/components/TrophyScreen';
+import Sidebar from './src/components/common/Sidebar';
+import ResponsiveContainer from './src/components/common/ResponsiveContainer';
+import { themeBase } from './src/theme/theme';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -35,7 +39,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const { width } = Dimensions.get('window');
 
 function MainApp() {
   const insets = useSafeAreaInsets();
@@ -55,6 +58,9 @@ function MainApp() {
     setIsInLogger(true);
   };
 
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width >= themeBase.breakpoints.tablet;
+
   if (lastCompletedWorkout) {
     return <TrophyScreen />;
   }
@@ -64,75 +70,83 @@ function MainApp() {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background, flexDirection: isLargeScreen ? 'row' : 'column' }}>
+      {isLargeScreen && (
+        <Sidebar currentTab={currentTab} onTabChange={setCurrentTab} />
+      )}
+
       <View style={{ flex: 1 }}>
-        {currentTab === 'dashboard' && (
-          <Dashboard 
-            onSelectRoutine={handleSelectRoutine}
-            onResumeWorkout={handleResumeWorkout}
+        <ResponsiveContainer>
+          {currentTab === 'dashboard' && (
+            <Dashboard 
+              onSelectRoutine={handleSelectRoutine}
+              onResumeWorkout={handleResumeWorkout}
+            />
+          )}
+          {currentTab === 'profile' && <ProfileScreen />}
+          {currentTab === 'settings' && <SettingsScreen />}
+        </ResponsiveContainer>
+      </View>
+
+      {/* Glassmorphic Tab Bar (Mobile only) */}
+      {!isLargeScreen && (
+        <View style={[
+          styles.tabBarContainer,
+          { paddingBottom: Math.max(insets.bottom, 20) }
+        ]}>
+          <BlurView 
+            intensity={theme.isDark ? 30 : 60} 
+            tint={theme.isDark ? "dark" : "light"}
+            style={StyleSheet.absoluteFill}
           />
-        )}
-        {currentTab === 'profile' && <ProfileScreen />}
-        {currentTab === 'settings' && <SettingsScreen />}
-      </View>
+          <View style={[styles.tabBar, { borderTopColor: theme.colors.border }]}>
+            <TouchableOpacity 
+              onPress={() => setCurrentTab('dashboard')}
+              style={styles.tabItem}
+            >
+              <Home 
+                size={24} 
+                color={currentTab === 'dashboard' ? theme.colors.primary : theme.colors.textMuted} 
+                strokeWidth={currentTab === 'dashboard' ? 2.5 : 2}
+              />
+              <Text style={[
+                styles.tabText,
+                { color: currentTab === 'dashboard' ? theme.colors.primary : theme.colors.textMuted }
+              ]}>Início</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              onPress={() => setCurrentTab('profile')}
+              style={styles.tabItem}
+            >
+              <User 
+                size={24} 
+                color={currentTab === 'profile' ? theme.colors.primary : theme.colors.textMuted}
+                strokeWidth={currentTab === 'profile' ? 2.5 : 2}
+              />
+              <Text style={[
+                styles.tabText,
+                { color: currentTab === 'profile' ? theme.colors.primary : theme.colors.textMuted }
+              ]}>Perfil</Text>
+            </TouchableOpacity>
 
-      {/* Glassmorphic Tab Bar */}
-      <View style={[
-        styles.tabBarContainer,
-        { paddingBottom: Math.max(insets.bottom, 20) }
-      ]}>
-        <BlurView 
-          intensity={theme.isDark ? 30 : 60} 
-          tint={theme.isDark ? "dark" : "light"}
-          style={StyleSheet.absoluteFill}
-        />
-        <View style={[styles.tabBar, { borderTopColor: theme.colors.border }]}>
-          <TouchableOpacity 
-            onPress={() => setCurrentTab('dashboard')}
-            style={styles.tabItem}
-          >
-            <Home 
-              size={24} 
-              color={currentTab === 'dashboard' ? theme.colors.primary : theme.colors.textMuted} 
-              strokeWidth={currentTab === 'dashboard' ? 2.5 : 2}
-            />
-            <Text style={[
-              styles.tabText,
-              { color: currentTab === 'dashboard' ? theme.colors.primary : theme.colors.textMuted }
-            ]}>Início</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            onPress={() => setCurrentTab('profile')}
-            style={styles.tabItem}
-          >
-            <User 
-              size={24} 
-              color={currentTab === 'profile' ? theme.colors.primary : theme.colors.textMuted}
-              strokeWidth={currentTab === 'profile' ? 2.5 : 2}
-            />
-            <Text style={[
-              styles.tabText,
-              { color: currentTab === 'profile' ? theme.colors.primary : theme.colors.textMuted }
-            ]}>Perfil</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            onPress={() => setCurrentTab('settings')}
-            style={styles.tabItem}
-          >
-            <SettingsIcon 
-              size={24} 
-              color={currentTab === 'settings' ? theme.colors.primary : theme.colors.textMuted}
-              strokeWidth={currentTab === 'settings' ? 2.5 : 2}
-            />
-            <Text style={[
-              styles.tabText,
-              { color: currentTab === 'settings' ? theme.colors.primary : theme.colors.textMuted }
-            ]}>Definições</Text>
-          </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={() => setCurrentTab('settings')}
+              style={styles.tabItem}
+            >
+              <SettingsIcon 
+                size={24} 
+                color={currentTab === 'settings' ? theme.colors.primary : theme.colors.textMuted}
+                strokeWidth={currentTab === 'settings' ? 2.5 : 2}
+              />
+              <Text style={[
+                styles.tabText,
+                { color: currentTab === 'settings' ? theme.colors.primary : theme.colors.textMuted }
+              ]}>Definições</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 }
