@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
 
@@ -20,6 +20,7 @@ export function useWorkoutTimer({ onTimerEnd }: UseWorkoutTimerProps = {}) {
 
   useEffect(() => {
     async function requestPermissions() {
+      if (Platform.OS === 'web') return;
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
       if (existingStatus !== 'granted') {
@@ -35,21 +36,24 @@ export function useWorkoutTimer({ onTimerEnd }: UseWorkoutTimerProps = {}) {
     setRemainingSeconds(seconds);
     setIsActive(true);
 
-    try {
-      const id = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "💪 Recuperação Terminada",
-          body: "O tempo de descanso acabou. Hora de voltar à carga!",
-          sound: true,
-        },
-        trigger: {
-          seconds: seconds,
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-        },
-      });
-      notificationIdRef.current = id;
-    } catch (e) {
-      console.log('Failed to schedule notification', e);
+    if (Platform.OS !== 'web') {
+      try {
+        const id = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: "💪 Descanso Terminado",
+            body: "Hora de voltar à carga para a próxima série!",
+            sound: true,
+            categoryIdentifier: 'REST_TIMER_ALARM',
+          },
+          trigger: {
+            seconds: seconds,
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+          },
+        });
+        notificationIdRef.current = id;
+      } catch (e) {
+        console.log('Failed to schedule notification', e);
+      }
     }
   }, []);
 
@@ -58,7 +62,7 @@ export function useWorkoutTimer({ onTimerEnd }: UseWorkoutTimerProps = {}) {
     setRemainingSeconds(0);
     setIsActive(false);
 
-    if (notificationIdRef.current) {
+    if (notificationIdRef.current && Platform.OS !== 'web') {
       try {
         await Notifications.cancelScheduledNotificationAsync(notificationIdRef.current);
         notificationIdRef.current = null;
@@ -67,6 +71,23 @@ export function useWorkoutTimer({ onTimerEnd }: UseWorkoutTimerProps = {}) {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const actionId = response.actionIdentifier;
+      if (actionId === 'ADD_30') {
+        startTimer(30);
+      } else if (actionId === 'DISMISS') {
+        stopTimer();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [startTimer, stopTimer]);
 
   // Recalculate based on target time
   const tick = useCallback(() => {
@@ -99,17 +120,23 @@ export function useWorkoutTimer({ onTimerEnd }: UseWorkoutTimerProps = {}) {
     };
   }, [isActive, tick]);
 
-  // Handle App sending to background/foreground
+  const isActiveRef = useRef(isActive);
+  const tickRef = useRef(tick);
+
+  useEffect(() => {
+    isActiveRef.current = isActive;
+    tickRef.current = tick;
+  }, [isActive, tick]);
+
+  // Handle App sending to background/foreground safely
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
       if (
         appState.current.match(/inactive|background/) &&
         nextAppState === 'active'
       ) {
-        // App has come to the foreground, force a tick to recalulate immediately
-        console.log('App has come to the foreground, recalculating timer');
-        if (isActive) {
-          tick();
+        if (isActiveRef.current) {
+          tickRef.current();
         }
       }
       appState.current = nextAppState;
@@ -118,7 +145,7 @@ export function useWorkoutTimer({ onTimerEnd }: UseWorkoutTimerProps = {}) {
     return () => {
       subscription.remove();
     };
-  }, [isActive, tick]);
+  }, []);
 
   return {
     remainingSeconds,

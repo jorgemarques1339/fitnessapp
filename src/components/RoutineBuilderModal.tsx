@@ -4,7 +4,8 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Plus, Save, Minus, Search } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import { EXERCISE_DATABASE, ExerciseDef } from '../data/exercises';
+import { ExerciseDef } from '../data/exercises';
+import { useAllExercises } from '../utils/exerciseSelectors';
 import { RoutineDef } from '../data/routines';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { soundManager } from '../utils/SoundManager';
@@ -22,6 +23,7 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
   const [subtitle, setSubtitle] = useState(initialRoutine?.subtitle || '');
   const [selectedExercises, setSelectedExercises] = useState<ExerciseDef[]>(initialRoutine?.exercises || []);
   const [searchQuery, setSearchQuery] = useState('');
+  const ALLEX = useAllExercises();
 
   if (!visible) return null;
 
@@ -77,7 +79,7 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
     onClose();
   };
 
-  const filteredDatabase = EXERCISE_DATABASE.filter(ex => 
+  const filteredDatabase = ALLEX.filter(ex => 
     ex.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     (ex.category && ex.category.toLowerCase().includes(searchQuery.toLowerCase()))
   );

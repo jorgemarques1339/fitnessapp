@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { RoutineDef, ExerciseDef } from '../data/routines';
 import { safeStorage } from './storage';
+import { saveWorkoutToHealth } from '../utils/healthSync';
 
 export interface SetLog {
   setNumber: number;
@@ -48,6 +49,7 @@ interface WorkoutState {
   lastCompletedWorkout: CompletedWorkout | null;
 
   customRoutines: RoutineDef[];
+  customExercises: ExerciseDef[];
   bodyWeightLogs: BodyWeightLog[];
 
   // Settings
@@ -76,6 +78,10 @@ interface WorkoutState {
   saveCustomRoutine: (routine: RoutineDef) => void;
   deleteCustomRoutine: (id: string) => void;
 
+  addCustomExercise: (ex: ExerciseDef) => void;
+  updateCustomExercise: (ex: ExerciseDef) => void;
+  deleteCustomExercise: (id: string) => void;
+
   logBodyWeight: (weightKg: number) => void;
 
   clearHistory: () => void;
@@ -100,6 +106,7 @@ export const useWorkoutStore = create<WorkoutState>()(
       lastCompletedWorkout: null,
 
       customRoutines: [],
+      customExercises: [],
       bodyWeightLogs: [],
 
       healthSyncEnabled: true,
@@ -244,6 +251,20 @@ export const useWorkoutStore = create<WorkoutState>()(
           exerciseLogs: finalLogs,
         };
 
+        if (get().healthSyncEnabled) {
+          const minutes = durationMs ? durationMs / 60000 : 45;
+          const calories = Math.round(minutes * 6); // Rough estimate: 6 kcal per minute for strength training
+          const endDate = new Date();
+          const startDate = new Date(Date.now() - (durationMs || 45 * 60000));
+          
+          saveWorkoutToHealth(
+            activeRoutine.title,
+            calories,
+            startDate,
+            endDate
+          );
+        }
+
         set({
           completedWorkouts: [...completedWorkouts, newWorkout],
           lastCompletedWorkout: newWorkout,
@@ -277,6 +298,21 @@ export const useWorkoutStore = create<WorkoutState>()(
         set({ customRoutines: customRoutines.filter(r => r.id.toString() !== id.toString()) });
       },
 
+      addCustomExercise: (ex) => {
+        const { customExercises } = get();
+        set({ customExercises: [...customExercises, ex] });
+      },
+
+      updateCustomExercise: (ex) => {
+        const { customExercises } = get();
+        set({ customExercises: customExercises.map(e => e.id === ex.id ? ex : e) });
+      },
+
+      deleteCustomExercise: (id) => {
+        const { customExercises } = get();
+        set({ customExercises: customExercises.filter(e => e.id !== id) });
+      },
+
       logBodyWeight: (weightKg) => {
         const { bodyWeightLogs } = get();
         const newLog: BodyWeightLog = {
@@ -301,6 +337,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         set({ 
           completedWorkouts: [],
           customRoutines: [],
+          customExercises: [],
           bodyWeightLogs: [],
           lastCompletedWorkout: null
         });
@@ -311,6 +348,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         set({
           completedWorkouts: data.completedWorkouts || [],
           customRoutines: data.customRoutines || [],
+          customExercises: data.customExercises || [],
           bodyWeightLogs: data.bodyWeightLogs || [],
           lastBackupDate: data.exportDate || data.lastBackupDate || null
         });
@@ -322,6 +360,7 @@ export const useWorkoutStore = create<WorkoutState>()(
       partialize: (state) => ({
         completedWorkouts: state.completedWorkouts,
         customRoutines: state.customRoutines,
+        customExercises: state.customExercises,
         bodyWeightLogs: state.bodyWeightLogs,
         healthSyncEnabled: state.healthSyncEnabled,
         themeMode: state.themeMode,

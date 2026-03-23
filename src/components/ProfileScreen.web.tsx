@@ -5,7 +5,8 @@ import { Save, TrendingUp, Scale, ChevronDown, Activity } from 'lucide-react-nat
 
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { get1RMTrendData } from '../utils/math';
-import { EXERCISE_DATABASE } from '../data/exercises';
+import { MuscleGroup } from '../data/exercises';
+import { useAllExercises } from '../utils/exerciseSelectors';
 import { theme } from '../theme/theme';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { soundManager } from '../utils/SoundManager';
@@ -22,7 +23,9 @@ export default function ProfileScreen() {
   const theme = useAppTheme();
   
   const [weightInput, setWeightInput] = useState('');
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string>(EXERCISE_DATABASE[0].id);
+  const ALLEX = useAllExercises();
+  
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string>('peito1');
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'stats' | 'heatmap' | 'history'>('stats');
 
@@ -48,7 +51,7 @@ export default function ProfileScreen() {
     return data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0];
   }, [completedWorkouts]);
 
-  const selectedExerciseName = EXERCISE_DATABASE.find(e => e.id === selectedExerciseId)?.name || 'Exercício';
+  const selectedExerciseName = ALLEX.find(e => e.id === selectedExerciseId)?.name || 'Exercício';
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
@@ -155,7 +158,7 @@ export default function ProfileScreen() {
 
               {isExercisePickerOpen && (
                 <View style={styles.pickerList}>
-                  {EXERCISE_DATABASE.map(ex => (
+                  {ALLEX.map(ex => (
                     <AnimatedPressable 
                       key={ex.id} 
                       style={styles.pickerItem}

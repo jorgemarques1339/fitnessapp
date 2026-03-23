@@ -1,24 +1,28 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity } from 'react-native';
-import { Search, Info, ChevronRight, Dumbbell } from 'lucide-react-native';
+import { Search, Info, ChevronRight, Dumbbell, Plus } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
 
-import { EXERCISE_DATABASE, ExerciseDef } from '../data/exercises';
+import { ExerciseDef } from '../data/exercises';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { useAllExercises } from '../utils/exerciseSelectors';
 import TechnicalModal from './TechnicalModal';
+import AddExerciseModal from './AddExerciseModal';
 import AnimatedPressable from './common/AnimatedPressable';
 
 export default function ExerciseLibrary() {
   const theme = useAppTheme();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExercise, setSelectedExercise] = useState<ExerciseDef | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const ALL_EXERCISES = useAllExercises();
 
   const filteredExercises = useMemo(() => {
-    return EXERCISE_DATABASE.filter(ex => 
+    return ALL_EXERCISES.filter(ex => 
       ex.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (ex.category || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [searchQuery]);
+  }, [searchQuery, ALL_EXERCISES]);
 
   const renderExerciseItem = ({ item }: { item: ExerciseDef }) => (
     <AnimatedPressable
@@ -51,16 +55,24 @@ export default function ExerciseLibrary() {
     <View style={styles.container}>
       <Text style={[styles.pageTitle, { color: theme.colors.textPrimary }]}>Biblioteca Técnica</Text>
       
-      {/* Search Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
-        <Search color={theme.colors.textMuted} size={20} />
-        <TextInput
-          placeholder="Pesquisar exercício ou músculo..."
-          placeholderTextColor={theme.colors.textMuted}
-          style={[styles.searchInput, { color: theme.colors.textPrimary }]}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+      {/* Search Bar & Add Button */}
+      <View style={styles.searchRow}>
+        <View style={[styles.searchContainer, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+          <Search color={theme.colors.textMuted} size={20} />
+          <TextInput
+            placeholder="Pesquisar exercício..."
+            placeholderTextColor={theme.colors.textMuted}
+            style={[styles.searchInput, { color: theme.colors.textPrimary }]}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
+        <TouchableOpacity
+          onPress={() => setIsAddModalOpen(true)}
+          style={[styles.addBtn, { backgroundColor: theme.colors.primary }]}
+        >
+          <Plus color="#000" size={24} strokeWidth={2.5} />
+        </TouchableOpacity>
       </View>
 
       <FlatList
@@ -86,6 +98,11 @@ export default function ExerciseLibrary() {
           videoUrl={selectedExercise.videoUrl}
         />
       )}
+
+      <AddExerciseModal 
+        visible={isAddModalOpen} 
+        onClose={() => setIsAddModalOpen(false)} 
+      />
     </View>
   );
 }
@@ -102,15 +119,28 @@ const styles = StyleSheet.create({
     letterSpacing: -1,
     marginBottom: 20,
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 20,
+  },
   searchContainer: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     height: 54,
     borderRadius: 16,
     borderWidth: 1,
-    marginBottom: 20,
     gap: 12,
+  },
+  addBtn: {
+    width: 54,
+    height: 54,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchInput: {
     flex: 1,

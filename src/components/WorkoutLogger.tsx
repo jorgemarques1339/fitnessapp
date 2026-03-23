@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, KeyboardAvoidingView, Platform, useWindowDimensions, StyleSheet } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, SlideInDown, ZoomOut } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,6 +18,8 @@ import { soundManager } from '../utils/SoundManager';
 import ExerciseSelector from './logger/ExerciseSelector';
 import LoggingInterface from './logger/LoggingInterface';
 import SuccessGlow from './common/SuccessGlow';
+
+const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
 
 export default function WorkoutLogger() {
   const insets = useSafeAreaInsets();
@@ -185,7 +187,11 @@ export default function WorkoutLogger() {
   }));
 
   return (
-    <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={[styles.background, { backgroundColor: theme.colors.background }]}>
+    <AnimatedGradient 
+      entering={SlideInDown.duration(400).springify().damping(18)}
+      exiting={ZoomOut.duration(200)}
+      colors={[theme.colors.surface, theme.colors.background]} 
+      style={[styles.background, { backgroundColor: theme.colors.background }]}>
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView 
           style={styles.keyboardAvoiding} 
@@ -270,7 +276,7 @@ export default function WorkoutLogger() {
           </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </LinearGradient>
+    </AnimatedGradient>
   );
 }
 

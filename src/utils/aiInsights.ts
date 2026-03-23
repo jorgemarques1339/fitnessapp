@@ -1,5 +1,5 @@
 import { CompletedWorkout, ExerciseLog } from '../store/useWorkoutStore';
-import { EXERCISE_DATABASE } from '../data/exercises';
+import { getAllExercisesStatic } from './exerciseSelectors';
 import { calculateEpley1RM } from './math';
 import { calculateMuscleFatigue } from './fatigue';
 
@@ -70,7 +70,7 @@ export function getPRPredictions(completedWorkouts: CompletedWorkout[]): PRPredi
     const isProgressing = (newest >= middle && middle >= oldest) || (newest > oldest * 1.03);
     
     if (isProgressing) {
-      const dbEx = EXERCISE_DATABASE.find(e => e.id === id);
+      const dbEx = getAllExercisesStatic().find(e => e.id === id);
       const category = dbEx?.category as string;
       const fatigue = fatigueMap[category] ?? 0;
 
@@ -111,7 +111,7 @@ export function getDynamicRPEAdvice(completedWorkouts: CompletedWorkout[]): Dyna
   const muscleSets: Record<string, number> = {};
   recentWorkouts.forEach(w => {
     w.exerciseLogs.forEach(log => {
-      const dbEx = EXERCISE_DATABASE.find(e => e.id === log.exerciseId);
+      const dbEx = getAllExercisesStatic().find(e => e.id === log.exerciseId);
       if (dbEx) {
         const category = dbEx.category as string;
         muscleSets[category] = (muscleSets[category] ?? 0) + log.sets.length;

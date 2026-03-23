@@ -215,14 +215,14 @@ export default function LoggingInterface({
         {currentExerciseSets.map((set: SetLog, i: number) => (
           <Animated.View key={i} entering={FadeInDown.delay(i * 80)}>
             <BlurView intensity={theme.isDark ? 25 : 45} tint={theme.isDark ? "dark" : "light"} style={[styles.setRow, { backgroundColor: theme.colors.surfaceHighlight }]}>
-              <View style={styles.setLeft}>
+              <View style={[styles.setLeft, { flex: 1, paddingRight: 10 }]}>
                 <View style={[styles.circleBadge, { backgroundColor: 'rgba(0,230,118,0.15)' }]}>
                   <Text style={[styles.setText, { color: '#00E676' }]}>{set.setNumber}</Text>
                 </View>
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={[styles.setStatText, { color: theme.colors.textPrimary }]}>{set.weightKg} kg</Text>
                   {set.note ? (
-                    <Text style={[styles.setNoteText, { color: theme.colors.textMuted }]}>📝 {set.note}</Text>
+                    <Text style={[styles.setNoteText, { color: theme.colors.textMuted }]} numberOfLines={1}>📝 {set.note}</Text>
                   ) : null}
                 </View>
               </View>

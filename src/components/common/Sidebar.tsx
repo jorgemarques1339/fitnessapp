@@ -4,21 +4,19 @@ import { BlurView } from 'expo-blur';
 import { Home, User, Settings as SettingsIcon, Dumbbell } from 'lucide-react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { themeBase } from '../../theme/theme';
+import { useRouter, usePathname } from 'expo-router';
 import AnimatedPressable from './AnimatedPressable';
 
-interface SidebarProps {
-  currentTab: 'dashboard' | 'profile' | 'settings' | 'exercises';
-  onTabChange: (tab: 'dashboard' | 'profile' | 'settings' | 'exercises') => void;
-}
-
-export default function Sidebar({ currentTab, onTabChange }: SidebarProps) {
+export default function Sidebar() {
   const theme = useAppTheme();
+  const router = useRouter();
+  const pathname = usePathname();
   
   const navItems = [
-    { id: 'dashboard', label: 'Início', icon: Home },
-    { id: 'exercises', label: 'Exercícios', icon: Dumbbell },
-    { id: 'profile', label: 'Perfil', icon: User },
-    { id: 'settings', label: 'Definições', icon: SettingsIcon },
+    { id: '/', label: 'Início', icon: Home },
+    { id: '/exercises', label: 'Exercícios', icon: Dumbbell },
+    { id: '/profile', label: 'Perfil', icon: User },
+    { id: '/settings', label: 'Definições', icon: SettingsIcon },
   ] as const;
 
   return (
@@ -37,12 +35,12 @@ export default function Sidebar({ currentTab, onTabChange }: SidebarProps) {
       <View style={styles.nav}>
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = currentTab === item.id;
+          const isActive = pathname === item.id;
           
           return (
             <AnimatedPressable
               key={item.id}
-              onPress={() => onTabChange(item.id)}
+              onPress={() => router.push(item.id)}
               style={[
                 styles.navItem,
                 isActive && { backgroundColor: theme.colors.surfaceHighlight }

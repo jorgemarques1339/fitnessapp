@@ -1,7 +1,8 @@
 import React, { useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { CompletedWorkout, ExerciseLog } from '../store/useWorkoutStore';
-import { EXERCISE_DATABASE, MuscleGroup } from '../data/exercises';
+import { MuscleGroup } from '../data/exercises';
+import { useAllExercises } from '../utils/exerciseSelectors';
 import { useAppTheme } from '../hooks/useAppTheme';
 import Animated, { 
   useSharedValue, 
@@ -11,6 +12,8 @@ import Animated, {
   withTiming, 
   Easing 
 } from 'react-native-reanimated';
+
+const ALLEX = useAllExercises();
 
 interface MuscleHeatmapProps {
   completedWorkouts: CompletedWorkout[];
@@ -51,7 +54,7 @@ export default function MuscleHeatmap({ completedWorkouts }: MuscleHeatmapProps)
 
     recentWorkouts.forEach(workout => {
       workout.exerciseLogs.forEach(log => {
-        const exercise = EXERCISE_DATABASE.find(e => e.id === log.exerciseId);
+        const exercise = ALLEX.find(e => e.id === log.exerciseId);
         if (exercise && exercise.category) {
           const muscle = exercise.category;
           log.sets.forEach(set => {

@@ -1,4 +1,5 @@
-import { ExerciseDef, EXERCISE_DATABASE } from './exercises';
+import { ExerciseDef } from './exercises';
+import { getAllExercisesStatic } from '../utils/exerciseSelectors';
 
 export type { ExerciseDef };
 
@@ -10,7 +11,7 @@ export interface RoutineDef {
 }
 
 const getEx = (id: string): ExerciseDef => {
-  const ex = EXERCISE_DATABASE.find(e => e.id === id);
+  const ex = getAllExercisesStatic().find(e => e.id === id);
   if (!ex) throw new Error(`Exercise ${id} not found in database!`);
   return ex;
 };

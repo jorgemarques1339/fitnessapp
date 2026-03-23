@@ -10,6 +10,7 @@
 import { CompletedWorkout } from '../store/useWorkoutStore';
 import { RoutineDef } from '../data/routines';
 import { EXERCISE_DATABASE } from '../data/exercises';
+import { getAllExercisesStatic } from './exerciseSelectors';
 import { calculateMuscleFatigue } from './fatigue';
 import { calculateEpley1RM } from './math';
 import { getWorkoutsForWeek, getWeekStart } from './weeklyStats';
@@ -239,10 +240,12 @@ export function getMuscleVolumeAdvice(
 ): MuscleVolumeAdvice[] {
   if (completedWorkouts.length < 2) return [];
 
+  const ALL_EXERCISES = getAllExercisesStatic();
+
   // Collect per-muscle: { exerciseId, weeklyBest1RM[] }
   const muscleExercises: Record<string, { exerciseId: string; bests: (number | null)[] }[]> = {};
 
-  EXERCISE_DATABASE.forEach(ex => {
+  ALL_EXERCISES.forEach(ex => {
     const category = ex.category as string;
     if (!muscleExercises[category]) muscleExercises[category] = [];
 
@@ -263,7 +266,7 @@ export function getMuscleVolumeAdvice(
   const thisWeekWorkouts = getWorkoutsForWeek(completedWorkouts, 0);
   thisWeekWorkouts.forEach(workout => {
     workout.exerciseLogs.forEach(log => {
-      const ex = EXERCISE_DATABASE.find(e => e.id === log.exerciseId);
+      const ex = ALL_EXERCISES.find(e => e.id === log.exerciseId);
       if (!ex) return;
       const category = ex.category as string;
       thisWeekVolume[category] = (thisWeekVolume[category] ?? 0) + log.sets.length;

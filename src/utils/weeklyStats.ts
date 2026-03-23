@@ -1,5 +1,5 @@
 import { CompletedWorkout } from '../store/useWorkoutStore';
-import { EXERCISE_DATABASE } from '../data/exercises';
+import { getAllExercisesStatic } from './exerciseSelectors';
 import { calculateEpley1RM } from './math';
 
 // ── Week helpers ──────────────────────────────────────────────────────────────
@@ -108,7 +108,7 @@ export function getWeeklyVolumeByMuscle(workouts: CompletedWorkout[]): MuscleVol
 
   workouts.forEach(workout => {
     workout.exerciseLogs.forEach(log => {
-      const ex = EXERCISE_DATABASE.find(e => e.id === log.exerciseId);
+      const ex = getAllExercisesStatic().find(e => e.id === log.exerciseId);
       const muscle = ex?.category ?? 'Core';
       raw[muscle] = (raw[muscle] ?? 0) + log.sets.length;
     });

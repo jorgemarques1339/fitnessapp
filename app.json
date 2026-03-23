@@ -12,7 +12,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSHealthShareUsageDescription": "Lemos o seu peso biométrico para adequar os cálculos estatísticos da AI.",
+        "NSHealthUpdateUsageDescription": "Guardamos o gasto calórico e duração dos treinos concluídos na sua App Coração/Saúde."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -28,7 +32,9 @@
     },
     "plugins": [
       "expo-sharing",
-      "expo-font"
-    ]
+      "expo-font",
+      "expo-router"
+    ],
+    "scheme": "fitnessapp"
   }
 }

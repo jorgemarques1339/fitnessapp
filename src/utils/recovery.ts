@@ -1,9 +1,16 @@
 import { CompletedWorkout } from '../store/useWorkoutStore';
 import { EXERCISE_DATABASE, MuscleGroup } from '../data/exercises';
+import { getAllExercisesStatic } from './exerciseSelectors';
 
 export interface MuscleVolume {
   muscle: MuscleGroup;
   sets: number;
+}
+
+export interface RecoveryScore {
+  muscle: MuscleGroup;
+  score: number; // 0 to 100
+  status: 'fully_recovered' | 'partially_recovered' | 'fatigued';
 }
 
 export const getMuscleVolumeLast30Days = (workouts: CompletedWorkout[]): MuscleVolume[] => {

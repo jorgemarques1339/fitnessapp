@@ -1,5 +1,6 @@
 import { CompletedWorkout } from '../store/useWorkoutStore';
-import { MuscleGroup, EXERCISE_DATABASE } from '../data/exercises';
+import { MuscleGroup } from '../data/exercises';
+import { getAllExercisesStatic } from './exerciseSelectors';
 
 export interface MuscleFatigue {
   muscle: MuscleGroup;
@@ -11,6 +12,8 @@ export interface MuscleFatigue {
 const RECOVERY_TIME_HOURS = 72; // Full recovery in 3 days
 
 export function calculateMuscleFatigue(completedWorkouts: CompletedWorkout[]): MuscleFatigue[] {
+  const ALLEX = getAllExercisesStatic();
+  
   const muscles: MuscleGroup[] = [
     'Chest', 'Back', 'Shoulders', 'Biceps', 'Triceps', 
     'Quads', 'Hamstrings', 'Glutes', 'Calves', 'Core'
@@ -37,7 +40,7 @@ export function calculateMuscleFatigue(completedWorkouts: CompletedWorkout[]): M
     // Find the last time this muscle was worked
     const lastWorkoutWithMuscle = sortedWorkouts.find(w => 
       w.exerciseLogs?.some(log => {
-        const exercise = EXERCISE_DATABASE.find(e => e.id === log.exerciseId);
+        const exercise = ALLEX.find(e => e.id === log.exerciseId);
         return exercise?.category === muscle;
       })
     );

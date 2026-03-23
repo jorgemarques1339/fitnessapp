@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Platform, 
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Search, ArrowRightLeft } from 'lucide-react-native';
-import { EXERCISE_DATABASE, ExerciseDef } from '../data/exercises';
+import { ExerciseDef } from '../data/exercises';
+import { useAllExercises } from '../utils/exerciseSelectors';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { soundManager } from '../utils/SoundManager';
 import { theme } from '../theme/theme';
@@ -22,7 +23,9 @@ export default function ExerciseSwapModal({ visible, onClose, onSelectSwap, exer
   if (!visible || !exerciseToReplace) return null;
 
   // Filter out the current one so user doesn't pick the same
-  let dbFiltered = EXERCISE_DATABASE.filter(ex => ex.id !== exerciseToReplace.id);
+  const ALLEX = useAllExercises();
+  
+  let dbFiltered = ALLEX.filter(ex => ex.id !== exerciseToReplace.id);
 
   if (searchQuery.trim()) {
     dbFiltered = dbFiltered.filter(ex => 

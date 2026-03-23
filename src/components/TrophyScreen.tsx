@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useMemo } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, useWindowDimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
+import ConfettiCannon from 'react-native-confetti-cannon';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { 
   FadeInDown, 
@@ -20,6 +21,7 @@ import AchievementBadge from './common/AchievementBadge';
 import WorkoutShareCard from './logger/WorkoutShareCard';
 
 export default function TrophyScreen() {
+  const { width } = useWindowDimensions();
   const lastWorkout = useWorkoutStore(state => state.lastCompletedWorkout);
   const clearTrophy = useWorkoutStore(state => state.clearLastCompletedWorkout);
   const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
@@ -206,6 +208,16 @@ export default function TrophyScreen() {
         {/* Hidden Badge for Sharing removed as it is now replaced by WorkoutShareCard above */}
 
       </ScrollView>
+
+      {prs.length > 0 && (
+        <ConfettiCannon
+          count={150}
+          origin={{ x: width / 2, y: 0 }}
+          autoStartDelay={200}
+          fadeOut={true}
+          fallSpeed={3500}
+        />
+      )}
     </View>
   );
 }
