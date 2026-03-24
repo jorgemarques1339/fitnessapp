@@ -10,6 +10,8 @@ export interface SetLog {
   reps: string;
   rpe: string;
   note?: string;
+  mediaUri?: string;
+  mediaType?: 'photo' | 'video';
 }
 
 export interface ExerciseLog {
@@ -32,6 +34,7 @@ export interface CompletedWorkout {
 export interface BodyWeightLog {
   date: string; // ISO String
   weightKg: number;
+  mediaUri?: string;
 }
 
 interface WorkoutState {
@@ -82,7 +85,8 @@ interface WorkoutState {
   updateCustomExercise: (ex: ExerciseDef) => void;
   deleteCustomExercise: (id: string) => void;
 
-  logBodyWeight: (weightKg: number) => void;
+  logBodyWeight: (weightKg: number, mediaUri?: string) => void;
+  updateCurrentSetLog: (setNumber: number, mediaUri: string, mediaType: 'photo' | 'video') => void;
 
   clearHistory: () => void;
   clearLastCompletedWorkout: () => void;
@@ -212,6 +216,17 @@ export const useWorkoutStore = create<WorkoutState>()(
         });
       },
 
+      updateCurrentSetLog: (setNumber, mediaUri, mediaType) => {
+        const { currentExerciseSets } = get();
+        set({
+          currentExerciseSets: currentExerciseSets.map(s => 
+            s.setNumber === setNumber 
+              ? { ...s, mediaUri, mediaType } 
+              : s
+          )
+        });
+      },
+
       finishWorkout: () => {
         const { activeRoutine, currentExerciseIndex, currentExerciseSets, sessionLogs, completedWorkouts, isExerciseSelectionMode, sessionStartTime } = get();
         if (!activeRoutine) return;
@@ -313,11 +328,12 @@ export const useWorkoutStore = create<WorkoutState>()(
         set({ customExercises: customExercises.filter(e => e.id !== id) });
       },
 
-      logBodyWeight: (weightKg) => {
+      logBodyWeight: (weightKg, mediaUri) => {
         const { bodyWeightLogs } = get();
         const newLog: BodyWeightLog = {
           date: new Date().toISOString(),
-          weightKg
+          weightKg,
+          mediaUri
         };
         const updatedLogs = [...bodyWeightLogs, newLog].slice(-30);
         set({ bodyWeightLogs: updatedLogs });

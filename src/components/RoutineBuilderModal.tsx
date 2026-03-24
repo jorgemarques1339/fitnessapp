@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView, Platform, Share as RNShare } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { X, Plus, Save, Minus, Search } from 'lucide-react-native';
+import { X, Plus, Save, Minus, Search, Share as ShareIcon } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { ExerciseDef } from '../data/exercises';
 import { useAllExercises } from '../utils/exerciseSelectors';
@@ -79,6 +79,16 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
     onClose();
   };
 
+  const handleShare = async () => {
+    if (!initialRoutine) return;
+    try {
+      await RNShare.share({
+        message: `Olha este treino que fiz no Fitness Ultra: ${initialRoutine.title}!\n\n${initialRoutine.exercises.map(e => `- ${e.name} (${e.targetSets} séries)`).join('\n')}`,
+        title: initialRoutine.title,
+      });
+    } catch (e) {}
+  };
+
   const filteredDatabase = ALLEX.filter(ex => 
     ex.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     (ex.category && ex.category.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -89,9 +99,16 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
       <LinearGradient colors={[theme.colors.surface, theme.colors.background]} style={styles.container}>
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
           <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>{initialRoutine ? 'Editar Treino' : 'Criar Novo Treino'}</Text>
-          <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: theme.colors.surfaceHighlight }]}>
-            <X color={theme.colors.textPrimary} size={24} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            {initialRoutine && (
+              <TouchableOpacity onPress={handleShare} style={[styles.closeButton, { backgroundColor: theme.colors.surfaceHighlight }]}>
+                <ShareIcon color={theme.colors.textPrimary} size={20} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={onClose} style={[styles.closeButton, { backgroundColor: theme.colors.surfaceHighlight }]}>
+              <X color={theme.colors.textPrimary} size={24} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>

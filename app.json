@@ -33,7 +33,8 @@
     "plugins": [
       "expo-sharing",
       "expo-font",
-      "expo-router"
+      "expo-router",
+      "./plugins/withLiveActivity"
     ],
     "scheme": "fitnessapp"
   }

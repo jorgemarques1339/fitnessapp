@@ -116,11 +116,13 @@ export default function AICoachCard({ completedWorkouts, routines, onSelectRouti
           >
             <View style={styles.cardPadding}>
               <View style={styles.cardRow}>
-                <View style={styles.recommendBadge}>
-                  <Text style={styles.recommendEmoji}>💪</Text>
+                <View style={[styles.recommendBadge, recommendation.isGenerated && { backgroundColor: 'rgba(255, 215, 0, 0.2)' }]}>
+                  <Text style={styles.recommendEmoji}>{recommendation.isGenerated ? '✨' : '💪'}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.cardLabel, { color: theme.colors.primary }]}>TREINO RECOMENDADO HOJE</Text>
+                  <Text style={[styles.cardLabel, { color: recommendation.isGenerated ? '#FFD700' : theme.colors.primary }]}>
+                    {recommendation.isGenerated ? 'TREINO GERADO POR IA' : 'TREINO RECOMENDADO HOJE'}
+                  </Text>
                   <Text style={[styles.routineTitle, { color: theme.colors.textPrimary }]} numberOfLines={2}>
                     {recommendation.bestRoutine.title}
                   </Text>
@@ -161,13 +163,15 @@ export default function AICoachCard({ completedWorkouts, routines, onSelectRouti
                 activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={['#00E676', '#00BCD4']}
+                  colors={recommendation.isGenerated ? ['#FFD700', '#FFA000'] : ['#00E676', '#00BCD4']}
                   style={styles.startGradient}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                 >
                   <Zap color="#000" size={16} />
-                  <Text style={styles.startButtonText}>Iniciar Este Treino</Text>
+                  <Text style={styles.startButtonText}>
+                    {recommendation.isGenerated ? 'INICIAR TREINO IA' : 'INICIAR ESTE TREINO'}
+                  </Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>

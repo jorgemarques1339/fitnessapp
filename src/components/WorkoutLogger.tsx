@@ -45,6 +45,7 @@ export default function WorkoutLogger() {
   const getPreviousExerciseLog = useWorkoutStore(state => state.getPreviousExerciseLog);
   const swapExerciseInActiveRoutine = useWorkoutStore(state => state.swapExerciseInActiveRoutine);
   const abortWorkout = useWorkoutStore(state => state.abortWorkout);
+  const updateCurrentSetLog = useWorkoutStore(state => state.updateCurrentSetLog);
 
   // Local UI State
   const [currentWeight, setCurrentWeight] = useState('');
@@ -56,12 +57,15 @@ export default function WorkoutLogger() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [exerciseToSwap, setExerciseToSwap] = useState<ExerciseDef | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-
-  // Timer Hook
-  const { remainingSeconds, isActive, startTimer, stopTimer } = useWorkoutTimer();
-
   if (!activeRoutine) return null;
   const currentExercise = activeRoutine.exercises[currentExerciseIndex];
+
+  // Timer Hook
+  const { remainingSeconds, isActive, startTimer, stopTimer } = useWorkoutTimer({
+    exerciseName: currentExercise?.name,
+    totalSets: currentExercise?.targetSets,
+    currentSet: currentExerciseSets.length + 1
+  });
 
   // If we are in logging mode but somehow the exercise is missing, return to selection or show error
   if (!isExerciseSelectionMode && !currentExercise) {
@@ -70,18 +74,18 @@ export default function WorkoutLogger() {
 
   // Sync inputs with previous logs
   useEffect(() => {
-    if (!currentExercise) return;
+    if (!currentExercise || !activeRoutine) return;
     const prevLog = getPreviousExerciseLog(currentExercise.id);
     
     if (prevLog && prevLog.sets.length > 0) {
-      const bestSet = prevLog.sets.reduce((prev, current) => 
+      const bestSet = prevLog.sets.reduce((prev: any, current: any) => 
         (parseFloat(prev.weightKg || '0') > parseFloat(current.weightKg || '0')) ? prev : current
       );
       setCurrentWeight(bestSet.weightKg);
       setCurrentReps(bestSet.reps);
 
       // Pre-calculate suggestion from previous session
-      const recentSetsData = prevLog.sets.map(s => ({
+      const recentSetsData = prevLog.sets.map((s: any) => ({
         weightKg: parseFloat(s.weightKg),
         reps: parseInt(s.reps, 10),
         targetReps: currentExercise.targetSets,
@@ -102,14 +106,16 @@ export default function WorkoutLogger() {
     setAiMessage('');
   }, [currentExerciseIndex, currentExercise?.id, stopTimer, getPreviousExerciseLog, activeRoutine.id, completedWorkouts.length, currentExercise?.targetSets]);
 
-  const handleLogSet = () => {
-    if (!currentWeight || !currentReps) return;
+  const handleLogSet = (mediaUri?: string, mediaType?: 'photo' | 'video') => {
+    if (!currentWeight || !currentReps || !currentExercise || !activeRoutine) return;
 
     logSet({
       weightKg: currentWeight,
       reps: currentReps,
       rpe: '8',
       note: currentNote.trim() || undefined,
+      mediaUri,
+      mediaType,
     });
     
     // Check for Personal Record (PR) - if current weight > max weight in previous session
@@ -134,7 +140,7 @@ export default function WorkoutLogger() {
       rpe: currentRpe,
     }];
 
-    const recentSetsData = simulatedArrayForAI.map(s => ({
+    const recentSetsData = simulatedArrayForAI.map((s: any) => ({
       weightKg: parseFloat(s.weightKg),
       reps: parseInt(s.reps, 10),
       targetReps: currentExercise.targetSets,
@@ -188,8 +194,8 @@ export default function WorkoutLogger() {
 
   return (
     <AnimatedGradient 
-      entering={SlideInDown.duration(400).springify().damping(18)}
-      exiting={ZoomOut.duration(200)}
+      entering={Platform.OS === 'web' ? undefined : SlideInDown.duration(400).springify().damping(18)}
+      exiting={Platform.OS === 'web' ? undefined : ZoomOut.duration(200)}
       colors={[theme.colors.surface, theme.colors.background]} 
       style={[styles.background, { backgroundColor: theme.colors.background }]}>
       <SafeAreaView style={styles.safeArea}>
@@ -246,6 +252,7 @@ export default function WorkoutLogger() {
                 remainingSeconds={remainingSeconds}
                 aiMessage={aiMessage}
                 onStopTimer={handleStopTimer}
+                onUpdateSetMedia={updateCurrentSetLog}
               />
             )}
 

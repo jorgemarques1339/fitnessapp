@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router';
 import { View, useWindowDimensions, StyleSheet, TouchableOpacity, Text, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
-import { Home, User, Settings as SettingsIcon, Dumbbell } from 'lucide-react-native';
+import { Home, User, Settings as SettingsIcon, Dumbbell, Users } from 'lucide-react-native';
 
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { themeBase } from '../../src/theme/theme';
@@ -29,6 +29,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           let Icon = Home;
           let label = "Início";
           if (route.name === 'index') { Icon = Home; label = "Início"; }
+          if (route.name === 'social') { Icon = Users; label = "Comunidade"; }
           if (route.name === 'exercises') { Icon = Dumbbell; label = "Exercícios"; }
           if (route.name === 'profile') { Icon = User; label = "Perfil"; }
           if (route.name === 'settings') { Icon = SettingsIcon; label = "Definições"; }
@@ -89,6 +90,7 @@ export default function TabLayout() {
           screenOptions={{ headerShown: false }}
         >
           <Tabs.Screen name="index" />
+          <Tabs.Screen name="social" />
           <Tabs.Screen name="exercises" />
           <Tabs.Screen name="profile" />
           <Tabs.Screen name="settings" />

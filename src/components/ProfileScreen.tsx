@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions, Platform, Image } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CartesianChart, Line, useChartPressState } from 'victory-native';
 import { vec, LinearGradient as SkiaGradient, Circle } from '@shopify/react-native-skia';
-import { Save, TrendingUp, Scale, ChevronDown, Activity } from 'lucide-react-native';
+import { Save, TrendingUp, Scale, ChevronDown, Activity, Camera, Image as ImageIcon } from 'lucide-react-native';
+import * as DocumentPicker from 'expo-document-picker';
 
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { get1RMTrendData } from '../utils/math';
@@ -29,21 +30,38 @@ export default function ProfileScreen() {
   const theme = useAppTheme();
 
   const [weightInput, setWeightInput] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   // By default, select the first exercise from the DB that has some history, or just the first one.
   const ALLEX = useAllExercises();
   
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>('peito1');
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'stats' | 'heatmap' | 'history'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'heatmap' | 'history' | 'gallery'>('stats');
 
   const screenWidth = Dimensions.get('window').width;
+
+  const pickImage = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: 'image/*',
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedPhoto(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log('Error picking image:', error);
+    }
+  };
 
   const handleSaveWeight = () => {
     const w = parseFloat(weightInput);
     if (!isNaN(w) && w > 30 && w < 300) {
-      logBodyWeight(w);
+      logBodyWeight(w, selectedPhoto || undefined);
       setWeightInput('');
+      setSelectedPhoto(null);
     }
   };
 
@@ -114,6 +132,12 @@ export default function ProfileScreen() {
         >
           <Text style={[styles.tabText, { color: activeTab === 'history' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Histórico</Text>
         </AnimatedPressable>
+        <AnimatedPressable 
+          style={[styles.tab, activeTab === 'gallery' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+          onPress={() => { soundManager.play('click'); setActiveTab('gallery'); }}
+        >
+          <Text style={[styles.tabText, { color: activeTab === 'gallery' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Galeria</Text>
+        </AnimatedPressable>
       </View>
 
       {activeTab === 'stats' ? (
@@ -137,6 +161,17 @@ export default function ProfileScreen() {
                 />
                 <Text style={styles.kgLabel}>KG</Text>
                 
+                <AnimatedPressable 
+                  style={styles.photoBtn} 
+                  onPress={pickImage}
+                >
+                  {selectedPhoto ? (
+                    <Image source={{ uri: selectedPhoto }} style={styles.thumbnail} />
+                  ) : (
+                    <Camera color={theme.colors.textMuted} size={20} />
+                  )}
+                </AnimatedPressable>
+
                 <AnimatedPressable 
                   style={[styles.saveBtn, { backgroundColor: theme.colors.secondary }]} 
                   onPress={() => {
@@ -310,6 +345,34 @@ export default function ProfileScreen() {
         </View>
       ) : activeTab === 'history' ? (
         <SessionHistoryTab completedWorkouts={completedWorkouts} />
+      ) : activeTab === 'gallery' ? (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <ImageIcon color={theme.colors.primary} size={24} />
+            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Galeria de Progresso</Text>
+          </View>
+          <Text style={[styles.sectionDesc, { color: theme.colors.textSecondary }]}>As tuas fotos de progresso associadas ao registo de peso corporal.</Text>
+          
+          <View style={styles.galleryGrid}>
+            {bodyWeightLogs.filter(log => log.mediaUri).length === 0 ? (
+              <View style={styles.emptyChart}>
+                <Text style={styles.emptyChartText}>Nenhuma foto registada ainda. Adiciona fotos quando pesares.</Text>
+              </View>
+            ) : (
+              bodyWeightLogs.filter(log => log.mediaUri).reverse().map((log, i) => (
+                <View key={`gallery-${i}`} style={styles.galleryItem}>
+                  <Image source={{ uri: log.mediaUri }} style={styles.galleryImage} />
+                  <BlurView intensity={30} tint="dark" style={styles.galleryTag}>
+                    <Text style={styles.galleryWeight}>{log.weightKg} kg</Text>
+                    <Text style={styles.galleryDate}>
+                      {new Date(log.date).toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' })}
+                    </Text>
+                  </BlurView>
+                </View>
+              ))
+            )}
+          </View>
+        </View>
       ) : null}
     </ScrollView>
   );
@@ -410,6 +473,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  photoBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: theme.radii.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginRight: 10,
+    overflow: 'hidden',
+  },
+  thumbnail: {
+    width: '100%',
+    height: '100%',
+    borderRadius: theme.radii.sm,
+  },
   chartWrapper: {
     alignItems: 'center',
     marginTop: 10,
@@ -460,5 +538,45 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontSize: theme.typography.sizes.md,
     fontFamily: theme.typography.fonts.medium,
+  },
+  galleryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+    marginTop: 10,
+  },
+  galleryItem: {
+    width: '46%',
+    aspectRatio: 3/4,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  galleryImage: {
+    width: '100%',
+    height: '100%',
+  },
+  galleryTag: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  galleryWeight: {
+    color: '#FFF',
+    fontFamily: 'Outfit-Bold',
+    fontSize: 16,
+  },
+  galleryDate: {
+    color: 'rgba(255,255,255,0.8)',
+    fontFamily: 'Inter-Medium',
+    fontSize: 10,
+    textTransform: 'uppercase',
   }
 });

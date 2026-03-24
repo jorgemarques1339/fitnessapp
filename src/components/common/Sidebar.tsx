@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Home, User, Settings as SettingsIcon, Dumbbell } from 'lucide-react-native';
+import { Home, User, Settings as SettingsIcon, Dumbbell, Users } from 'lucide-react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { themeBase } from '../../theme/theme';
 import { useRouter, usePathname } from 'expo-router';
@@ -14,6 +14,7 @@ export default function Sidebar() {
   
   const navItems = [
     { id: '/', label: 'Início', icon: Home },
+    { id: '/social', label: 'Comunidade', icon: Users },
     { id: '/exercises', label: 'Exercícios', icon: Dumbbell },
     { id: '/profile', label: 'Perfil', icon: User },
     { id: '/settings', label: 'Definições', icon: SettingsIcon },

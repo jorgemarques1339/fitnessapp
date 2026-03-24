@@ -2,12 +2,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import * as Notifications from 'expo-notifications';
+import { startRestLiveActivity, endRestLiveActivity } from '../utils/liveActivities';
 
 interface UseWorkoutTimerProps {
   onTimerEnd?: () => void;
+  exerciseName?: string;
+  totalSets?: number;
+  currentSet?: number;
 }
 
-export function useWorkoutTimer({ onTimerEnd }: UseWorkoutTimerProps = {}) {
+export function useWorkoutTimer({ onTimerEnd, exerciseName, totalSets, currentSet }: UseWorkoutTimerProps = {}) {
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [isActive, setIsActive] = useState(false);
   
@@ -40,7 +44,7 @@ export function useWorkoutTimer({ onTimerEnd }: UseWorkoutTimerProps = {}) {
       try {
         const id = await Notifications.scheduleNotificationAsync({
           content: {
-            title: "💪 Descanso Terminado",
+            title: exerciseName ? `💪 Descanso: ${exerciseName}` : "💪 Descanso Terminado",
             body: "Hora de voltar à carga para a próxima série!",
             sound: true,
             categoryIdentifier: 'REST_TIMER_ALARM',
@@ -51,11 +55,20 @@ export function useWorkoutTimer({ onTimerEnd }: UseWorkoutTimerProps = {}) {
           },
         });
         notificationIdRef.current = id;
+
+        // Start Live Activity (iOS only)
+        startRestLiveActivity({
+          exerciseName: exerciseName || 'Exercício',
+          totalSets: totalSets || 3,
+          currentSet: currentSet || 1,
+          remainingSeconds: seconds,
+          endTime: Date.now() + seconds * 1000,
+        });
       } catch (e) {
         console.log('Failed to schedule notification', e);
       }
     }
-  }, []);
+  }, [exerciseName, totalSets, currentSet]);
 
   const stopTimer = useCallback(async () => {
     targetTimeRef.current = null;
@@ -70,6 +83,9 @@ export function useWorkoutTimer({ onTimerEnd }: UseWorkoutTimerProps = {}) {
         console.log('Failed to cancel notification', e);
       }
     }
+    
+    // Always end Live Activity to clear the Island
+    endRestLiveActivity();
   }, []);
 
   useEffect(() => {

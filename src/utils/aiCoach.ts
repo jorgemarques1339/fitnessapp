@@ -9,7 +9,7 @@
 
 import { CompletedWorkout } from '../store/useWorkoutStore';
 import { RoutineDef } from '../data/routines';
-import { EXERCISE_DATABASE } from '../data/exercises';
+import { EXERCISE_DATABASE, ExerciseDef } from '../data/exercises';
 import { getAllExercisesStatic } from './exerciseSelectors';
 import { calculateMuscleFatigue } from './fatigue';
 import { calculateEpley1RM } from './math';
@@ -24,6 +24,7 @@ export interface WorkoutRecommendation {
   reason: string;
   recoverySnapshot: { muscle: string; pct: number }[];
   fatiguredMuscleNames: string[];
+  isGenerated: boolean;
 }
 
 const MUSCLE_NAMES_PT: Record<string, string> = {
@@ -40,6 +41,39 @@ function getMusclesForRoutine(routine: RoutineDef): string[] {
   return [...muscles];
 }
 
+export function generateSmartWorkout(completedWorkouts: CompletedWorkout[]): RoutineDef {
+  const ALLEX = getAllExercisesStatic();
+  const fatigueData = calculateMuscleFatigue(completedWorkouts);
+  
+  const sortedRecovery = [...fatigueData].sort((a, b) => b.recoveryPercent - a.recoveryPercent);
+  const topMuscles = sortedRecovery.slice(0, 3).map(f => f.muscle);
+  
+  let title = "Treino Gerado por IA ✨";
+  let subtitle = "Focado nos músculos mais recuperados.";
+  const hasChest = topMuscles.includes('Chest');
+  const hasBack = topMuscles.includes('Back');
+  const hasLegs = topMuscles.includes('Quads') || topMuscles.includes('Hamstrings');
+  
+  if (hasChest && topMuscles.includes('Triceps')) { title = "AI Push Day ✨"; subtitle = "Foco em Peito, Ombros e Tríceps."; }
+  else if (hasBack && topMuscles.includes('Biceps')) { title = "AI Pull Day ✨"; subtitle = "Foco em Costas e Bíceps."; }
+  else if (hasLegs) { title = "AI Leg Day ✨"; subtitle = "Foco em Pernas e Glúteos."; }
+  else if (hasChest && hasBack) { title = "AI Upper Body ✨"; subtitle = "Foco no tronco superior."; }
+  
+  const selectedEx: ExerciseDef[] = [];
+  topMuscles.forEach(muscle => {
+     const pool = ALLEX.filter(e => e.category === muscle);
+     const shuffled = pool.sort(() => 0.5 - Math.random());
+     selectedEx.push(...shuffled.slice(0, 2));
+  });
+  
+  return {
+    id: `ai_${Date.now()}`,
+    title,
+    subtitle,
+    exercises: selectedEx.map(ex => ({ ...ex, targetSets: 3 }))
+  };
+}
+
 export function getWorkoutRecommendation(
   completedWorkouts: CompletedWorkout[],
   availableRoutines: RoutineDef[]
@@ -52,7 +86,6 @@ export function getWorkoutRecommendation(
     .filter(f => f.status === 'Fatigued' || f.status === 'Recovering')
     .map(f => f.muscle);
 
-  // Score each routine: higher score = muscles are more recovered
   const scored = availableRoutines.map(routine => {
     const muscles = getMusclesForRoutine(routine);
     const avgRecovery = muscles.length > 0
@@ -63,26 +96,30 @@ export function getWorkoutRecommendation(
 
   scored.sort((a, b) => b.avgRecovery - a.avgRecovery);
   const best = scored[0];
+  const fatiguedPt = fatiguedMuscles.map(m => MUSCLE_NAMES_PT[m] ?? m);
 
-  if (!best) {
+  // If no good routine is found, or user has no routines, generate one
+  if (!best || best.avgRecovery < 70) {
+    const generated = generateSmartWorkout(completedWorkouts);
+    const genMuscles = getMusclesForRoutine(generated);
     return {
-      bestRoutine: null,
-      reason: 'Adiciona routines para receber recomendações diárias.',
-      recoverySnapshot: [],
-      fatiguredMuscleNames: [],
+      bestRoutine: generated,
+      reason: `Os teus músculos habituais precisam de descanso. Criei um treino otimizado para ti.`,
+      recoverySnapshot: genMuscles.map(m => ({
+        muscle: MUSCLE_NAMES_PT[m] ?? m,
+        pct: recoveryMap[m] ?? 100,
+      })),
+      fatiguredMuscleNames: fatiguedPt,
+      isGenerated: true,
     };
   }
 
   const bestMusclePt = best.muscles.map(m => MUSCLE_NAMES_PT[m] ?? m).join(', ');
-  const fatiguedPt = fatiguedMuscles.map(m => MUSCLE_NAMES_PT[m] ?? m);
-
-  let reason: string;
+  let reason = '';
   if (best.avgRecovery >= 85) {
     reason = `Músculos totalmente recuperados para este treino. Óptimo dia para ${bestMusclePt}.`;
-  } else if (best.avgRecovery >= 60) {
-    reason = `${bestMusclePt} já estão suficientemente recuperados. Boa escolha para hoje.`;
   } else {
-    reason = `Todos os músculso precisam de mais recuperação. Considera um dia de descanso activo.`;
+    reason = `${bestMusclePt} já estão suficientemente recuperados. Boa escolha para hoje.`;
   }
 
   return {
@@ -93,6 +130,7 @@ export function getWorkoutRecommendation(
       pct: recoveryMap[m] ?? 100,
     })),
     fatiguredMuscleNames: fatiguedPt,
+    isGenerated: false,
   };
 }
 

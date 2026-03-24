@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { ChevronDown, ChevronRight, Clock, Weight, CheckCircle2 } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, Clock, Weight, CheckCircle2, Camera, Video, Image as ImageIcon } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { CompletedWorkout } from '../store/useWorkoutStore';
@@ -145,9 +145,16 @@ export default function SessionHistoryTab({ completedWorkouts }: Props) {
                         </Text>
                         <View style={styles.exSets}>
                           {log.sets.map((s, si) => (
-                            <Text key={si} style={[styles.exSet, { color: theme.colors.textMuted }]}>
-                              {s.weightKg}kg×{s.reps}
-                            </Text>
+                            <View key={si} style={[styles.exSet, { borderColor: s.mediaUri ? theme.colors.secondary : 'transparent', borderWidth: s.mediaUri ? 1 : 0 }]}>
+                              <Text style={[styles.exSetText, { color: theme.colors.textMuted }]}>
+                                {s.weightKg}kg×{s.reps}
+                              </Text>
+                              {s.mediaUri && (
+                                <View style={{ marginLeft: 4 }}>
+                                  {s.mediaType === 'video' ? <Video size={10} color={theme.colors.secondary} /> : <ImageIcon size={10} color={theme.colors.secondary} />}
+                                </View>
+                              )}
+                            </View>
                           ))}
                         </View>
                       </View>
@@ -255,11 +262,15 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   exSet: {
-    fontSize: 11,
-    fontWeight: '500',
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.06)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
+  },
+  exSetText: {
+    fontSize: 11,
+    fontWeight: '500',
   },
 });

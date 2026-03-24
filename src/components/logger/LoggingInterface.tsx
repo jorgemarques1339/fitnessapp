@@ -1,7 +1,8 @@
 import React, { useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Vibration } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Vibration, Image } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Play, Focus, Clock, CheckCircle2, Calculator, X } from 'lucide-react-native';
+import { Play, Focus, Clock, CheckCircle2, Calculator, X, Camera, Image as ImageIcon, Video } from 'lucide-react-native';
+import * as DocumentPicker from 'expo-document-picker';
 import { Modal } from 'react-native';
 import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withTiming, withSequence, withSpring } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -24,7 +25,7 @@ interface LoggingInterfaceProps {
   currentNote: string;
   setCurrentNote: (v: string) => void;
   previousSets: SetLog[];
-  onLogSet: () => void;
+  onLogSet: (mediaUri?: string, mediaType?: 'photo' | 'video') => void;
   onReturnToSelection: () => void;
   onAbortWorkout: () => void;
   onShowTechnicalModal: () => void;
@@ -35,6 +36,7 @@ interface LoggingInterfaceProps {
   remainingSeconds: number;
   aiMessage: string;
   onStopTimer: () => void;
+  onUpdateSetMedia: (setNumber: number, mediaUri: string, mediaType: 'photo' | 'video') => void;
 }
 
 export default function LoggingInterface({
@@ -60,6 +62,7 @@ export default function LoggingInterface({
   remainingSeconds,
   aiMessage,
   onStopTimer,
+  onUpdateSetMedia,
 }: LoggingInterfaceProps) {
   const theme = useAppTheme();
   
@@ -70,6 +73,8 @@ export default function LoggingInterface({
 
   const [restTimerVisible, setRestTimerVisible] = React.useState(false);
   const [plateCalcVisible, setPlateCalcVisible] = React.useState(false);
+  const [currentMediaUri, setCurrentMediaUri] = React.useState<string | null>(null);
+  const [currentMediaType, setCurrentMediaType] = React.useState<'photo' | 'video'>('photo');
   const restingDuration = 90; // Default 90s
 
   // Best previous set (heaviest weight)
@@ -114,11 +119,46 @@ export default function LoggingInterface({
     );
   }, []);
 
+  const pickMediaForCurrentSet = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'video/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setCurrentMediaUri(asset.uri);
+        setCurrentMediaType(asset.mimeType?.includes('video') ? 'video' : 'photo');
+      }
+    } catch (error) {
+      console.log('Error picking media:', error);
+    }
+  };
+
+  const pickMediaForPastSet = async (setNumber: number) => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['image/*', 'video/*'],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const type = asset.mimeType?.includes('video') ? 'video' : 'photo';
+        onUpdateSetMedia(setNumber, asset.uri, type);
+      }
+    } catch (error) {
+      console.log('Error picking media:', error);
+    }
+  };
+
   const handleLogSetWithAnim = useCallback(() => {
     if (!currentWeight || !currentReps) return;
     triggerSuccessAnim();
-    onLogSet();
-  }, [currentWeight, currentReps, onLogSet, triggerSuccessAnim]);
+    onLogSet(currentMediaUri || undefined, currentMediaType);
+    setCurrentMediaUri(null);
+  }, [currentWeight, currentReps, onLogSet, triggerSuccessAnim, currentMediaUri, currentMediaType]);
 
   return (
     <View style={styles.container}>
@@ -228,6 +268,15 @@ export default function LoggingInterface({
               </View>
               <View style={styles.setRight}>
                 <Text style={[styles.setStatText, { color: theme.colors.textPrimary }]}>{set.reps} reps</Text>
+                {set.mediaUri ? (
+                  <TouchableOpacity style={styles.mediaAttachedBtn}>
+                    {set.mediaType === 'video' ? <Video color={theme.colors.secondary} size={16} /> : <ImageIcon color={theme.colors.secondary} size={16} />}
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity onPress={() => pickMediaForPastSet(set.setNumber)} style={styles.attachBtn}>
+                    <Camera color={theme.colors.textMuted} size={16} />
+                  </TouchableOpacity>
+                )}
               </View>
             </BlurView>
           </Animated.View>
@@ -295,18 +344,28 @@ export default function LoggingInterface({
           </View>
         </View>
 
-        {/* ── FEATURE 2: Optional note per set ── */}
-        <BlurView intensity={20} tint="dark" style={[styles.noteInputGlass, { borderColor: theme.colors.border }]}>
-          <TextInput
-            style={[styles.noteInput, { color: theme.colors.textSecondary }]}
-            placeholder="Nota opcional... (ex: PB hoje! 🔥)"
-            placeholderTextColor="rgba(255,255,255,0.2)"
-            value={currentNote}
-            onChangeText={setCurrentNote}
-            maxLength={80}
-            returnKeyType="done"
-          />
-        </BlurView>
+        {/* ── FEATURE 2: Optional note per set + Media Attach ── */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 }}>
+          <BlurView intensity={20} tint="dark" style={[styles.noteInputGlass, { borderColor: theme.colors.border, flex: 1, marginBottom: 0 }]}>
+            <TextInput
+              style={[styles.noteInput, { color: theme.colors.textSecondary }]}
+              placeholder="Nota opcional... (ex: PB hoje! 🔥)"
+              placeholderTextColor="rgba(255,255,255,0.2)"
+              value={currentNote}
+              onChangeText={setCurrentNote}
+              maxLength={80}
+              returnKeyType="done"
+            />
+          </BlurView>
+
+          <TouchableOpacity style={styles.currentAttachBtn} onPress={pickMediaForCurrentSet}>
+            {currentMediaUri ? (
+              <Image source={{ uri: currentMediaUri }} style={styles.currentMediaThumb} />
+            ) : (
+              <Camera color={theme.colors.textMuted} size={24} />
+            )}
+          </TouchableOpacity>
+        </View>
 
         {!isReadyToAdvance ? (
           <TouchableOpacity
@@ -681,12 +740,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  // ── Note input ──
+  // ── Note input & Media ──
   noteInputGlass: {
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    marginBottom: 12,
     backgroundColor: 'rgba(255,255,255,0.04)',
   },
   noteInput: {
@@ -694,6 +752,37 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  currentAttachBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    overflow: 'hidden',
+  },
+  currentMediaThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  attachBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mediaAttachedBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // ── Register button ──
   registerButton: {
