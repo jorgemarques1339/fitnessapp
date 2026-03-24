@@ -12,7 +12,7 @@ if (!sourceExts.includes('cjs')) sourceExts.push('cjs');
 config.resolver.assetExts.push('wasm');
 
 // Resolution order: react-native, then browser, then module, then main
-config.resolver.resolverMainFields = ['react-native', 'browser', 'module', 'main'];
+config.resolver.resolverMainFields = ['react-native', 'browser', 'main'];
 config.resolver.unstable_enablePackageExports = true;
 
 module.exports = config;

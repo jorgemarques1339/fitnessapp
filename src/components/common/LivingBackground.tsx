@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     borderRadius: 300,
     top: '10%',
     left: '10%',
-    filter: 'blur(100px)',
+    opacity: 0.1,
   },
   glow2: {
     position: 'absolute',
@@ -68,6 +68,6 @@ const styles = StyleSheet.create({
     borderRadius: 250,
     bottom: '10%',
     right: '10%',
-    filter: 'blur(100px)',
+    opacity: 0.1,
   }
 });

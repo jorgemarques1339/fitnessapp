@@ -32,7 +32,7 @@ export default function ExerciseSelector({
   onSwapExercise,
   insets
 }: ExerciseSelectorProps) {
-  const theme = useAppTheme();
+  const appTheme = useAppTheme();
   const completedWorkouts = useHistoryStore(state => state.completedWorkouts);
   
   const recommendedMuscles = React.useMemo(() => 
@@ -43,8 +43,8 @@ export default function ExerciseSelector({
     <View style={styles.container}>
       <View style={[styles.topBar, { marginTop: Math.max(insets.top, 10) }]}>
         <View style={styles.badge}>
-          <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "light" : "dark"} style={[styles.glassBadge, { borderColor: theme.colors.border }]}>
-            <Text style={[styles.routineTitle, { color: theme.colors.secondary }]}>{activeRoutine.title}</Text>
+          <BlurView intensity={appTheme.isDark ? 20 : 40} tint={appTheme.isDark ? "light" : "dark"} style={[styles.glassBadge, { borderColor: appTheme.colors.border }]}>
+            <Text style={[styles.routineTitle, { color: appTheme.colors.secondary }]}>{activeRoutine.title}</Text>
           </BlurView>
         </View>
       </View>
@@ -54,7 +54,7 @@ export default function ExerciseSelector({
         contentContainerStyle={{ gap: 16, paddingBottom: 120 }}
       >
         <View style={styles.titleRow}>
-          <Text style={[styles.header, { color: theme.colors.textPrimary }]}>Selecionar Exercício</Text>
+          <Text style={[styles.header, { color: appTheme.colors.textPrimary }]}>Selecionar Exercício</Text>
         </View>
 
         {activeRoutine.exercises.map((exercise: ExerciseDef, index: number) => {
@@ -70,47 +70,47 @@ export default function ExerciseSelector({
                   sensoryManager.trigger({ sound: 'click', haptic: 'light' });
                   selectExercise(index);
                 }}
-                style={[styles.cardContainer, { backgroundColor: theme.colors.surfaceHighlight }]}
+                style={[styles.cardContainer, { backgroundColor: appTheme.colors.surfaceHighlight }]}
                 hapticFeedback="light"
               >
                 <BlurView 
-                  intensity={isComplete ? (theme.isDark ? 10 : 20) : (theme.isDark ? 25 : 45)} 
-                  tint={theme.isDark ? "dark" : "light"} 
+                  intensity={isComplete ? (appTheme.isDark ? 10 : 20) : (appTheme.isDark ? 25 : 45)} 
+                  tint={appTheme.isDark ? "dark" : "light"} 
                   style={styles.exerciseListCard}
                 >
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                       <Text style={{ 
-                        color: isComplete ? theme.colors.textMuted : theme.colors.textPrimary, 
+                        color: isComplete ? appTheme.colors.textMuted : appTheme.colors.textPrimary, 
                         fontSize: 18, 
-                        fontFamily: theme.typography.fonts.bold, 
+                        fontFamily: appTheme.typography.fonts.bold, 
                         marginBottom: 4 
                       }}>
                         {exercise.name}
                       </Text>
                       {isRecommended && !isComplete && (
-                        <View style={[styles.recBadge, { backgroundColor: theme.colors.primary + '20', borderColor: theme.colors.primary }]}>
-                          <Text style={[styles.recBadgeText, { color: theme.colors.primary }]}>Recomendado</Text>
+                        <View style={[styles.recBadge, { backgroundColor: appTheme.colors.primary + '20', borderColor: appTheme.colors.primary }]}>
+                          <Text style={[styles.recBadgeText, { color: appTheme.colors.primary }]}>Recomendado</Text>
                         </View>
                       )}
                     </View>
-                    <Text style={{ color: theme.colors.textSecondary, fontSize: 13, fontFamily: theme.typography.fonts.medium }}>
+                    <Text style={{ color: appTheme.colors.textSecondary, fontSize: 13, fontFamily: appTheme.typography.fonts.medium }}>
                       {completedSetsCount} de {exercise.targetSets} séries concluídas
                     </Text>
                   </View>
                   <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
                     <TouchableOpacity 
-                      style={[styles.swapMiniBtn, { backgroundColor: theme.colors.surfaceHighlight }]}
+                      style={[styles.swapMiniBtn, { backgroundColor: appTheme.colors.surfaceHighlight }]}
                       onPress={(e) => {
                         sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
                         e.stopPropagation();
                         onSwapExercise(exercise);
                       }}
                     >
-                      <ArrowRightLeft color={theme.colors.accent} size={20} />
+                      <ArrowRightLeft color={appTheme.colors.accent} size={20} />
                     </TouchableOpacity>
-                    <View style={[styles.listExerciseAction, { backgroundColor: theme.colors.surfaceHighlight }, isComplete && { borderColor: theme.colors.primary }]}>
-                      <Play color={isComplete ? theme.colors.primary : theme.colors.secondary} size={20} />
+                    <View style={[styles.listExerciseAction, { backgroundColor: appTheme.colors.surfaceHighlight }, isComplete && { borderColor: appTheme.colors.primary }]}>
+                      <Play color={isComplete ? appTheme.colors.primary : appTheme.colors.secondary} size={20} />
                     </View>
                   </View>
                 </BlurView>
@@ -129,26 +129,26 @@ export default function ExerciseSelector({
         pointerEvents="box-none"
       >
         <LinearGradient
-          colors={['transparent', theme.colors.background]}
+          colors={['transparent', appTheme.colors.background]}
           style={styles.footerGradient}
           pointerEvents="none"
         />
         <AnimatedPressable 
           style={styles.nextButtonGlow} 
           onPress={() => {
-            soundManager.play('success');
+            sensoryManager.trigger({ sound: 'success', haptic: 'success' });
             onFinishWorkout();
           }} 
           hapticFeedback="success" 
           scaleTo={0.95}
         >
           <LinearGradient
-            colors={[theme.colors.accent, '#FFA000']}
+            colors={[appTheme.colors.accent, '#FFA000']}
             style={styles.nextGradientButton}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <Text style={[styles.nextButtonText, { color: theme.colors.textInverse }]}>Finalizar Sessão!</Text>
+            <Text style={[styles.nextButtonText, { color: appTheme.colors.textInverse }]}>Finalizar Sessão!</Text>
           </LinearGradient>
         </AnimatedPressable>
       </View>

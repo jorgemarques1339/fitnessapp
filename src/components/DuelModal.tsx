@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, Image, Dimensions, ScrollView } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { X, Swords, TrendingUp, Zap, Target } from 'lucide-react-native';
+import { X, TrendingUp, Zap, Target } from 'lucide-react-native';
 import { useSocialStore, LeaderboardEntry } from '../store/useSocialStore';
 import { useWorkoutStore } from '../store/useWorkoutStore';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -67,7 +67,7 @@ export default function DuelModal() {
         
         <Animated.View entering={FadeInUp} style={styles.modalContainer}>
           <View style={styles.header}>
-            <Swords color="#FFD700" size={28} />
+            <Zap color="#FFD700" size={28} />
             <Text style={styles.title}>{isDuelActive ? 'DUELO EM CURSO' : 'NOVO DESAFIO'}</Text>
             <TouchableOpacity onPress={() => setSelectedDuelUser(null)} style={styles.closeBtn}>
               <X color="#FFF" size={24} />

@@ -13,7 +13,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Brain, TrendingUp, TrendingDown, Minus,
-  AlertTriangle, ChevronDown, ChevronUp, CheckCircle2, Zap
+  AlertTriangle, ChevronDown, ChevronUp, CircleCheck, Zap
 } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Activity, Instagram, Shield, Smartphone, HeartPulse, Download, Upload, FileText, Database, ChevronRight, ShieldCheck, AlertCircle } from 'lucide-react-native';
+import { Activity, Instagram, Shield, Smartphone, Heart, Download, Upload, FileText, Database, ChevronRight, ShieldCheck, AlertCircle } from 'lucide-react-native';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
@@ -32,7 +32,7 @@ export default function SettingsScreen() {
   const importData = useHistoryStore(state => state.importData);
   const lastBackupDate = useConfigStore(state => state.lastBackupDate);
   const setLastBackupDate = useConfigStore(state => state.setLastBackupDate);
-  const theme = useAppTheme();
+  const appTheme = useAppTheme();
 
   const getBackupStatus = () => {
     if (!lastBackupDate) return { text: 'Segurança Crítica', color: theme.colors.danger };
@@ -192,7 +192,7 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Experiência Sensorial</Text>
-        <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+        <BlurView intensity={appTheme.isDark ? 20 : 40} tint={appTheme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
           <View style={styles.themeToggleRow}>
             <TouchableOpacity 
               style={[styles.themeOption, themeMode === 'oled' && styles.activeThemeOption, { borderColor: themeMode === 'oled' ? theme.colors.primary : 'transparent' }]}
@@ -221,11 +221,11 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Integrações e Saúde</Text>
-        <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+        <BlurView intensity={appTheme.isDark ? 20 : 40} tint={appTheme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <View style={[styles.iconCircle, { backgroundColor: theme.colors.surfaceHighlight }]}>
-                <HeartPulse color={theme.colors.danger} size={20} />
+                <Heart color={theme.colors.danger} size={20} />
               </View>
               <View>
                 <Text style={[styles.settingTitle, { color: theme.colors.textPrimary }]}>Apple Health / Google Fit</Text>
@@ -272,7 +272,7 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Meus Equipamentos</Text>
-        <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+        <BlurView intensity={appTheme.isDark ? 20 : 40} tint={appTheme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
           <Text style={[styles.settingDesc, { color: theme.colors.textSecondary, marginBottom: 20 }]}>Selecione as anilhas que tem disponíveis. O calculador de barra usará apenas estas.</Text>
           
           <View style={styles.platesGrid}>
@@ -310,7 +310,7 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Social</Text>
-        <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+        <BlurView intensity={appTheme.isDark ? 20 : 40} tint={appTheme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
           <View style={styles.settingRow}>
             <View style={styles.settingInfo}>
               <View style={[styles.iconCircle, { backgroundColor: theme.colors.surfaceHighlight }]}>
@@ -327,7 +327,7 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Segurança e Backup (Premium)</Text>
-        <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+        <BlurView intensity={appTheme.isDark ? 20 : 40} tint={appTheme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
           
           <View style={styles.backupStatusRow}>
             <View style={[styles.statusIndicator, { backgroundColor: getBackupStatus().color }]} />
@@ -384,7 +384,7 @@ export default function SettingsScreen() {
 
       <View style={styles.section}>
         <Text style={styles.sectionHeader}>Geral</Text>
-        <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+        <BlurView intensity={appTheme.isDark ? 20 : 40} tint={appTheme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
           <View style={[styles.settingRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
             <View style={styles.settingInfo}>
               <View style={[styles.iconCircle, { backgroundColor: theme.colors.surfaceHighlight }]}>

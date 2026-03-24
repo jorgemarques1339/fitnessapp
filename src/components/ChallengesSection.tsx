@@ -1,7 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Animated as RNAnimated } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Trophy, Target, Clock, ChevronRight, CheckCircle2 } from 'lucide-react-native';
+import { 
+  Trophy, 
+  Target, 
+  Clock, 
+  ChevronRight, 
+  CircleCheck 
+} from 'lucide-react-native';
 import { useChallengeStore } from '../store/useChallengeStore';
 import { Challenge } from '../data/challenges';
 import Animated, { FadeInRight } from 'react-native-reanimated';
@@ -23,7 +29,7 @@ export default function ChallengesSection() {
           <View style={styles.header}>
             <View style={[styles.iconContainer, { backgroundColor: progress.isCompleted ? '#00E67620' : '#FFFFFF10' }]}>
               {progress.isCompleted ? (
-                <CheckCircle2 color="#00E676" size={20} />
+                <CircleCheck color="#00E676" size={20} />
               ) : (
                 <Target color="#FFF" size={20} />
               )}

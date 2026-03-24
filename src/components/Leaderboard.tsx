@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { useSocialStore, LeaderboardEntry } from '../store/useSocialStore';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { Trophy, Medal, Swords } from 'lucide-react-native';
+import { Trophy, Medal, Zap } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Leaderboard() {
@@ -55,7 +55,7 @@ export default function Leaderboard() {
             style={[styles.duelBtn, { backgroundColor: theme.colors.surfaceHighlight }]}
             onPress={() => setSelectedDuelUser(item)}
           >
-            <Swords size={18} color={theme.colors.primary} />
+            <Zap size={18} color={theme.colors.primary} />
           </TouchableOpacity>
         )}
       </View>

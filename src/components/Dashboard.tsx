@@ -37,7 +37,7 @@ import { PRConsoleModal } from './PRConsole';
 import GlobalTonnageWidget from './GlobalTonnageWidget';
 import HallOfFame from './HallOfFame';
 import MuscleHeatmap from './common/MuscleHeatmap';
-import { Trophy, Target, BarChart2, Share2, Calendar, Swords } from 'lucide-react-native';
+import { Trophy, Target, ChartBar, Share2, Calendar, Zap } from 'lucide-react-native';
 import { useSocialStore } from '../store/useSocialStore';
 import EliteDuelWidget from './EliteDuelWidget';
 import Animated, { 
@@ -68,7 +68,7 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
   const customRoutines = useHistoryStore(state => state.customRoutines);
   const saveCustomRoutine = useHistoryStore(state => state.saveCustomRoutine);
   const deleteCustomRoutine = useHistoryStore(state => state.deleteCustomRoutine);
-  const theme = useAppTheme();
+  const appTheme = useAppTheme();
 
   const [isBuilderVisible, setIsBuilderVisible] = React.useState(false);
   const [isPRConsoleVisible, setIsPRConsoleVisible] = React.useState(false);
@@ -113,7 +113,7 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
   };
 
   return (
-    <View style={[styles.background, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.background, { backgroundColor: appTheme.colors.background }]}>
       <LivingBackground />
       <SafeAreaView style={styles.safeArea}>
         <ScrollView 
@@ -127,11 +127,11 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.innerContent, isLargeScreen && { maxWidth: theme.layout.maxContentWidth }]}>
+          <View style={[styles.innerContent, isLargeScreen && { maxWidth: appTheme.layout.maxContentWidth }]}>
             <Animated.View entering={FadeInUp.delay(200).springify()} style={styles.header}>
               <View>
-                <Text style={[styles.greeting, { color: theme.colors.textPrimary, fontFamily: theme.typography.fonts.displayBlack }]}>Antigravity</Text>
-                <Text style={[styles.subtitle, { color: theme.colors.textMuted, fontFamily: theme.typography.fonts.medium }]}>Supera os teus limites hoje.</Text>
+                <Text style={[styles.greeting, { color: appTheme.colors.textPrimary, fontFamily: appTheme.typography.fonts.displayBlack }]}>Antigravity</Text>
+                <Text style={[styles.subtitle, { color: appTheme.colors.textMuted, fontFamily: appTheme.typography.fonts.medium }]}>Supera os teus limites hoje.</Text>
               </View>
               <TouchableOpacity 
                 onPress={() => {
@@ -140,7 +140,7 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                 }}
                 style={styles.trophyBtn}
               >
-                <BlurView intensity={30} tint={theme.isDark ? "dark" : "light"} style={styles.trophyBtnInner}>
+                <BlurView intensity={30} tint={appTheme.isDark ? "dark" : "light"} style={styles.trophyBtnInner}>
                   <Trophy color="#FFD700" size={24} />
                 </BlurView>
               </TouchableOpacity>
@@ -157,15 +157,15 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
             {/* Dashboard Tabs */}
             <Animated.View 
               entering={FadeInDown.delay(250).springify()} 
-              style={[styles.tabsWrapper, { backgroundColor: theme.colors.surfaceHighlight }]}
+              style={[styles.tabsWrapper, { backgroundColor: appTheme.colors.surfaceHighlight }]}
             >
               <TouchableOpacity 
                 onPress={() => { setActiveTab('hoje'); sensoryManager.trigger({ sound: 'click', haptic: 'selection' });
  }}
                 style={[styles.tabItem, activeTab === 'hoje' && styles.activeTabItem]}
               >
-                <Calendar size={16} color={activeTab === 'hoje' ? theme.colors.primary : theme.colors.textMuted} />
-                <Text style={[styles.tabText, { color: activeTab === 'hoje' ? theme.colors.primary : theme.colors.textMuted }]}>Hoje</Text>
+                <Calendar size={16} color={activeTab === 'hoje' ? appTheme.colors.primary : appTheme.colors.textMuted} />
+                <Text style={[styles.tabText, { color: activeTab === 'hoje' ? appTheme.colors.primary : appTheme.colors.textMuted }]}>Hoje</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -173,8 +173,8 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
  }}
                 style={[styles.tabItem, activeTab === 'metricas' && styles.activeTabItem]}
               >
-                <BarChart2 size={16} color={activeTab === 'metricas' ? theme.colors.primary : theme.colors.textMuted} />
-                <Text style={[styles.tabText, { color: activeTab === 'metricas' ? theme.colors.primary : theme.colors.textMuted }]}>Métricas</Text>
+                <ChartBar size={16} color={activeTab === 'metricas' ? appTheme.colors.primary : appTheme.colors.textMuted} />
+                <Text style={[styles.tabText, { color: activeTab === 'metricas' ? appTheme.colors.primary : appTheme.colors.textMuted }]}>Métricas</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -182,8 +182,8 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
  }}
                 style={[styles.tabItem, activeTab === 'elite' && styles.activeTabItem]}
               >
-                <Share2 size={16} color={activeTab === 'elite' ? theme.colors.primary : theme.colors.textMuted} />
-                <Text style={[styles.tabText, { color: activeTab === 'elite' ? theme.colors.primary : theme.colors.textMuted }]}>Elite</Text>
+                <Share2 size={16} color={activeTab === 'elite' ? appTheme.colors.primary : appTheme.colors.textMuted} />
+                <Text style={[styles.tabText, { color: activeTab === 'elite' ? appTheme.colors.primary : appTheme.colors.textMuted }]}>Elite</Text>
               </TouchableOpacity>
             </Animated.View>
 
@@ -217,13 +217,13 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                     >
                       <View style={styles.recoveryContent}>
                         <View style={styles.recoveryIconBox}>
-                          <Activity color={theme.colors.danger} size={24} />
+                          <Activity color={appTheme.colors.danger} size={24} />
                         </View>
                         <View style={styles.recoveryTexts}>
                           <Text style={styles.recoveryTitle}>⏱️ Treino em Andamento</Text>
                           <Text style={styles.recoverySubtitle}>{activeRoutine.title}</Text>
                         </View>
-                        <ChevronRight color={theme.colors.textMuted} size={20} />
+                        <ChevronRight color={appTheme.colors.textMuted} size={20} />
                       </View>
                     </PremiumCard>
                   </AnimatedPressable>
@@ -254,8 +254,8 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                       }} 
                       hapticFeedback="light"
                     >
-                      <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.createBtn, { borderColor: theme.colors.border }]}>
-                        <Plus color={theme.colors.secondary} size={16} style={{ marginRight: 6 }} />
+                      <BlurView intensity={appTheme.isDark ? 20 : 40} tint={appTheme.isDark ? "dark" : "light"} style={[styles.createBtn, { borderColor: appTheme.colors.border }]}>
+                        <Plus color={appTheme.colors.secondary} size={16} style={{ marginRight: 6 }} />
                         <Text style={styles.createBtnText}>Novo</Text>
                       </BlurView>
                     </AnimatedPressable>
@@ -264,13 +264,13 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                   {customRoutines.length === 0 ? (
                     <View style={styles.emptyCustomState}>
                       <EmptyWorkoutIllustration />
-                      <Text style={[styles.emptyCustomText, { color: theme.colors.textPrimary }]}>Nada por aqui ainda...</Text>
-                      <Text style={[styles.emptyCustomSubtext, { color: theme.colors.textMuted }]}>
+                      <Text style={[styles.emptyCustomText, { color: appTheme.colors.textPrimary }]}>Nada por aqui ainda...</Text>
+                      <Text style={[styles.emptyCustomSubtext, { color: appTheme.colors.textMuted }]}>
                         Cria o teu primeiro treino personalizado para começares a evoluir!
                       </Text>
                       <TouchableOpacity 
                         onPress={() => toggleBuilder(true)}
-                        style={[styles.emptyCreateBtn, { backgroundColor: theme.colors.primary }]}
+                        style={[styles.emptyCreateBtn, { backgroundColor: appTheme.colors.primary }]}
                       >
                         <Plus color="#000" size={18} />
                         <Text style={styles.emptyCreateBtnText}>Criar Treino</Text>
@@ -288,8 +288,8 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                             style={styles.cardContainer}
                             hapticFeedback="medium"
                           >
-                            <PremiumCard variant="ghost" intensity={theme.isDark ? 30 : 50}>
-                              <View style={[styles.cardIndicator, { backgroundColor: theme.colors.accent }]} />
+                            <PremiumCard variant="ghost" intensity={appTheme.isDark ? 30 : 50}>
+                              <View style={[styles.cardIndicator, { backgroundColor: appTheme.colors.accent }]} />
                               <View style={styles.cardContent}>
                                 <View style={styles.cardHeader}>
                                   <Text style={styles.cardTitle}>{routine.title}</Text>
@@ -304,13 +304,13 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                                         pressed && { opacity: 0.7 }
                                       ]}
                                     >
-                                      <Trash2 color={theme.colors.textMuted} size={16} />
+                                      <Trash2 color={appTheme.colors.textMuted} size={16} />
                                     </Pressable>
                                   </View>
                                 </View>
                                 <View style={styles.cardMeta}>
                                   <Text style={styles.cardInfo}>{routine.exercises.length} Exercícios</Text>
-                                  <ChevronRight color={theme.colors.primary} size={16} />
+                                  <ChevronRight color={appTheme.colors.primary} size={16} />
                                 </View>
                               </View>
                             </PremiumCard>
@@ -335,18 +335,18 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                           style={styles.cardContainer}
                           hapticFeedback="medium"
                         >
-                          <PremiumCard variant="ghost" intensity={theme.isDark ? 30 : 50}>
-                            <View style={[styles.cardIndicator, { backgroundColor: theme.colors.secondary }]} />
+                          <PremiumCard variant="ghost" intensity={appTheme.isDark ? 30 : 50}>
+                            <View style={[styles.cardIndicator, { backgroundColor: appTheme.colors.secondary }]} />
                             <View style={styles.cardContent}>
                               <View style={styles.cardHeader}>
                                 <Text style={styles.cardTitle}>{routine.title}</Text>
-                                <Play color={theme.colors.textSecondary} size={20} />
+                                <Play color={appTheme.colors.textSecondary} size={20} />
                               </View>
                               
                               <Text style={styles.cardSubtitle}>{routine.subtitle}</Text>
                               
                               <View style={styles.tagContainer}>
-                                <View style={[styles.glassTag, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+                                <View style={[styles.glassTag, { backgroundColor: appTheme.colors.surfaceHighlight, borderColor: appTheme.colors.border }]}>
                                   <Text style={styles.tagText}>{routine.exercises.length} Exercícios</Text>
                                 </View>
                               </View>
@@ -378,12 +378,12 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
                 >
                   <PremiumCard variant="primary">
                     <View style={styles.prLinkContent}>
-                      <Trophy color={theme.colors.primary} size={24} />
+                      <Trophy color={appTheme.colors.primary} size={24} />
                       <View style={styles.prLinkTexts}>
                         <Text style={styles.prLinkTitle}>Consola de Recordes (PR)</Text>
                         <Text style={styles.prLinkSubtitle}>Vê as tuas melhores marcas históricas.</Text>
                       </View>
-                      <ChevronRight color={theme.colors.primary} size={20} />
+                      <ChevronRight color={appTheme.colors.primary} size={20} />
                     </View>
                   </PremiumCard>
                 </AnimatedPressable>
@@ -462,20 +462,20 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
           <View style={styles.modalOverlay}>
             <BlurView intensity={30} tint="dark" style={StyleSheet.absoluteFill} />
             <AnimatedPressable style={styles.confirmCard} onPress={() => {}} scaleTo={1} hapticFeedback="none">
-              <View style={[styles.confirmCardInner, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-                <View style={[styles.confirmIconContainer, { backgroundColor: theme.colors.surfaceHighlight }]}>
-                  <Trash2 color={theme.colors.danger} size={32} />
+              <View style={[styles.confirmCardInner, { backgroundColor: appTheme.colors.surface, borderColor: appTheme.colors.border }]}>
+                <View style={[styles.confirmIconContainer, { backgroundColor: appTheme.colors.surfaceHighlight }]}>
+                  <Trash2 color={appTheme.colors.danger} size={32} />
                 </View>
-                <Text style={[styles.confirmTitle, { color: theme.colors.textPrimary }]}>Eliminar Treino?</Text>
-                <Text style={[styles.confirmSubtitle, { color: theme.colors.textSecondary }]}>
+                <Text style={[styles.confirmTitle, { color: appTheme.colors.textPrimary }]}>Eliminar Treino?</Text>
+                <Text style={[styles.confirmSubtitle, { color: appTheme.colors.textSecondary }]}>
                   Tens a certeza que queres apagar "{routineToDelete?.title}"? Esta ação não pode ser desfeita.
                 </Text>
                 
                 <View style={styles.confirmActions}>
-                  <TouchableOpacity onPress={cancelDelete} style={[styles.confirmBtn, { backgroundColor: theme.colors.surfaceHighlight }]}>
-                    <Text style={[styles.confirmBtnText, { color: theme.colors.textPrimary }]}>Cancelar</Text>
+                  <TouchableOpacity onPress={cancelDelete} style={[styles.confirmBtn, { backgroundColor: appTheme.colors.surfaceHighlight }]}>
+                    <Text style={[styles.confirmBtnText, { color: appTheme.colors.textPrimary }]}>Cancelar</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={confirmDelete} style={[styles.confirmBtn, { backgroundColor: theme.colors.danger }]}>
+                  <TouchableOpacity onPress={confirmDelete} style={[styles.confirmBtn, { backgroundColor: appTheme.colors.danger }]}>
                     <Text style={[styles.confirmBtnText, { color: '#fff' }]}>Eliminar</Text>
                   </TouchableOpacity>
                 </View>

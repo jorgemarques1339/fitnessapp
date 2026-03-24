@@ -175,9 +175,10 @@ export default function WorkoutLogger() {
     setAiMessage(progression.messageToUser);
     setSuggestedWeight(progression.suggestedWeight);
 
-    const nextSetNum = currentExerciseSets.length + 1;
-    if (nextSetNum < currentExercise.targetSets) {
-      voiceCoach.speak(`Série ${nextSetNum} concluída. Aproveita o descanso.`);
+    const loggedSetNum = currentExerciseSets.length + 1;
+    const nextSetNum = loggedSetNum + 1;
+    if (loggedSetNum < currentExercise.targetSets) {
+      voiceCoach.speak(`Série ${loggedSetNum} concluída. Aproveita o descanso.`);
       
       // ── SMART REST LOGIC ──
       let restTime = 90; // Default

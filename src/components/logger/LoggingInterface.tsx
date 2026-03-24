@@ -1,7 +1,17 @@
 import React, { useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Vibration, Image, useWindowDimensions, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Play, Focus, Clock, CheckCircle2, Calculator, X, Camera, Image as ImageIcon, Video } from 'lucide-react-native';
+import { 
+  Play, 
+  Focus, 
+  Clock, 
+  CircleCheck, 
+  Calculator, 
+  X, 
+  Camera, 
+  Image as ImageIcon, 
+  Video 
+} from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { Modal } from 'react-native';
 import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withTiming, withSequence, withSpring } from 'react-native-reanimated';
@@ -15,6 +25,7 @@ import PlateCalculator from './PlateCalculator';
 import MusicOverlay from '../MusicOverlay';
 import { theme as staticTheme } from '../../theme/theme';
 import VelocityMeter from './VelocityMeter';
+import PremiumCard from '../common/PremiumCard';
 
 
 import { voiceCoach } from '../../utils/voiceCoach';
@@ -90,6 +101,7 @@ export default function LoggingInterface({
   const [plateCalcVisible, setPlateCalcVisible] = React.useState(false);
   const [currentMediaUri, setCurrentMediaUri] = React.useState<string | null>(null);
   const [currentMediaType, setCurrentMediaType] = React.useState<'photo' | 'video'>('photo');
+  const [isFocusExpanded, setIsFocusExpanded] = React.useState(!(!isLargeScreen)); // Start collapsed on mobile
   const restingDuration = 90; // Default 90s
 
   // Best previous set (heaviest weight)
@@ -184,76 +196,220 @@ export default function LoggingInterface({
     setCurrentRpe(''); // Reset RPE for next set
   }, [currentWeight, currentReps, onLogSet, triggerSuccessAnim, currentMediaUri, currentMediaType, setCurrentRpe, completedCount, targetSets]);
 
-  return (
-    <View style={styles.container}>
-      {/* VBT Overlay */}
-      {vbtData && !isReadyToAdvance && (
-        <View style={styles.vbtContainer}>
+  const renderControlColumn = () => (
+    <View 
+      style={[
+        isLargeScreen ? styles.controlColumn : styles.mobileControlArea
+      ]}
+    >
+      {/* Velocity Meter / AI Slot - Large Screen Only */}
+      {isLargeScreen && vbtData && !isReadyToAdvance && (
+        <Animated.View entering={FadeInDown} style={styles.vbtColumnInner}>
           <VelocityMeter 
             velocity={vbtData.velocity}
             peakVelocity={vbtData.peakVelocity}
             isMoving={vbtData.isMoving}
           />
-        </View>
+        </Animated.View>
       )}
 
-      {/* Top Navigation */}
-      <View style={[styles.topBar, { marginTop: Math.max(insets.top, 10) }]}>
-        <TouchableOpacity onPress={onReturnToSelection} style={styles.badge}>
-          <BlurView intensity={20} tint="dark" style={[styles.glassBadge, { borderColor: theme.colors.border }]}>
-            <Text style={[styles.routineTitle, { color: theme.colors.textMuted }]}>← LISTA DE EXERCÍCIOS</Text>
-          </BlurView>
+      {/* Weight + Reps inputs captured in a Premium Card */}
+      <PremiumCard 
+        variant="default" 
+        intensity={isLargeScreen ? (theme.isDark ? 20 : 35) : (theme.isDark ? 40 : 60)}
+        style={[styles.inputPremiumCard, !isLargeScreen && styles.inputPremiumCardMobile]}
+        innerStyle={{ padding: 16 }}
+      >
+        <View style={[styles.inputArea, isLargeScreen ? styles.columnInputArea : styles.mobileInputArea]}>
+          <View style={styles.inputGroup}>
+            <View style={{ flexDirection: 'row', justifyContent: isLargeScreen ? 'center' : 'flex-start', alignItems: 'center', marginBottom: 8, gap: 4 }}>
+              <Text style={[styles.label, { color: theme.colors.textSecondary }]}>{isLargeScreen ? 'Peso (kg)' : 'PESO'}</Text>
+              {suggestedWeight && !previousSets.length && (
+                <View style={[styles.aiBadge, { backgroundColor: theme.colors.secondary }]}>
+                  <Text style={styles.aiBadgeText}>IA: {suggestedWeight}kg</Text>
+                </View>
+              )}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <BlurView intensity={20} tint="dark" style={[styles.inputGlass, { flex: 1 }]}>
+                <TextInput
+                  style={[styles.input, isLargeScreen ? styles.inputText : styles.inputTextMobile, { backgroundColor: theme.colors.surfaceHighlight }]}
+                  keyboardType="numeric"
+                  value={currentWeight}
+                  onChangeText={setCurrentWeight}
+                  placeholder="0.0"
+                  placeholderTextColor="rgba(255,255,255,0.2)"
+                />
+              </BlurView>
+              {(currentExercise.equipment === 'Barbell' || currentExercise.equipment === 'Smith') && (
+                <TouchableOpacity 
+                  onPress={() => setPlateCalcVisible(true)}
+                  style={[styles.calcButton, !isLargeScreen && { height: 48, width: 48 }]}
+                >
+                  <BlurView intensity={30} tint="dark" style={styles.calcButtonBlur}>
+                    <Calculator color={theme.colors.primary} size={isLargeScreen ? 20 : 18} />
+                  </BlurView>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          <View style={[styles.inputGroup, !isLargeScreen && styles.mobileInputRowSplit]}>
+            <View style={[styles.inputSubGroup, !isLargeScreen && { flex: 1 }]}>
+              <Text style={[styles.label, { color: theme.colors.textSecondary, textAlign: isLargeScreen ? 'center' : 'left' }]}>{isLargeScreen ? 'Repetições' : 'REPS'}</Text>
+              <BlurView intensity={20} tint="dark" style={styles.inputGlass}>
+                <TextInput
+                  style={[styles.input, isLargeScreen ? styles.inputText : styles.inputTextMobile, { backgroundColor: theme.colors.surfaceHighlight }]}
+                  keyboardType="numeric"
+                  value={currentReps}
+                  onChangeText={setCurrentReps}
+                  placeholder="0"
+                  placeholderTextColor="rgba(255,255,255,0.2)"
+                />
+              </BlurView>
+            </View>
+
+            {!isLargeScreen && <View style={{ width: 12 }} />}
+
+            <View style={[styles.inputSubGroup, !isLargeScreen && { flex: 1 }]}>
+              <Text style={[styles.label, { color: theme.colors.textSecondary, textAlign: isLargeScreen ? 'center' : 'left' }]}>{isLargeScreen ? 'RPE Intensity' : 'RPE'}</Text>
+              <BlurView intensity={20} tint="dark" style={styles.inputGlass}>
+                <TextInput
+                  style={[styles.input, isLargeScreen ? styles.inputText : styles.inputTextMobile, { backgroundColor: theme.colors.surfaceHighlight }]}
+                  keyboardType="numeric"
+                  value={currentRpe}
+                  onChangeText={setCurrentRpe}
+                  placeholder="8"
+                  placeholderTextColor="rgba(255,255,255,0.2)"
+                />
+              </BlurView>
+            </View>
+          </View>
+        </View>
+      </PremiumCard>
+
+      {/* ── FEATURE 2: Optional note per set + Media Attach ── */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10, marginTop: isLargeScreen ? 20 : 0 }}>
+        <BlurView intensity={20} tint="dark" style={[styles.noteInputGlass, { borderColor: theme.colors.border, flex: 1, marginBottom: 0 }]}>
+          <TextInput
+            style={[styles.noteInput, { color: theme.colors.textSecondary }]}
+            placeholder="Nota opcional... (ex: PB hoje! 🔥)"
+            placeholderTextColor="rgba(255,255,255,0.2)"
+            value={currentNote}
+            onChangeText={setCurrentNote}
+            maxLength={80}
+            returnKeyType="done"
+          />
+        </BlurView>
+
+        <TouchableOpacity style={styles.currentAttachBtn} onPress={pickMediaForCurrentSet}>
+          {currentMediaUri ? (
+            <Image source={{ uri: currentMediaUri }} style={styles.currentMediaThumb} />
+          ) : (
+            <Camera color={theme.colors.textMuted} size={24} />
+          )}
         </TouchableOpacity>
-        <Text style={[styles.counterText, { color: theme.colors.textMuted }]}>
-          {currentExerciseIndex + 1} / {totalExercises}
-        </Text>
       </View>
 
-      <View style={[styles.mainLoggingArea, isLargeScreen && styles.rowLayout]}>
-        {/* Left Column: Info & History */}
-        <View style={[styles.infoColumn, isLargeScreen && { flex: 1.4 }]}>
-          {/* Main Header */}
-          <View style={styles.titleRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.header, { color: theme.colors.textPrimary }]} numberOfLines={2} adjustsFontSizeToFit>{currentExercise.name}</Text>
-              <HeartRateMonitor isTraining={true} />
-            </View>
-            <TouchableOpacity onPress={onShowTechnicalModal}>
-              <BlurView intensity={theme.isDark ? 40 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.videoButtonGlow, { backgroundColor: theme.colors.glassSurface, borderColor: theme.colors.glassBorder, borderWidth: 1 }]}>
-                <Play color={theme.colors.secondary} size={22} fill={theme.isDark ? theme.colors.secondary : "transparent"} />
-              </BlurView>
-            </TouchableOpacity>
-          </View>
+      <MusicOverlay />
 
-          {/* ── FEATURE 1: Série progress circles ── */}
-          <View style={styles.setDotsRow}>
-            {Array.from({ length: targetSets }).map((_, i) => {
-              const done = i < completedCount;
-              return (
-                <View
-                  key={i}
-                  style={[
-                    styles.setDot,
-                    done
-                      ? { backgroundColor: theme.colors.primary, shadowColor: theme.colors.primary, shadowOpacity: 0.5, shadowRadius: 8, elevation: 4 }
-                      : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.colors.border }
-                  ]}
-                />
-              );
-            })}
-            <Text style={[styles.setDotsLabel, { color: theme.colors.textMuted }]}>
-              {completedCount} de {targetSets} séries concluídas
-            </Text>
-          </View>
-
-          {/* History Feed */}
-          <ScrollView
-            style={styles.historyContainer}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: isLargeScreen ? 40 : 220 }}
+      {!isReadyToAdvance ? (
+        <TouchableOpacity
+          onPress={handleLogSetWithAnim}
+          style={[styles.registerButton, (!currentWeight || !currentReps) && styles.registerButtonDisabled]}
+          activeOpacity={0.8}
+          disabled={!currentWeight || !currentReps}
+        >
+          <LinearGradient
+            colors={((!currentWeight || !currentReps) ? ['#1a1a1a', '#0a0a0a'] : theme.colors.gradients.liquid) as any}
+            style={styles.registerGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
           >
-            {/* ── FEATURE 3: Previous session history card ── */}
-            {previousSets.length > 0 && (
+            <Text style={[styles.registerButtonText, (!currentWeight || !currentReps) && { color: 'rgba(255,255,255,0.15)' }]}>REGISTAR SÉRIE</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      ) : (
+        <AnimatedPressable
+          style={styles.nextButtonGlow}
+          onPress={onReturnToSelection}
+        >
+          <LinearGradient
+            colors={[theme.colors.primary, '#00C853']}
+            style={styles.nextGradientButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <Text style={{ color: theme.colors.textInverse, fontWeight: '900', fontSize: 18, textTransform: 'uppercase', letterSpacing: 1 }}>Regressar à Lista</Text>
+          </LinearGradient>
+        </AnimatedPressable>
+      )}
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      {/* Top Navigation */}
+      <View style={[styles.topBar, { marginTop: Math.max(insets.top, 20), paddingHorizontal: 20 }]}>
+        <TouchableOpacity onPress={onReturnToSelection} style={styles.badge}>
+          <BlurView intensity={20} tint="dark" style={[styles.glassBadge, { borderColor: theme.colors.border }]}>
+            <Text style={[styles.routineTitle, { color: theme.colors.textMuted }]}>← LISTA</Text>
+          </BlurView>
+        </TouchableOpacity>
+        
+        <TouchableOpacity onPress={onAbortWorkout} style={styles.closeBadge}>
+          <BlurView intensity={25} tint="dark" style={[styles.glassBadge, { borderColor: 'rgba(255,59,48,0.3)', paddingHorizontal: 16 }]}>
+            <X color="#FF3B30" size={18} />
+          </BlurView>
+        </TouchableOpacity>
+      </View>
+
+      {isLargeScreen ? (
+        <View style={[styles.mainLoggingArea, styles.rowLayout]}>
+          {/* Left Column: Info & History */}
+          <View style={[styles.infoColumn, { flex: 1.4 }]}>
+            <View style={styles.headerContainer}>
+               <View style={styles.titleRow}>
+                 <View style={{ flex: 1 }}>
+                    <Text style={[styles.header, styles.headerText, { color: theme.colors.textPrimary }]} numberOfLines={2} adjustsFontSizeToFit>{currentExercise.name}</Text>
+                    <View style={[styles.statusRow, { marginTop: 4 }]}>
+                    <HeartRateMonitor isTraining={true} />
+                    <View style={[styles.indicatorDivider, { backgroundColor: theme.colors.border }]} />
+                    <Text style={[styles.counterText, { color: theme.colors.textMuted }]}>
+                      {currentExerciseIndex + 1} / {totalExercises}
+                    </Text>
+                  </View>
+                </View>
+                 <TouchableOpacity onPress={onShowTechnicalModal}>
+                  <BlurView intensity={theme.isDark ? 40 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.videoButtonGlow, { backgroundColor: theme.colors.glassSurface, borderColor: theme.colors.glassBorder, borderWidth: 1 }]}>
+                    <Play color={theme.colors.secondary} size={22} fill={theme.isDark ? theme.colors.secondary : "transparent"} />
+                  </BlurView>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.setDotsRow}>
+              {Array.from({ length: targetSets }).map((_, i) => {
+                const done = i < completedCount;
+                return (
+                  <View
+                    key={i}
+                    style={[
+                      styles.setDot,
+                      done
+                        ? { backgroundColor: theme.colors.primary, shadowColor: theme.colors.primary, shadowOpacity: 0.5, shadowRadius: 8, elevation: 4 }
+                        : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.colors.border }
+                    ]}
+                  />
+                );
+              })}
+              <Text style={[styles.setDotsLabel, { color: theme.colors.textMuted }]}>
+                {completedCount} de {targetSets} séries concluídas
+              </Text>
+            </View>
+
+            <ScrollView style={styles.historyContainer} showsVerticalScrollIndicator={false}>
+              {previousSets.length > 0 && (
               <Animated.View entering={FadeInDown.duration(400)}>
                 <BlurView intensity={theme.isDark ? 10 : 20} tint={theme.isDark ? "dark" : "light"} style={[styles.prevSessionCard, { borderColor: theme.colors.border, backgroundColor: theme.colors.glassSurface }]}>
                   <View style={styles.prevSessionHeader}>
@@ -281,21 +437,21 @@ export default function LoggingInterface({
               </Animated.View>
             )}
 
-            {/* Technical Focus Note */}
             <Animated.View entering={FadeInDown.duration(400).delay(100)}>
               <BlurView intensity={theme.isDark ? 10 : 20} tint={theme.isDark ? "dark" : "light"} style={[styles.notesContainer, { backgroundColor: theme.colors.glassSurface, borderColor: theme.colors.border }]}>
                 <View style={styles.notesHeader}>
-                  <Focus color={theme.colors.secondary} size={13} />
-                  <Text style={[styles.notesTitle, { color: theme.colors.secondary }]}>Foco Técnico</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Focus color={theme.colors.secondary} size={13} />
+                    <Text style={[styles.notesTitle, { color: theme.colors.secondary }]}>Foco Técnico</Text>
+                  </View>
                 </View>
                 <Text style={[styles.notesText, { color: theme.colors.textSecondary }]}>{currentExercise.notes}</Text>
               </BlurView>
             </Animated.View>
 
-            {/* Current session sets */}
             {currentExerciseSets.map((set: SetLog, i: number) => (
               <Animated.View key={i} entering={FadeInDown.delay(i * 80)}>
-                <BlurView intensity={theme.isDark ? 25 : 45} tint={theme.isDark ? "dark" : "light"} style={[styles.setRow, { backgroundColor: theme.colors.surfaceHighlight }]}>
+                <BlurView intensity={theme.isDark ? 25 : 45} tint={theme.isDark ? "dark" : "light"} style={[styles.setRow, { backgroundColor: theme.colors.surfaceHighlight, marginBottom: 12 }]}>
                   <View style={[styles.setLeft, { flex: 1, paddingRight: 10 }]}>
                     <View style={[styles.circleBadge, { backgroundColor: 'rgba(0,230,118,0.15)' }]}>
                       <Text style={[styles.setText, { color: '#00E676' }]}>{set.setNumber}</Text>
@@ -322,154 +478,121 @@ export default function LoggingInterface({
                 </BlurView>
               </Animated.View>
             ))}
-
-            <AnimatedPressable style={styles.abortBtnSmall} onPress={onAbortWorkout} hapticFeedback="medium">
-              <Text style={styles.quitButtonText}>Sair sem Guardar</Text>
-            </AnimatedPressable>
-          </ScrollView>
+            </ScrollView>
+          </View>
+          {renderControlColumn()}
         </View>
-
-        {/* Right Column: Inputs & Actions */}
-        <View 
-          style={[
-            isLargeScreen ? styles.controlColumn : [styles.stickyFooterBase, { paddingBottom: Math.max(insets.bottom, 20) }]
-          ]}
-          pointerEvents="box-none"
+      ) : (
+        <ScrollView 
+          style={styles.mainScroll} 
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: insets.bottom + 60, flexGrow: 1 }}
         >
-          {!isLargeScreen && (
-            <LinearGradient
-              colors={['transparent', theme.colors.background]}
-              style={styles.footerGradient}
-              pointerEvents="none"
-            />
-          )}
+          <View style={styles.headerContainer}>
+             <View style={[styles.titleRow, { flexDirection: 'column', alignItems: 'center' }]}>
+                <Text style={[styles.header, styles.headerTextMobile, { color: theme.colors.textPrimary, textAlign: 'center' }]} numberOfLines={3}>{currentExercise.name}</Text>
+                
+                <View style={[styles.statusRow, { marginTop: 8, alignSelf: 'center' }]}>
+                  <HeartRateMonitor isTraining={true} />
+                  <View style={[styles.indicatorDivider, { backgroundColor: theme.colors.border }]} />
+                  <Text style={[styles.counterText, { color: theme.colors.textMuted }]}>
+                    EXERCÍCIO {currentExerciseIndex + 1} / {totalExercises}
+                  </Text>
+                </View>
 
-          {/* Weight + Reps inputs */}
-          <View style={[styles.inputArea, isLargeScreen && styles.columnInputArea]}>
-            <View style={styles.inputGroup}>
-              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 8, gap: 4 }}>
-                <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Peso</Text>
-                {suggestedWeight && !previousSets.length && (
-                  <View style={[styles.aiBadge, { backgroundColor: theme.colors.secondary }]}>
-                    <Text style={styles.aiBadgeText}>IA: {suggestedWeight}kg</Text>
-                  </View>
-                )}
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <BlurView intensity={40} tint="dark" style={[styles.inputGlass, { flex: 1 }]}>
-                  <TextInput
-                    style={[styles.input, { backgroundColor: theme.colors.surfaceHighlight }]}
-                    keyboardType="numeric"
-                    value={currentWeight}
-                    onChangeText={setCurrentWeight}
-                    placeholderTextColor="rgba(255,255,255,0.2)"
-                  />
-                </BlurView>
-                {(currentExercise.equipment === 'Barbell' || currentExercise.equipment === 'Smith') && (
-                  <TouchableOpacity 
-                    onPress={() => setPlateCalcVisible(true)}
-                    style={styles.calcButton}
-                  >
-                    <BlurView intensity={50} tint="dark" style={styles.calcButtonBlur}>
-                      <Calculator color={theme.colors.primary} size={22} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 12 }}>
+                  {vbtData && !isReadyToAdvance && (
+                    <View style={styles.vbtMobileMini}>
+                      <VelocityMeter 
+                        velocity={vbtData.velocity} 
+                        peakVelocity={vbtData.peakVelocity} 
+                        isMoving={vbtData.isMoving} 
+                        variant="mini" 
+                      />
+                    </View>
+                  )}
+                  <TouchableOpacity onPress={onShowTechnicalModal}>
+                    <BlurView intensity={theme.isDark ? 40 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.videoButtonGlow, { width: 44, height: 44, borderRadius: 22 }]}>
+                      <Play color={theme.colors.secondary} size={20} fill={theme.isDark ? theme.colors.secondary : "transparent"} />
                     </BlurView>
                   </TouchableOpacity>
-                )}
+                </View>
               </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Reps</Text>
-              <BlurView intensity={40} tint="dark" style={styles.inputGlass}>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.colors.surfaceHighlight }]}
-                  keyboardType="numeric"
-                  value={currentReps}
-                  onChangeText={setCurrentReps}
-                  placeholderTextColor="rgba(255,255,255,0.2)"
-                />
-              </BlurView>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: theme.colors.textSecondary }]}>RPE (0-10)</Text>
-              <BlurView intensity={40} tint="dark" style={styles.inputGlass}>
-                <TextInput
-                  style={[styles.input, { backgroundColor: theme.colors.surfaceHighlight }]}
-                  keyboardType="numeric"
-                  value={currentRpe}
-                  onChangeText={setCurrentRpe}
-                  placeholder="8"
-                  placeholderTextColor="rgba(255,255,255,0.2)"
-                />
-              </BlurView>
-            </View>
           </View>
 
-          {/* ── FEATURE 2: Optional note per set + Media Attach ── */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10, marginTop: isLargeScreen ? 20 : 0 }}>
-            <BlurView intensity={20} tint="dark" style={[styles.noteInputGlass, { borderColor: theme.colors.border, flex: 1, marginBottom: 0 }]}>
-              <TextInput
-                style={[styles.noteInput, { color: theme.colors.textSecondary }]}
-                placeholder="Nota opcional... (ex: PB hoje! 🔥)"
-                placeholderTextColor="rgba(255,255,255,0.2)"
-                value={currentNote}
-                onChangeText={setCurrentNote}
-                maxLength={80}
-                returnKeyType="done"
+          <View style={[styles.setDotsRow, { alignSelf: 'center', marginVertical: 16 }]}>
+            {Array.from({ length: targetSets }).map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.setDot,
+                  i < completedCount
+                    ? { backgroundColor: theme.colors.primary }
+                    : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.colors.border }
+                ]}
               />
-            </BlurView>
-
-            <TouchableOpacity style={styles.currentAttachBtn} onPress={pickMediaForCurrentSet}>
-              {currentMediaUri ? (
-                <Image source={{ uri: currentMediaUri }} style={styles.currentMediaThumb} />
-              ) : (
-                <Camera color={theme.colors.textMuted} size={24} />
-              )}
-            </TouchableOpacity>
+            ))}
+            <Text style={[styles.setDotsLabel, { color: theme.colors.textMuted, marginLeft: 8 }]}>{completedCount}/{targetSets}</Text>
           </View>
 
-          <MusicOverlay />
+          <TouchableOpacity 
+            activeOpacity={0.9} 
+            onPress={() => setIsFocusExpanded(!isFocusExpanded)}
+          >
+            <BlurView intensity={10} tint="dark" style={styles.notesContainer}>
+              <View style={[styles.notesHeader, { justifyContent: 'space-between' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Focus color={theme.colors.secondary} size={13} />
+                  <Text style={[styles.notesTitle, { color: theme.colors.secondary }]}>Foco Técnico</Text>
+                </View>
+                <Text style={[styles.collapseToggle, { color: theme.colors.textMuted }]}>{isFocusExpanded ? 'REDUZIR' : 'VER MAIS'}</Text>
+              </View>
+              {isFocusExpanded && <Text style={[styles.notesText, { color: theme.colors.textSecondary, marginTop: 8 }]}>{currentExercise.notes}</Text>}
+            </BlurView>
+          </TouchableOpacity>
 
-          {!isReadyToAdvance ? (
-            <TouchableOpacity
-              onPress={handleLogSetWithAnim}
-              style={[styles.registerButton, (!currentWeight || !currentReps) && styles.registerButtonDisabled]}
-              activeOpacity={0.8}
-              disabled={!currentWeight || !currentReps}
-            >
-              <LinearGradient
-                colors={((!currentWeight || !currentReps) ? ['#1a1a1a', '#0a0a0a'] : theme.colors.gradients.liquid) as any}
-                style={styles.registerGradient}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={[styles.registerButtonText, (!currentWeight || !currentReps) && { color: 'rgba(255,255,255,0.15)' }]}>REGISTAR SÉRIE</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          ) : (
-            <AnimatedPressable
-              style={styles.nextButtonGlow}
-              onPress={onReturnToSelection}
-            >
-              <LinearGradient
-                colors={[theme.colors.primary, '#00C853']}
-                style={styles.nextGradientButton}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={{ color: theme.colors.textInverse, fontWeight: '900', fontSize: 18, textTransform: 'uppercase', letterSpacing: 1 }}>Regressar à Lista</Text>
-              </LinearGradient>
-            </AnimatedPressable>
+          {renderControlColumn()}
+
+          {currentExerciseSets.length > 0 && (
+            <View style={{ marginTop: 24, paddingBottom: 20 }}>
+              <Text style={{ color: theme.colors.textMuted, fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 12 }}>Histórico da Sessão</Text>
+              {currentExerciseSets.map((set: SetLog, i: number) => (
+                <BlurView key={i} intensity={theme.isDark ? 25 : 45} tint={theme.isDark ? "dark" : "light"} style={[styles.setRow, { backgroundColor: theme.colors.surfaceHighlight, marginBottom: 8 }]}>
+                  <View style={[styles.setLeft, { flex: 1, paddingRight: 10 }]}>
+                    <View style={[styles.circleBadge, { backgroundColor: 'rgba(0,230,118,0.15)' }]}>
+                      <Text style={[styles.setText, { color: '#00E676' }]}>{set.setNumber}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.setStatText, { color: theme.colors.textPrimary }]}>{set.weightKg} kg</Text>
+                      {set.note ? (
+                        <Text style={[styles.setNoteText, { color: theme.colors.textMuted }]} numberOfLines={1}>📝 {set.note}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                  <View style={styles.setRight}>
+                    <Text style={[styles.setStatText, { color: theme.colors.textPrimary }]}>{set.reps} reps</Text>
+                    {set.mediaUri ? (
+                      <TouchableOpacity style={styles.mediaAttachedBtn}>
+                        {set.mediaType === 'video' ? <Video color={theme.colors.secondary} size={16} /> : <ImageIcon color={theme.colors.secondary} size={16} />}
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity onPress={() => pickMediaForPastSet(set.setNumber)} style={styles.attachBtn}>
+                        <Camera color={theme.colors.textMuted} size={16} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </BlurView>
+              ))}
+            </View>
           )}
-        </View>
-      </View>
+        </ScrollView>
+      )}
 
       {/* Checkmark success overlay */}
       <Animated.View style={[styles.checkOverlayBg, checkBgStyle]} pointerEvents="none" />
       <Animated.View style={[styles.checkOverlay, checkAnimStyle]} pointerEvents="none">
         <View style={styles.checkCircle}>
-          <CheckCircle2 color="#000" size={72} strokeWidth={2} />
+          <CircleCheck color="#000" size={72} strokeWidth={2} />
         </View>
       </Animated.View>
 
@@ -533,6 +656,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderWidth: 1,
+    borderRadius: 12,
+  },
+  closeBadge: {
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   routineTitle: {
     fontSize: 9,
@@ -755,6 +883,13 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: '#94A3B8',
   },
+  mobileControlArea: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    width: '100%',
+  },
   stickyFooterBase: {
     position: 'absolute',
     bottom: 0,
@@ -914,29 +1049,89 @@ const styles = StyleSheet.create({
     elevation: 20,
   },
   vbtContainer: {
-    position: 'absolute',
-    right: 10,
-    top: 100,
-    zIndex: 1000,
+    // Legacy container - removed from absolute positioning
+  },
+  vbtColumnInner: {
+    marginBottom: 20,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  headerContainer: {
+    marginBottom: 16,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  indicatorDivider: {
+    width: 1,
+    height: 12,
+    opacity: 0.3,
+  },
+  inputPremiumCard: {
+    marginBottom: 12,
+    borderRadius: 24,
+  },
+  inputPremiumCardMobile: {
+    width: '100%',
+    maxWidth: 400,
+  },
+  vbtMobileMini: {
+    marginRight: 10,
+    width: 60,
+  },
+  headerText: {
+    fontSize: staticTheme.typography.sizes.display,
+  },
+  headerTextMobile: {
+    fontSize: 24,
+  },
+  inputText: {
+    fontSize: 22,
+    padding: 12,
+  },
+  inputTextMobile: {
+    fontSize: 18,
+    padding: 8,
+  },
+  mobileInputArea: {
+    flexDirection: 'column',
+    gap: 12,
+  },
+  mobileInputRowSplit: {
+    flexDirection: 'row',
+  },
+  inputSubGroup: {
+    // Shared container for responsive splits
+  },
+  collapseToggle: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1,
   },
   mainLoggingArea: {
     flex: 1,
   },
   rowLayout: {
     flexDirection: 'row',
-    gap: 30,
-    paddingTop: 20,
+    gap: 40,
+    paddingTop: 10,
+    justifyContent: 'center',
   },
   infoColumn: {
-    flex: 1,
+    maxWidth: 500,
   },
   controlColumn: {
-    width: 360,
-    paddingTop: 20,
+    width: 320,
+    paddingTop: 10,
   },
   columnInputArea: {
     flexDirection: 'column',
-    gap: 20,
+    gap: 16,
     marginBottom: 0,
+  },
+  mainScroll: {
+    flex: 1,
   },
 });

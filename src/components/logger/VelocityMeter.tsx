@@ -15,12 +15,14 @@ interface VelocityMeterProps {
   velocity: number;
   peakVelocity: number;
   isMoving: boolean;
+  variant?: 'default' | 'mini';
 }
 
-export default function VelocityMeter({ velocity, peakVelocity, isMoving }: VelocityMeterProps) {
+export default function VelocityMeter({ velocity, peakVelocity, isMoving, variant = 'default' }: VelocityMeterProps) {
   const theme = useAppTheme();
   const height = useSharedValue(0);
   const opacity = useSharedValue(0.3);
+  const isMini = variant === 'mini';
 
   useEffect(() => {
     height.value = withSpring(Math.min(velocity, 2) / 2); // Scale 0-2 m/s
@@ -28,7 +30,8 @@ export default function VelocityMeter({ velocity, peakVelocity, isMoving }: Velo
   }, [velocity, isMoving]);
 
   const animatedBarStyle = useAnimatedStyle(() => ({
-    height: `${height.value * 100}%`,
+    height: isMini ? '100%' : `${height.value * 100}%`,
+    width: isMini ? `${height.value * 100}%` : '100%',
     backgroundColor: interpolateColor(
       height.value,
       [0, 0.5, 0.8],
@@ -37,8 +40,23 @@ export default function VelocityMeter({ velocity, peakVelocity, isMoving }: Velo
   }));
 
   const peakStyle = useAnimatedStyle(() => ({
-    bottom: `${(Math.min(peakVelocity, 2) / 2) * 100}%`,
+    bottom: isMini ? 0 : `${(Math.min(peakVelocity, 2) / 2) * 100}%`,
+    left: isMini ? `${(Math.min(peakVelocity, 2) / 2) * 100}%` : -4,
+    width: isMini ? 2 : 20,
+    height: isMini ? '100%' : 2,
   }));
+
+  if (isMini) {
+    return (
+      <View style={styles.miniContainer}>
+        <View style={[styles.miniGaugeBg, { backgroundColor: 'rgba(255,255,255,0.1)' }]}>
+          <Animated.View style={[styles.miniBar, animatedBarStyle]} />
+          <Animated.View style={[styles.miniPeakMarker, peakStyle, { backgroundColor: '#FFF' }]} />
+        </View>
+        <Text style={[styles.miniValue, { color: '#FFF' }]}>{velocity.toFixed(1)}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -109,5 +127,36 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     marginTop: -2,
-  }
+  },
+  miniContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 32,
+  },
+  miniGaugeBg: {
+    width: 32,
+    height: 6,
+    borderRadius: 3,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  miniBar: {
+    position: 'absolute',
+    left: 0,
+    height: '100%',
+    borderRadius: 3,
+  },
+  miniPeakMarker: {
+    position: 'absolute',
+    top: 0,
+    width: 2,
+    height: '100%',
+    zIndex: 10,
+  },
+  miniValue: {
+    fontSize: 12,
+    fontWeight: '800',
+    minWidth: 24,
+  },
 });

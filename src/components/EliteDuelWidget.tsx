@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown, useAnimatedStyle, withSpring, withRepeat, withSequence, withTiming, useSharedValue } from 'react-native-reanimated';
-import { Swords, Timer, Trophy } from 'lucide-react-native';
+import { Zap, Timer, Trophy } from 'lucide-react-native';
 import { useAppTheme } from '../hooks/useAppTheme';
 import PremiumCard from './common/PremiumCard';
 import { DualChallenge } from '../store/useSocialStore';
@@ -49,7 +49,7 @@ export default function EliteDuelWidget({ duel }: Props) {
       <PremiumCard variant="ghost" style={styles.container}>
         <View style={styles.header}>
           <View style={styles.headerTitleRow}>
-            <Swords size={18} color={theme.colors.primary} />
+            <Zap size={18} color={theme.colors.primary} />
             <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Guerra de Tonelagem 1v1</Text>
           </View>
           <View style={styles.timerRow}>

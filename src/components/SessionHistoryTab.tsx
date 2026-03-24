@@ -1,7 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { ChevronDown, ChevronRight, Clock, Weight, CheckCircle2, Camera, Video, Image as ImageIcon } from 'lucide-react-native';
+import { 
+  ChevronDown, 
+  ChevronRight, 
+  Clock, 
+  Weight, 
+  CircleCheck, 
+  Camera, 
+  Video, 
+  Image as ImageIcon 
+} from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { CompletedWorkout } from '../store/useWorkoutStore';
@@ -114,7 +123,7 @@ export default function SessionHistoryTab({ completedWorkouts }: Props) {
 
                   <View style={styles.sessionMeta}>
                     <View style={styles.metaItem}>
-                      <CheckCircle2 color={theme.colors.primary} size={13} />
+                      <CircleCheck color={theme.colors.primary} size={13} />
                       <Text style={[styles.metaText, { color: theme.colors.textSecondary }]}>{workout.totalSets}</Text>
                     </View>
                     <View style={styles.metaItem}>

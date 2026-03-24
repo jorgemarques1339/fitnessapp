@@ -11,7 +11,15 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue 
 } from 'react-native-reanimated';
-import { Trophy, Clock, Weight, CheckCircle2, Share2, Target, TrendingUp } from 'lucide-react-native';
+import { 
+  Trophy, 
+  Clock, 
+  Weight, 
+  CircleCheck, 
+  Share2, 
+  Target, 
+  TrendingUp 
+} from 'lucide-react-native';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { useHistoryStore } from '../store/useHistoryStore';
@@ -144,7 +152,7 @@ export default function TrophyScreen() {
 
           <Animated.View entering={FadeInDown.delay(900)} style={styles.statCard}>
             <BlurView intensity={30} tint="light" style={styles.statBlur}>
-              <CheckCircle2 color="#2196F3" size={24} />
+              <CircleCheck color="#2196F3" size={24} />
               <Text style={styles.statValue}>{lastWorkout.totalSets}</Text>
               <Text style={styles.statLabel}>Séries Totais</Text>
             </BlurView>

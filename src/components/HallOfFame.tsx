@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { Trophy, TrendingUp, Medal, Swords } from 'lucide-react-native';
+import { Trophy, TrendingUp, Medal, Zap } from 'lucide-react-native';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { useSocialStore } from '../store/useSocialStore';
 import { sensoryManager } from '../utils/SensoryManager';
@@ -76,7 +76,7 @@ export default function HallOfFame() {
                   <Text style={[styles.challengeBtnText, { color: theme.colors.textMuted }]}>Duelando</Text>
                 ) : (
                   <>
-                    <Swords size={12} color={theme.colors.primary} />
+                    <Zap size={12} color={theme.colors.primary} />
                     <Text style={[styles.challengeBtnText, { color: theme.colors.primary }]}>Desafiar</Text>
                   </>
                 )}

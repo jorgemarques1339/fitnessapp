@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { Activity, Zap, TrendingUp, BarChart } from 'lucide-react-native';
+import { Activity, Zap, TrendingUp, ChartBar } from 'lucide-react-native';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { CompletedWorkout } from '../store/types';
 import PremiumCard from './common/PremiumCard';
@@ -68,7 +68,7 @@ export default function ScienceDashboard({ completedWorkouts }: ScienceDashboard
       <Animated.View entering={FadeInDown.delay(300)}>
         <PremiumCard style={styles.chartMock}>
           <View style={styles.insightHeader}>
-            <BarChart color={theme.colors.secondary} size={18} />
+            <ChartBar color={theme.colors.secondary} size={18} />
             <Text style={[styles.insightTitle, { color: theme.colors.textPrimary }]}>Qualidade vs Intensidade</Text>
           </View>
           <View style={styles.visualPlaceholder}>

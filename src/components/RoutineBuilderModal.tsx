@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ScrollView,
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { X, Plus, Save, Minus, Search, Share as ShareIcon } from 'lucide-react-native';
-import * as Haptics from 'expo-haptics';
 import { ExerciseDef } from '../data/exercises';
 import { useAllExercises } from '../utils/exerciseSelectors';
 import { RoutineDef } from '../data/routines';
@@ -29,9 +28,7 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
 
   const handleToggleExercise = (exercise: ExerciseDef) => {
     const isSelected = selectedExercises.some(e => e.id === exercise.id);
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (e) {}
+    sensoryManager.trigger({ haptic: 'light' });
 
     if (isSelected) {
       setSelectedExercises(selectedExercises.filter(e => e.id !== exercise.id));
@@ -41,9 +38,7 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
   };
 
   const updateTargetSets = (id: string, delta: number) => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (e) {}
+    sensoryManager.trigger({ haptic: 'light' });
     
     setSelectedExercises(selectedExercises.map(ex => {
       if (ex.id === id) {

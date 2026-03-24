@@ -44,13 +44,12 @@ export default function AddExerciseModal({ visible, onClose }: AddExerciseModalP
   const handleSave = () => {
     if (!name.trim()) return;
 
-    sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    sensoryManager.trigger({ sound: 'success', haptic: 'success' });
 
     const newExercise: ExerciseDef = {
       id: `custom_${Date.now()}`,
       name: name.trim(),
-      targetSets: 3,
+      targetSets: targetSets,
       notes: 'Exercício Customizado.',
       videoUrl: videoUrl.trim() || undefined,
       category: category as MuscleGroup,
@@ -96,7 +95,7 @@ export default function AddExerciseModal({ visible, onClose }: AddExerciseModalP
                 <TouchableOpacity
                   key={muscle}
                   onPress={() => {
-                    Haptics.selectionAsync();
+                    sensoryManager.trigger({ haptic: 'selection' });
                     setCategory(muscle);
                   }}
                   style={[
