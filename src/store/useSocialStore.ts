@@ -32,6 +32,18 @@ export interface LeaderboardEntry {
   value: number; // e.g. Tonnage or PR weight
 }
 
+export interface DualChallenge {
+  id: string;
+  opponentId: string;
+  opponentName: string;
+  opponentAvatar: string;
+  myTonnage: number;
+  opponentTonnage: number;
+  startDate: string;
+  endDate: string;
+  status: 'active' | 'completed';
+}
+
 interface SocialState {
   posts: SocialPost[];
   currentUserProfile: {
@@ -43,7 +55,15 @@ interface SocialState {
   
   toggleLike: (postId: string) => void;
   addComment: (postId: string, text: string) => void;
-  addMockPost: () => void; // helps simulate new activity
+  addMockPost: () => void;
+  createPostFromWorkout: (workout: any) => void;
+  
+  selectedDuelUser: LeaderboardEntry | null;
+  setSelectedDuelUser: (user: LeaderboardEntry | null) => void;
+  activeDuels: DualChallenge[];
+  startDuel: (user: LeaderboardEntry) => void;
+  updateDuelTonnage: (tonnage: number) => void;
+  simulateOpponentProgress: () => void;
 }
 
 const MOCK_AVATARS = [
@@ -176,6 +196,81 @@ export const useSocialStore = create<SocialState>()(
           comments: []
         };
 
+        set({ posts: [newPost, ...posts] });
+      },
+
+      selectedDuelUser: null,
+      setSelectedDuelUser: (user) => set({ selectedDuelUser: user }),
+
+      activeDuels: [],
+
+      startDuel: (user) => {
+        const { activeDuels } = get();
+        if (activeDuels.some(d => d.opponentId === user.userId)) return;
+
+        const start = new Date();
+        const end = new Date();
+        end.setDate(end.getDate() + 7);
+
+        const newDuel: DualChallenge = {
+          id: `duel-${Date.now()}`,
+          opponentId: user.userId,
+          opponentName: user.userName,
+          opponentAvatar: user.userAvatar,
+          myTonnage: 0,
+          opponentTonnage: Math.floor(Math.random() * 5000), // Mock opponent progress
+          startDate: start.toISOString(),
+          endDate: end.toISOString(),
+          status: 'active'
+        };
+
+        set({ activeDuels: [...activeDuels, newDuel] });
+      },
+
+      updateDuelTonnage: (tonnage) => {
+        const { activeDuels } = get();
+        const updated = activeDuels.map(d => {
+          if (d.status === 'active') {
+            return { ...d, myTonnage: d.myTonnage + tonnage };
+          }
+          return d;
+        });
+        set({ activeDuels: updated });
+      },
+
+      simulateOpponentProgress: () => {
+        const { activeDuels } = get();
+        const updated = activeDuels.map(d => {
+          if (d.status === 'active') {
+            const extra = Math.floor(Math.random() * 2000) + 500;
+            const newOpponentTonnage = d.opponentTonnage + extra;
+            
+            if (d.myTonnage >= d.opponentTonnage && d.myTonnage < newOpponentTonnage) {
+              console.log(`[DUEL] Overtaken by ${d.opponentName}!`);
+            }
+            
+            return { ...d, opponentTonnage: newOpponentTonnage };
+          }
+          return d;
+        });
+        set({ activeDuels: updated });
+      },
+
+      createPostFromWorkout: (workout: any) => {
+        const { posts, currentUserProfile } = get();
+        const newPost: SocialPost = {
+          id: `post-${Date.now()}`,
+          userId: currentUserProfile.id,
+          userName: currentUserProfile.name,
+          userAvatar: currentUserProfile.avatar,
+          workoutTitle: workout.routineTitle,
+          tonnageKg: workout.totalTonnageKg,
+          durationMs: workout.durationMs,
+          personalRecords: 0, 
+          timestamp: new Date().toISOString(),
+          likes: [],
+          comments: []
+        };
         set({ posts: [newPost, ...posts] });
       }
     }),

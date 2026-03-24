@@ -113,6 +113,7 @@ export default function AICoachCard({ completedWorkouts, routines, onSelectRouti
           <PremiumCard
             variant="primary"
             style={styles.cardMargin}
+            glow
           >
             <View style={styles.cardPadding}>
               <View style={styles.cardRow}>
@@ -133,7 +134,7 @@ export default function AICoachCard({ completedWorkouts, routines, onSelectRouti
               <View style={styles.recoveryRow}>
                 {recommendation.recoverySnapshot.map((m, i) => (
                   <View key={i} style={styles.recoveryItem}>
-                    <View style={styles.recoveryBarTrack}>
+                    <View style={[styles.recoveryBarTrack, { flex: 1, height: 4, backgroundColor: theme.colors.surfaceHighlight }]}>
                       <View style={[
                         styles.recoveryBarFill,
                         {
@@ -151,7 +152,16 @@ export default function AICoachCard({ completedWorkouts, routines, onSelectRouti
                 {recommendation.reason}
               </Text>
 
-              {recommendation.fatiguredMuscleNames.length > 0 && (
+              {recommendation.fatigueWarning && (
+                <View style={[styles.fatigueAlertBox, { backgroundColor: 'rgba(255,160,0,0.1)' }]}>
+                  <AlertTriangle color="#FFA000" size={14} />
+                  <Text style={[styles.fatigueWarningText, { color: '#FFA000' }]}>
+                    {recommendation.fatigueWarning}
+                  </Text>
+                </View>
+              )}
+
+              {recommendation.fatiguredMuscleNames.length > 0 && !recommendation.fatigueWarning && (
                 <Text style={[styles.fatigueNote, { color: 'rgba(255,160,0,0.9)' }]}>
                   ⏳ A recuperar: {recommendation.fatiguredMuscleNames.slice(0, 3).join(', ')}
                 </Text>
@@ -384,10 +394,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   recoveryBarTrack: {
-    flex: 1,
-    height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.07)',
     overflow: 'hidden',
   },
   recoveryBarFill: {
@@ -408,6 +415,19 @@ const styles = StyleSheet.create({
   fatigueNote: {
     fontSize: 12,
     fontWeight: '700',
+  },
+  fatigueAlertBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderRadius: 10,
+  },
+  fatigueWarningText: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 18,
   },
   startButton: {
     borderRadius: theme.radii.round,

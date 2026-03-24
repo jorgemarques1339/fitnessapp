@@ -20,8 +20,8 @@ export default function MagneticView({ children, disabled }: MagneticViewProps) 
   const scale = useSharedValue(1);
 
   const gesture = Gesture.Pan()
-    .activeOffsetX([-20, 20])
-    .activeOffsetY([-20, 20])
+    .activeOffsetX([-10, 10])
+    .failOffsetY([-5, 5]) // Fast vertical moves fail this gesture (scroll wins)
     .enabled(!disabled)
     .onStart(() => {
       scale.value = withSpring(0.98);

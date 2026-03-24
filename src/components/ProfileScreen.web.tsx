@@ -4,12 +4,13 @@ import { BlurView } from 'expo-blur';
 import { Save, TrendingUp, Scale, ChevronDown, Activity } from 'lucide-react-native';
 
 import { useWorkoutStore } from '../store/useWorkoutStore';
+import { useHistoryStore } from '../store/useHistoryStore';
 import { get1RMTrendData } from '../utils/math';
 import { MuscleGroup } from '../data/exercises';
 import { useAllExercises } from '../utils/exerciseSelectors';
-import { theme } from '../theme/theme';
+import { theme as staticTheme } from '../theme/theme';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { soundManager } from '../utils/SoundManager';
+import { sensoryManager } from '../utils/SensoryManager';
 import AnimatedPressable from './common/AnimatedPressable';
 import SimpleWebChart from './common/SimpleWebChart';
 import MuscleHeatmap from './MuscleHeatmap';
@@ -17,9 +18,9 @@ import SessionHistoryTab from './SessionHistoryTab';
 import FluidChart from './common/FluidChart';
 
 export default function ProfileScreen() {
-  const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
-  const bodyWeightLogs = useWorkoutStore(state => state.bodyWeightLogs);
-  const logBodyWeight = useWorkoutStore(state => state.logBodyWeight);
+  const completedWorkouts = useHistoryStore(state => state.completedWorkouts);
+  const bodyWeightLogs = useHistoryStore(state => state.bodyWeightLogs);
+  const logBodyWeight = useHistoryStore(state => state.logBodyWeight);
   const theme = useAppTheme();
   
   const [weightInput, setWeightInput] = useState('');
@@ -60,27 +61,27 @@ export default function ProfileScreen() {
       {/* Profile Tabs */}
       <View style={[styles.tabContainer, { backgroundColor: theme.colors.surfaceHighlight }]}>
         <AnimatedPressable 
-          style={[styles.tab, activeTab === 'stats' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+          style={[styles.tab, activeTab === 'stats' && { backgroundColor: theme.colors.surfaceHighlight }]}
           onPress={() => {
-            soundManager.play('click');
+            sensoryManager.trigger({ sound: 'click', haptic: 'selection' });
             setActiveTab('stats');
           }}
         >
           <Text style={[styles.tabText, { color: activeTab === 'stats' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Estatísticas</Text>
         </AnimatedPressable>
         <AnimatedPressable 
-          style={[styles.tab, activeTab === 'heatmap' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+          style={[styles.tab, activeTab === 'heatmap' && { backgroundColor: theme.colors.surfaceHighlight }]}
           onPress={() => {
-            soundManager.play('click');
+            sensoryManager.trigger({ sound: 'click', haptic: 'selection' });
             setActiveTab('heatmap');
           }}
         >
           <Text style={[styles.tabText, { color: activeTab === 'heatmap' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Mapa Muscular</Text>
         </AnimatedPressable>
         <AnimatedPressable 
-          style={[styles.tab, activeTab === 'history' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+          style={[styles.tab, activeTab === 'history' && { backgroundColor: theme.colors.surfaceHighlight }]}
           onPress={() => {
-            soundManager.play('click');
+            sensoryManager.trigger({ sound: 'click', haptic: 'selection' });
             setActiveTab('history');
           }}
         >
@@ -111,7 +112,7 @@ export default function ProfileScreen() {
                 <AnimatedPressable 
                   style={[styles.saveBtn, { backgroundColor: theme.colors.secondary }]} 
                   onPress={() => {
-                    soundManager.play('pop');
+                    sensoryManager.trigger({ sound: 'click', haptic: 'selection' });
                     handleSaveWeight();
                   }} 
                   hapticFeedback="medium"
@@ -148,7 +149,7 @@ export default function ProfileScreen() {
               <AnimatedPressable 
                 style={[styles.dropdownBtn, { backgroundColor: theme.colors.surfaceHighlight }]} 
                 onPress={() => {
-                  soundManager.play('click');
+                  sensoryManager.trigger({ sound: 'click', haptic: 'selection' });
                   setIsExercisePickerOpen(!isExercisePickerOpen);
                 }}
               >
@@ -220,93 +221,82 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: staticTheme.spacing.xl,
     paddingTop: 20,
   },
   tabContainer: {
     flexDirection: 'row',
-    marginBottom: theme.spacing.xl,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: theme.radii.md,
+    marginBottom: staticTheme.spacing.xl,
+    borderRadius: staticTheme.radii.md,
     padding: 4,
   },
   tab: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: theme.radii.sm,
+    borderRadius: staticTheme.radii.sm,
   },
   activeTab: {
     backgroundColor: 'rgba(255,255,255,0.1)',
   },
   tabText: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.typography.fonts.bold,
-    fontSize: theme.typography.sizes.sm,
+    fontFamily: staticTheme.typography.fonts.bold,
+    fontSize: staticTheme.typography.sizes.sm,
   },
   activeTabText: {
-    color: theme.colors.textPrimary,
+    fontWeight: 'bold',
   },
   pageTitle: {
-    fontSize: theme.typography.sizes.display,
-    fontFamily: theme.typography.fonts.displayBlack,
-    color: theme.colors.textPrimary,
+    fontSize: staticTheme.typography.sizes.display,
+    fontFamily: staticTheme.typography.fonts.displayBlack,
     letterSpacing: -1,
-    marginBottom: theme.spacing.xl,
+    marginBottom: staticTheme.spacing.xl,
   },
   section: {
-    marginBottom: theme.spacing.xxl,
+    marginBottom: staticTheme.spacing.xxl,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: staticTheme.spacing.md,
   },
   sectionTitle: {
-    fontSize: theme.typography.sizes.xl,
-    fontFamily: theme.typography.fonts.bold,
-    color: theme.colors.textPrimary,
+    fontSize: staticTheme.typography.sizes.xl,
+    fontFamily: staticTheme.typography.fonts.bold,
     marginLeft: 10,
   },
   sectionDesc: {
-    color: theme.colors.textSecondary,
-    fontSize: theme.typography.sizes.sm,
-    fontFamily: theme.typography.fonts.regular,
-    marginBottom: theme.spacing.md,
+    fontSize: staticTheme.typography.sizes.sm,
+    fontFamily: staticTheme.typography.fonts.regular,
+    marginBottom: staticTheme.spacing.md,
     lineHeight: 20,
   },
   glassCard: {
-    borderRadius: theme.radii.lg,
-    padding: theme.spacing.cardPadding,
+    borderRadius: staticTheme.radii.lg,
+    padding: staticTheme.spacing.cardPadding,
     overflow: 'hidden',
-    ...theme.shadows.soft,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
   },
   weightInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: theme.radii.md,
+    borderRadius: staticTheme.radii.md,
     paddingRight: 6,
-    marginBottom: theme.spacing.lg,
+    marginBottom: staticTheme.spacing.lg,
   },
   weightInput: {
     flex: 1,
     padding: 16,
-    color: theme.colors.textPrimary,
-    fontSize: theme.typography.sizes.xl,
-    fontFamily: theme.typography.fonts.black,
+    fontSize: staticTheme.typography.sizes.xl,
+    fontFamily: staticTheme.typography.fonts.black,
   },
   kgLabel: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.typography.fonts.bold,
+    fontFamily: staticTheme.typography.fonts.bold,
     marginRight: 10,
   },
   saveBtn: {
-    backgroundColor: theme.colors.secondary,
     width: 40,
     height: 40,
-    borderRadius: theme.radii.sm,
+    borderRadius: staticTheme.radii.sm,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -317,40 +307,36 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyChartText: {
-    color: theme.colors.textMuted,
     textAlign: 'center',
     fontStyle: 'italic',
-    fontFamily: theme.typography.fonts.medium,
+    fontFamily: staticTheme.typography.fonts.medium,
   },
   dropdownBtn: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
     padding: 16,
-    borderRadius: theme.radii.md,
+    borderRadius: staticTheme.radii.md,
     marginBottom: 20,
   },
   dropdownText: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.typography.sizes.lg,
-    fontFamily: theme.typography.fonts.bold,
+    fontSize: staticTheme.typography.sizes.lg,
+    fontFamily: staticTheme.typography.fonts.bold,
     flex: 1,
   },
   pickerList: {
     maxHeight: 250,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: theme.radii.md,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    borderRadius: staticTheme.radii.md,
     padding: 10,
   },
   pickerItem: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.05)',
+    borderBottomColor: staticTheme.colors.border,
   },
   pickerItemText: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: theme.typography.sizes.md,
-    fontFamily: theme.typography.fonts.medium,
+    fontSize: staticTheme.typography.sizes.md,
+    fontFamily: staticTheme.typography.fonts.medium,
   }
 });

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { Heart, MessageCircle, Share2, Award, Clock, Dumbbell } from 'lucide-react-native';
+import { Heart, MessageCircle, Share2, Award, Clock, Dumbbell, Zap as Punch } from 'lucide-react-native';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { SocialPost } from '../store/useSocialStore';
 import Animated, { useAnimatedStyle, withSpring, useSharedValue } from 'react-native-reanimated';
 import CommentsModal from './CommentsModal';
+import PremiumCard from './common/PremiumCard';
 
 interface Props {
   post: SocialPost;
@@ -48,7 +49,7 @@ export default function WorkoutPostCard({ post, currentUserId, onToggleLike, onC
   }));
 
   return (
-    <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+    <PremiumCard variant="default" hasShadow={false} style={styles.card}>
       {/* Header */}
       <View style={styles.header}>
         <Image source={{ uri: post.userAvatar }} style={styles.avatar} />
@@ -84,14 +85,14 @@ export default function WorkoutPostCard({ post, currentUserId, onToggleLike, onC
       <View style={[styles.actions, { borderTopColor: theme.colors.border }]}>
         <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
           <Animated.View style={animatedHeartStyle}>
-            <Heart 
+            <Punch 
               size={20} 
-              color={hasLiked ? theme.colors.danger : theme.colors.textMuted} 
-              fill={hasLiked ? theme.colors.danger : 'transparent'} 
+              color={hasLiked ? theme.colors.primary : theme.colors.textMuted} 
+              fill={hasLiked ? theme.colors.primary : 'transparent'} 
             />
           </Animated.View>
-          <Text style={[styles.actionText, { color: hasLiked ? theme.colors.danger : theme.colors.textMuted }]}>
-            {post.likes.length > 0 ? post.likes.length : 'Like'}
+          <Text style={[styles.actionText, { color: hasLiked ? theme.colors.primary : theme.colors.textMuted }]}>
+            {post.likes.length > 0 ? `${post.likes.length} Punches` : 'Punch'}
           </Text>
         </TouchableOpacity>
 
@@ -113,21 +114,19 @@ export default function WorkoutPostCard({ post, currentUserId, onToggleLike, onC
         post={post}
         onComment={onComment}
       />
-    </View>
+    </PremiumCard>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    gap: 16,
+    marginBottom: 8,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginBottom: 16,
   },
   avatar: {
     width: 40,
@@ -149,6 +148,7 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: 12,
+    marginBottom: 16,
   },
   workoutTitle: {
     fontSize: 18,
@@ -171,6 +171,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingTop: 16,
     borderTopWidth: 1,
+    marginTop: 8,
   },
   actionButton: {
     flexDirection: 'row',

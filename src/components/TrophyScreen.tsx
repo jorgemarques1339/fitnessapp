@@ -14,17 +14,20 @@ import Animated, {
 import { Trophy, Clock, Weight, CheckCircle2, Share2, Target, TrendingUp } from 'lucide-react-native';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
-
-import { useWorkoutStore } from '../store/useWorkoutStore';
-import { detectPRs, PR, getStreakDays } from '../utils/weeklyStats';
+import { useHistoryStore } from '../store/useHistoryStore';
+import { useSocialStore } from '../store/useSocialStore';
+import { detectPRs, PR, getStreakDays, detectBestSet } from '../utils/weeklyStats';
+import { Zap } from 'lucide-react-native';
 import AchievementBadge from './common/AchievementBadge';
 import WorkoutShareCard from './logger/WorkoutShareCard';
 
 export default function TrophyScreen() {
   const { width } = useWindowDimensions();
-  const lastWorkout = useWorkoutStore(state => state.lastCompletedWorkout);
-  const clearTrophy = useWorkoutStore(state => state.clearLastCompletedWorkout);
-  const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
+  const lastWorkout = useHistoryStore(state => state.lastCompletedWorkout);
+  const clearTrophy = useHistoryStore(state => state.clearLastCompletedWorkout);
+  const completedWorkouts = useHistoryStore(state => state.completedWorkouts);
+  const { createPostFromWorkout } = useSocialStore();
+  const [isShared, setIsShared] = React.useState(false);
   const scale = useSharedValue(0.8);
 
   const badgeRef = useRef<View>(null);
@@ -33,6 +36,16 @@ export default function TrophyScreen() {
     if (!lastWorkout) return [];
     return detectPRs(completedWorkouts, lastWorkout);
   }, [lastWorkout, completedWorkouts]);
+  
+  const bestSet = useMemo(() => {
+    if (!lastWorkout) return null;
+    return detectBestSet(lastWorkout);
+  }, [lastWorkout]);
+
+  const workoutWithMedia = useMemo(() => {
+    if (!lastWorkout) return null;
+    return lastWorkout.exerciseLogs.find(log => log.sets.find(s => s.mediaUri))?.sets.find(s => s.mediaUri);
+  }, [lastWorkout]);
 
   useEffect(() => {
     scale.value = withSpring(1);
@@ -63,6 +76,14 @@ export default function TrophyScreen() {
     }
   };
 
+  const handleInternalShare = () => {
+    if (lastWorkout && !isShared) {
+      createPostFromWorkout(lastWorkout);
+      setIsShared(true);
+      Alert.alert("Sucesso!", "O teu treino foi partilhado com a comunidade! 🔥");
+    }
+  };
+
   const animatedIconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
@@ -82,6 +103,8 @@ export default function TrophyScreen() {
             totalVolume={(lastWorkout.totalTonnageKg / 1000).toFixed(1)}
             duration={lastWorkout.durationMs ? Math.floor(lastWorkout.durationMs / 60000) + ' min' : '--'}
             topExercises={lastWorkout.exerciseLogs.slice(0, 3).map(l => l.exerciseName)}
+            bestSet={bestSet}
+            backgroundUri={workoutWithMedia?.mediaUri}
           />
         </View>
       </View>
@@ -100,6 +123,8 @@ export default function TrophyScreen() {
               totalVolume={(lastWorkout.totalTonnageKg / 1000).toFixed(1)}
               duration={lastWorkout.durationMs ? Math.floor(lastWorkout.durationMs / 60000) + ' min' : '--'}
               topExercises={lastWorkout.exerciseLogs.slice(0, 3).map(l => l.exerciseName)}
+              bestSet={bestSet}
+              backgroundUri={workoutWithMedia?.mediaUri}
             />
           </View>
         </Animated.View>
@@ -181,18 +206,25 @@ export default function TrophyScreen() {
           </Animated.View>
         )}
 
-        <View style={styles.buttonContainer}>
+        <Animated.View entering={FadeInDown.delay(700)} style={styles.actionRow}>
           <TouchableOpacity 
-            style={styles.shareButton} 
-            onPress={handleShare}
+            style={[styles.shareBtn, isShared && { opacity: 0.6 }]} 
+            onPress={handleInternalShare}
+            disabled={isShared}
           >
-            <BlurView intensity={40} tint="light" style={styles.buttonBlur}>
-              <Share2 color="#FFFFFF" size={20} style={{ marginRight: 10 }} />
-              <Text style={styles.buttonText}>Partilhar</Text>
-            </BlurView>
+            <LinearGradient colors={['#CCFF00', '#99FF00']} style={styles.btnGradient}>
+              <Zap color="#000" size={20} />
+              <Text style={styles.btnText}>{isShared ? 'PARTILHADO' : 'PARTILHAR NO FEED'}</Text>
+            </LinearGradient>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity style={styles.exportBtn} onPress={handleShare}>
+            <Share2 color="#FFF" size={20} />
+            <Text style={styles.exportBtnText}>EXPORTAR</Text>
+          </TouchableOpacity>
+        </Animated.View>
+
+        <TouchableOpacity 
             style={styles.finishButton} 
             onPress={clearTrophy}
           >
@@ -203,7 +235,6 @@ export default function TrophyScreen() {
               <Text style={styles.finishButtonText}>Continuar</Text>
             </LinearGradient>
           </TouchableOpacity>
-        </View>
 
         {/* Hidden Badge for Sharing removed as it is now replaced by WorkoutShareCard above */}
 
@@ -329,10 +360,11 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontSize: 15,
   },
-  buttonContainer: {
+  actionRow: {
     flexDirection: 'row',
     gap: 15,
     width: '100%',
+    marginBottom: 15,
   },
   shareButton: {
     flex: 1,
@@ -353,8 +385,43 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 16,
   },
-  finishButton: {
+  shareBtn: {
     flex: 2,
+    height: 56,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  exportBtn: {
+    flex: 1,
+    height: 56,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  exportBtnText: {
+    color: '#FFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  btnText: {
+    color: '#000',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  btnGradient: {
+    ...StyleSheet.absoluteFillObject,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  finishButton: {
+    width: '100%', // Changed from flex: 2 to width: '100%' as it's now a single button
     height: 56,
     borderRadius: 16,
     overflow: 'hidden',

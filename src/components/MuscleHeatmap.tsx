@@ -13,7 +13,7 @@ import Animated, {
   Easing 
 } from 'react-native-reanimated';
 
-const ALLEX = useAllExercises();
+// Removed top-level hook call
 
 interface MuscleHeatmapProps {
   completedWorkouts: CompletedWorkout[];
@@ -21,6 +21,7 @@ interface MuscleHeatmapProps {
 
 export default function MuscleHeatmap({ completedWorkouts }: MuscleHeatmapProps) {
   const theme = useAppTheme();
+  const ALLEX = useAllExercises();
   
   const pulse = useSharedValue(1);
 
@@ -47,6 +48,12 @@ export default function MuscleHeatmap({ completedWorkouts }: MuscleHeatmapProps)
       Glutes: 0,
       Calves: 0,
       Core: 0,
+      Forearms: 0,
+      'Rear Delts': 0,
+      'Upper Back': 0,
+      'Lower Back': 0,
+      Abductors: 0,
+      Adductors: 0,
     };
 
     const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -55,12 +62,23 @@ export default function MuscleHeatmap({ completedWorkouts }: MuscleHeatmapProps)
     recentWorkouts.forEach(workout => {
       workout.exerciseLogs.forEach(log => {
         const exercise = ALLEX.find(e => e.id === log.exerciseId);
-        if (exercise && exercise.category) {
-          const muscle = exercise.category;
+        if (exercise) {
           log.sets.forEach(set => {
             const weight = parseFloat(set.weightKg) || 0;
             const reps = parseInt(set.reps, 10) || 0;
-            volumes[muscle] += weight * reps;
+            const volume = weight * reps;
+            
+            // Primary Muscle (100% volume)
+            if (exercise.category) {
+              volumes[exercise.category] = (volumes[exercise.category] || 0) + volume;
+            }
+
+            // Secondary Muscles (50% volume weighting)
+            if (exercise.secondaryMuscles) {
+              exercise.secondaryMuscles.forEach(secondary => {
+                volumes[secondary] = (volumes[secondary] || 0) + (volume * 0.5);
+              });
+            }
           });
         }
       });
@@ -85,6 +103,12 @@ export default function MuscleHeatmap({ completedWorkouts }: MuscleHeatmapProps)
       Glutes: 'Glúteos',
       Calves: 'Gémeos',
       Core: 'Core',
+      Forearms: 'Antebraços',
+      'Rear Delts': 'Deltoide Post.',
+      'Upper Back': 'Costas Sup.',
+      'Lower Back': 'Lombar',
+      Abductors: 'Abdutores',
+      Adductors: 'Adutores',
     };
     return map[m];
   };

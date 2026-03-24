@@ -34,7 +34,8 @@
       "expo-sharing",
       "expo-font",
       "expo-router",
-      "./plugins/withLiveActivity"
+      "./plugins/withLiveActivity",
+      "expo-sqlite"
     ],
     "scheme": "fitnessapp"
   }

@@ -3,39 +3,14 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { RoutineDef, ExerciseDef } from '../data/routines';
 import { safeStorage } from './storage';
 import { saveWorkoutToHealth } from '../utils/healthSync';
+import { useChallengeStore } from './useChallengeStore';
+import { useHistoryStore } from './useHistoryStore';
+import { useConfigStore } from './useConfigStore';
+import { useSocialStore } from './useSocialStore';
 
-export interface SetLog {
-  setNumber: number;
-  weightKg: string;
-  reps: string;
-  rpe: string;
-  note?: string;
-  mediaUri?: string;
-  mediaType?: 'photo' | 'video';
-}
+import { SetLog, ExerciseLog, CompletedWorkout, BodyWeightLog } from './types';
 
-export interface ExerciseLog {
-  exerciseId: string;
-  exerciseName: string;
-  sets: SetLog[];
-}
-
-export interface CompletedWorkout {
-  id: string; // timestamp string
-  date: string;
-  routineId: string;
-  routineTitle: string;
-  totalSets: number;
-  totalTonnageKg: number;
-  durationMs?: number;
-  exerciseLogs: ExerciseLog[];
-}
-
-export interface BodyWeightLog {
-  date: string; // ISO String
-  weightKg: number;
-  mediaUri?: string;
-}
+export { SetLog, ExerciseLog, CompletedWorkout, BodyWeightLog };
 
 interface WorkoutState {
   isInLogger: boolean;
@@ -48,26 +23,7 @@ interface WorkoutState {
   isExerciseSelectionMode: boolean;
 
   sessionLogs: ExerciseLog[];
-  completedWorkouts: CompletedWorkout[];
-  lastCompletedWorkout: CompletedWorkout | null;
-
-  customRoutines: RoutineDef[];
-  customExercises: ExerciseDef[];
-  bodyWeightLogs: BodyWeightLog[];
-
-  // Settings
-  healthSyncEnabled: boolean;
-  setHealthSyncEnabled: (val: boolean) => void;
   sessionStartTime: number | null;
-
-  themeMode: 'oled' | 'frosted';
-  setThemeMode: (mode: 'oled' | 'frosted') => void;
-  
-  lastBackupDate: string | null;
-  setLastBackupDate: (date: string) => void;
-
-  availablePlates: number[];
-  setAvailablePlates: (plates: number[]) => void;
 
   startWorkout: (routine: RoutineDef) => void;
   finishWorkout: () => void;
@@ -78,21 +34,8 @@ interface WorkoutState {
   returnToSelection: () => void;
   swapExerciseInActiveRoutine: (oldExerciseId: string, newExercise: ExerciseDef) => void;
 
-  saveCustomRoutine: (routine: RoutineDef) => void;
-  deleteCustomRoutine: (id: string) => void;
-
-  addCustomExercise: (ex: ExerciseDef) => void;
-  updateCustomExercise: (ex: ExerciseDef) => void;
-  deleteCustomExercise: (id: string) => void;
-
-  logBodyWeight: (weightKg: number, mediaUri?: string) => void;
   updateCurrentSetLog: (setNumber: number, mediaUri: string, mediaType: 'photo' | 'video') => void;
-
-  clearHistory: () => void;
-  clearLastCompletedWorkout: () => void;
-
   getPreviousExerciseLog: (exerciseId: string) => ExerciseLog | null;
-  importData: (data: any) => void;
 }
 
 export const useWorkoutStore = create<WorkoutState>()(
@@ -100,31 +43,12 @@ export const useWorkoutStore = create<WorkoutState>()(
     (set, get) => ({
       isInLogger: false,
       setIsInLogger: (val) => set({ isInLogger: val }),
-
       activeRoutine: null,
       currentExerciseIndex: 0,
       currentExerciseSets: [],
       isExerciseSelectionMode: false,
       sessionLogs: [],
-      completedWorkouts: [],
-      lastCompletedWorkout: null,
-
-      customRoutines: [],
-      customExercises: [],
-      bodyWeightLogs: [],
-
-      healthSyncEnabled: true,
-      setHealthSyncEnabled: (val) => set({ healthSyncEnabled: val }),
       sessionStartTime: null,
-
-      themeMode: 'oled',
-      setThemeMode: (mode) => set({ themeMode: mode }),
-
-      lastBackupDate: null,
-      setLastBackupDate: (date) => set({ lastBackupDate: date }),
-
-      availablePlates: [25, 20, 15, 10, 5, 2.5, 1.25],
-      setAvailablePlates: (plates) => set({ availablePlates: plates }),
 
       startWorkout: (routine) => set({
         activeRoutine: routine,
@@ -132,143 +56,155 @@ export const useWorkoutStore = create<WorkoutState>()(
         currentExerciseIndex: 0,
         currentExerciseSets: [],
         sessionLogs: [],
-        isExerciseSelectionMode: true,
-        sessionStartTime: Date.now()
+        sessionStartTime: Date.now(),
+        isExerciseSelectionMode: false,
       }),
 
       abortWorkout: () => set({
-        activeRoutine: null,
         isInLogger: false,
-        currentExerciseIndex: 0,
-        currentExerciseSets: [],
+        activeRoutine: null,
         sessionLogs: [],
-        isExerciseSelectionMode: false,
-        sessionStartTime: null
+        sessionStartTime: null,
       }),
 
-      selectExercise: (index) => {
-        const { activeRoutine, sessionLogs } = get();
-        if (!activeRoutine) return;
+      logSet: (setLog) => {
+        const weight = parseFloat(setLog.weightKg);
+        const reps = parseInt(setLog.reps, 10);
         
-        const exercise = activeRoutine.exercises[index];
-        const existingLog = sessionLogs.find(log => log.exerciseId === exercise.id);
+        if (isNaN(weight) || isNaN(reps) || reps <= 0) {
+          console.warn('Invalid set data ignored:', setLog);
+          return;
+        }
+
+        const { currentExerciseSets } = get();
+        const newSet: SetLog = {
+          ...setLog,
+          setNumber: currentExerciseSets.length + 1,
+        };
+        set({ currentExerciseSets: [...currentExerciseSets, newSet] });
+      },
+
+      selectExercise: (index) => {
+        const { activeRoutine, sessionLogs, currentExerciseSets, currentExerciseIndex } = get();
+        if (!activeRoutine) return;
+
+        const updatedLogs = [...sessionLogs];
+        const currentEx = activeRoutine.exercises[currentExerciseIndex];
+        
+        const existingLogIndex = updatedLogs.findIndex(l => l.exerciseId === currentEx.id);
+        const newLog = {
+          exerciseId: currentEx.id,
+          exerciseName: currentEx.name,
+          sets: [...currentExerciseSets],
+        };
+
+        if (existingLogIndex >= 0) {
+          updatedLogs[existingLogIndex] = newLog;
+        } else {
+          updatedLogs.push(newLog);
+        }
+
+        const nextEx = activeRoutine.exercises[index];
+        const nextExLog = updatedLogs.find(l => l.exerciseId === nextEx.id);
 
         set({
-          isExerciseSelectionMode: false,
+          sessionLogs: updatedLogs,
           currentExerciseIndex: index,
-          currentExerciseSets: existingLog ? [...existingLog.sets] : [],
+          currentExerciseSets: nextExLog ? [...nextExLog.sets] : [],
+          isExerciseSelectionMode: false,
         });
       },
 
       returnToSelection: () => {
-        const { activeRoutine, currentExerciseIndex, currentExerciseSets, sessionLogs } = get();
+        const { activeRoutine, sessionLogs, currentExerciseSets, currentExerciseIndex } = get();
         if (!activeRoutine) return;
 
-        const currentExercise = activeRoutine.exercises[currentExerciseIndex];
-        
-        const filteredLogs = sessionLogs.filter(log => log.exerciseId !== currentExercise.id);
-        
-        let newSessionLogs = filteredLogs;
-        if (currentExerciseSets.length > 0) {
-          newSessionLogs = [...filteredLogs, { 
-            exerciseId: currentExercise.id, 
-            exerciseName: currentExercise.name,
-            sets: [...currentExerciseSets] 
-          }];
+        const updatedLogs = [...sessionLogs];
+        const currentEx = activeRoutine.exercises[currentExerciseIndex];
+        const newLog = {
+          exerciseId: currentEx.id,
+          exerciseName: currentEx.name,
+          sets: [...currentExerciseSets],
+        };
+
+        const existingLogIndex = updatedLogs.findIndex(l => l.exerciseId === currentEx.id);
+        if (existingLogIndex >= 0) {
+          updatedLogs[existingLogIndex] = newLog;
+        } else {
+          updatedLogs.push(newLog);
         }
 
         set({
+          sessionLogs: updatedLogs,
           isExerciseSelectionMode: true,
-          sessionLogs: newSessionLogs,
-          currentExerciseSets: [],
         });
       },
 
-      swapExerciseInActiveRoutine: (oldExerciseId: string, newExercise: ExerciseDef) => {
-        const { activeRoutine, sessionLogs } = get();
+      swapExerciseInActiveRoutine: (oldId, newEx) => {
+        const { activeRoutine } = get();
         if (!activeRoutine) return;
 
-        const newActiveRoutine = { ...activeRoutine };
-        newActiveRoutine.exercises = [...activeRoutine.exercises];
-        
-        const exerciseIndex = newActiveRoutine.exercises.findIndex(e => e.id === oldExerciseId);
-        if (exerciseIndex >= 0) {
-          const existingTargetSets = newActiveRoutine.exercises[exerciseIndex].targetSets;
-          newActiveRoutine.exercises[exerciseIndex] = {
-            ...newExercise,
-            targetSets: existingTargetSets
-          };
-          const cleanedLogs = sessionLogs.filter(log => log.exerciseId !== oldExerciseId);
-          set({ 
-            activeRoutine: newActiveRoutine,
-            sessionLogs: cleanedLogs
-          });
-        }
-      },
+        const updatedExs = activeRoutine.exercises.map(ex => 
+          ex.id === oldId ? newEx : ex
+        );
 
-      logSet: (log) => {
-        const { currentExerciseSets } = get();
         set({
-          currentExerciseSets: [...currentExerciseSets, {
-            setNumber: currentExerciseSets.length + 1,
-            ...log
-          }]
-        });
-      },
-
-      updateCurrentSetLog: (setNumber, mediaUri, mediaType) => {
-        const { currentExerciseSets } = get();
-        set({
-          currentExerciseSets: currentExerciseSets.map(s => 
-            s.setNumber === setNumber 
-              ? { ...s, mediaUri, mediaType } 
-              : s
-          )
+          activeRoutine: {
+            ...activeRoutine,
+            exercises: updatedExs
+          }
         });
       },
 
       finishWorkout: () => {
-        const { activeRoutine, currentExerciseIndex, currentExerciseSets, sessionLogs, completedWorkouts, isExerciseSelectionMode, sessionStartTime } = get();
+        const { activeRoutine, sessionLogs, currentExerciseSets, currentExerciseIndex, sessionStartTime } = get();
         if (!activeRoutine) return;
 
-        let finalLogs = [...sessionLogs];
-        
-        if (!isExerciseSelectionMode && currentExerciseSets.length > 0) {
-          const currentExercise = activeRoutine.exercises[currentExerciseIndex];
-          const filteredLogs = finalLogs.filter(log => log.exerciseId !== currentExercise.id);
-          
-          finalLogs = [...filteredLogs, {
-            exerciseId: currentExercise.id,
-            exerciseName: currentExercise.name,
-            sets: [...currentExerciseSets]
-          }];
+        // Save current exercise before finishing
+        const finalLogs = [...sessionLogs];
+        const currentEx = activeRoutine.exercises[currentExerciseIndex];
+        const existingLogIndex = finalLogs.findIndex(l => l.exerciseId === currentEx.id);
+        const currentLog = {
+          exerciseId: currentEx.id,
+          exerciseName: currentEx.name,
+          sets: [...currentExerciseSets],
+        };
+
+        if (existingLogIndex >= 0) {
+          finalLogs[existingLogIndex] = currentLog;
+        } else {
+          finalLogs.push(currentLog);
         }
 
-        let sessionTotalSets = 0;
+        const durationMs = sessionStartTime ? Date.now() - sessionStartTime : 0;
         let sessionTotalTonnage = 0;
+        let sessionTotalSets = 0;
         finalLogs.forEach(log => {
-          sessionTotalSets += log.sets.length;
+          const exercise = activeRoutine.exercises.find(ex => ex.id === log.exerciseId);
           log.sets.forEach(s => {
-            sessionTotalTonnage += parseFloat(s.weightKg) * parseInt(s.reps, 10);
+            if (s.isCompleted) {
+              const baseTonnage = (parseFloat(s.weightKg) || 0) * (parseInt(s.reps, 10) || 0);
+              sessionTotalTonnage += exercise?.unilateral ? baseTonnage * 2 : baseTonnage;
+              sessionTotalSets++;
+            }
           });
         });
 
-        const durationMs = sessionStartTime ? (Date.now() - sessionStartTime) : 0;
-
         const newWorkout: CompletedWorkout = {
           id: Date.now().toString(),
-          date: new Date().toISOString(),
           routineId: activeRoutine.id,
           routineTitle: activeRoutine.title,
-          totalSets: sessionTotalSets,
-          totalTonnageKg: sessionTotalTonnage,
+          date: new Date().toISOString(),
           durationMs,
+          totalTonnageKg: sessionTotalTonnage,
+          totalSets: sessionTotalSets,
           exerciseLogs: finalLogs,
         };
 
-        if (get().healthSyncEnabled) {
+        // Health Sync
+        if (useConfigStore.getState().healthSyncEnabled) {
           const minutes = durationMs ? durationMs / 60000 : 45;
-          const calories = Math.round(minutes * 6); // Rough estimate: 6 kcal per minute for strength training
+          const calories = Math.round(minutes * 6);
           const endDate = new Date();
           const startDate = new Date(Date.now() - (durationMs || 45 * 60000));
           
@@ -280,67 +216,44 @@ export const useWorkoutStore = create<WorkoutState>()(
           );
         }
 
+        // Update Challenges
+        const challengeStore = useChallengeStore.getState();
+        finalLogs.forEach(log => {
+          let totalReps = 0;
+          log.sets.forEach(s => totalReps += parseInt(s.reps, 10) || 0);
+
+          if (log.exerciseId === 'ex-squat' || log.exerciseName.toLowerCase().includes('agachamento')) {
+            challengeStore.updateProgress('challenge-squat-30', totalReps);
+          }
+        });
+        
+        challengeStore.updateProgress('challenge-volume-50k', sessionTotalTonnage);
+        challengeStore.updateProgress('challenge-consistency', 1);
+
+        // Save to History Store
+        useHistoryStore.getState().addCompletedWorkout(newWorkout);
+
+        // Update Social Duels
+        useSocialStore.getState().updateDuelTonnage(sessionTotalTonnage);
+
         set({
-          completedWorkouts: [...completedWorkouts, newWorkout],
-          lastCompletedWorkout: newWorkout,
           isInLogger: false,
-          isExerciseSelectionMode: false,
           activeRoutine: null,
-          currentExerciseIndex: 0,
-          currentExerciseSets: [],
           sessionLogs: [],
           sessionStartTime: null,
         });
       },
 
-      clearLastCompletedWorkout: () => set({ lastCompletedWorkout: null }),
-
-      saveCustomRoutine: (routine) => {
-        const { customRoutines } = get();
-        const existingIndex = customRoutines.findIndex(r => r.id === routine.id);
-        
-        if (existingIndex >= 0) {
-          const newRoutines = [...customRoutines];
-          newRoutines[existingIndex] = routine;
-          set({ customRoutines: newRoutines });
-        } else {
-          set({ customRoutines: [...customRoutines, routine] });
-        }
-      },
-
-      deleteCustomRoutine: (id) => {
-        const { customRoutines } = get();
-        set({ customRoutines: customRoutines.filter(r => r.id.toString() !== id.toString()) });
-      },
-
-      addCustomExercise: (ex) => {
-        const { customExercises } = get();
-        set({ customExercises: [...customExercises, ex] });
-      },
-
-      updateCustomExercise: (ex) => {
-        const { customExercises } = get();
-        set({ customExercises: customExercises.map(e => e.id === ex.id ? ex : e) });
-      },
-
-      deleteCustomExercise: (id) => {
-        const { customExercises } = get();
-        set({ customExercises: customExercises.filter(e => e.id !== id) });
-      },
-
-      logBodyWeight: (weightKg, mediaUri) => {
-        const { bodyWeightLogs } = get();
-        const newLog: BodyWeightLog = {
-          date: new Date().toISOString(),
-          weightKg,
-          mediaUri
-        };
-        const updatedLogs = [...bodyWeightLogs, newLog].slice(-30);
-        set({ bodyWeightLogs: updatedLogs });
+      updateCurrentSetLog: (setNumber, mediaUri, mediaType) => {
+        const { currentExerciseSets } = get();
+        const updatedSets = currentExerciseSets.map(s => 
+          s.setNumber === setNumber ? { ...s, mediaUri, mediaType } : s
+        );
+        set({ currentExerciseSets: updatedSets });
       },
 
       getPreviousExerciseLog: (exerciseId) => {
-        const { completedWorkouts } = get();
+        const { completedWorkouts } = useHistoryStore.getState();
         for (let i = completedWorkouts.length - 1; i >= 0; i--) {
           const workout = completedWorkouts[i];
           const log = workout.exerciseLogs?.find(l => l.exerciseId === exerciseId);
@@ -348,40 +261,18 @@ export const useWorkoutStore = create<WorkoutState>()(
         }
         return null;
       },
-
-      clearHistory: () => {
-        set({ 
-          completedWorkouts: [],
-          customRoutines: [],
-          customExercises: [],
-          bodyWeightLogs: [],
-          lastCompletedWorkout: null
-        });
-      },
-
-      importData: (data) => {
-        if (!data) return;
-        set({
-          completedWorkouts: data.completedWorkouts || [],
-          customRoutines: data.customRoutines || [],
-          customExercises: data.customExercises || [],
-          bodyWeightLogs: data.bodyWeightLogs || [],
-          lastBackupDate: data.exportDate || data.lastBackupDate || null
-        });
-      }
     }),
     {
-      name: 'workout-storage',
+      name: 'active-workout-storage',
       storage: createJSONStorage(() => safeStorage),
       partialize: (state) => ({
-        completedWorkouts: state.completedWorkouts,
-        customRoutines: state.customRoutines,
-        customExercises: state.customExercises,
-        bodyWeightLogs: state.bodyWeightLogs,
-        healthSyncEnabled: state.healthSyncEnabled,
-        themeMode: state.themeMode,
-        lastBackupDate: state.lastBackupDate,
-        availablePlates: state.availablePlates,
+        isInLogger: state.isInLogger,
+        activeRoutine: state.activeRoutine,
+        currentExerciseIndex: state.currentExerciseIndex,
+        currentExerciseSets: state.currentExerciseSets,
+        sessionLogs: state.sessionLogs,
+        isExerciseSelectionMode: state.isExerciseSelectionMode,
+        sessionStartTime: state.sessionStartTime,
       }),
     }
   )

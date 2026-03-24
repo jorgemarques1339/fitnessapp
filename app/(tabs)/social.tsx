@@ -6,6 +6,8 @@ import { themeBase } from '../../src/theme/theme';
 import { BlurView } from 'expo-blur';
 import SocialFeed from '../../src/components/SocialFeed';
 import Leaderboard from '../../src/components/Leaderboard';
+import DuelModal from '../../src/components/DuelModal';
+import LivingBackground from '../../src/components/common/LivingBackground';
 
 export default function SocialScreen() {
   const theme = useAppTheme();
@@ -14,6 +16,7 @@ export default function SocialScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+      <LivingBackground />
       {/* Header with Glassmorphism */}
       <View style={[styles.headerContainer, { paddingTop: Math.max(insets.top, 20) }]}>
         <BlurView intensity={theme.isDark ? 30 : 60} tint={theme.isDark ? "dark" : "light"} style={StyleSheet.absoluteFill} />
@@ -53,6 +56,8 @@ export default function SocialScreen() {
       <View style={styles.content}>
         {activeTab === 'feed' ? <SocialFeed /> : <Leaderboard />}
       </View>
+      
+      <DuelModal />
     </View>
   );
 }

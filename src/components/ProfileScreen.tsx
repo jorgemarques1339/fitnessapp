@@ -8,25 +8,28 @@ import { Save, TrendingUp, Scale, ChevronDown, Activity, Camera, Image as ImageI
 import * as DocumentPicker from 'expo-document-picker';
 
 import { useWorkoutStore } from '../store/useWorkoutStore';
+import { useHistoryStore } from '../store/useHistoryStore';
+import { useConfigStore } from '../store/useConfigStore';
 import { get1RMTrendData } from '../utils/math';
 import { MuscleGroup } from '../data/exercises';
 import { useAllExercises } from '../utils/exerciseSelectors';
 import { theme } from '../theme/theme';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { soundManager } from '../utils/SoundManager';
+import { sensoryManager } from '../utils/SensoryManager';
 import AnimatedPressable from './common/AnimatedPressable';
 import MuscleHeatmap from './MuscleHeatmap';
 import SimpleWebChart from './common/SimpleWebChart';
 import SessionHistoryTab from './SessionHistoryTab';
+import BodyStatsScreen from './BodyStatsScreen';
 import FluidChart from './common/FluidChart';
 import { getLatestBodyWeight } from '../utils/healthSync';
 
 export default function ProfileScreen() {
   const isWeb = Platform.OS === 'web';
 
-  const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
-  const bodyWeightLogs = useWorkoutStore(state => state.bodyWeightLogs);
-  const logBodyWeight = useWorkoutStore(state => state.logBodyWeight);
+  const completedWorkouts = useHistoryStore(state => state.completedWorkouts);
+  const bodyWeightLogs = useHistoryStore(state => state.bodyWeightLogs);
+  const logBodyWeight = useHistoryStore(state => state.logBodyWeight);
   const theme = useAppTheme();
 
   const [weightInput, setWeightInput] = useState('');
@@ -37,7 +40,7 @@ export default function ProfileScreen() {
   
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>('peito1');
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'stats' | 'heatmap' | 'history' | 'gallery'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'heatmap' | 'history' | 'gallery' | 'body'>('stats');
 
   const screenWidth = Dimensions.get('window').width;
 
@@ -66,13 +69,12 @@ export default function ProfileScreen() {
   };
 
   React.useEffect(() => {
-    const isHealthSyncEnabled = useWorkoutStore.getState().healthSyncEnabled;
+    const isHealthSyncEnabled = useConfigStore.getState().healthSyncEnabled;
     if (isHealthSyncEnabled && !isWeb) {
       getLatestBodyWeight((weight) => {
-        const logs = useWorkoutStore.getState().bodyWeightLogs;
+        const logs = useHistoryStore.getState().bodyWeightLogs;
         const lastLog = logs[logs.length - 1];
         if (!lastLog || Math.abs(lastLog.weightKg - weight) > 0.1) {
-          // If weight is meaningfully different, append it!
           logBodyWeight(weight);
         }
       });
@@ -109,34 +111,40 @@ export default function ProfileScreen() {
   const selectedExerciseName = ALLEX.find(e => e.id === selectedExerciseId)?.name || 'Exercício';
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: 'transparent' }]} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
       <Text style={[styles.pageTitle, { color: theme.colors.textPrimary }]}>Meu Perfil</Text>
 
       {/* Profile Tabs */}
       <View style={[styles.tabContainer, { backgroundColor: theme.colors.surfaceHighlight }]}>
         <AnimatedPressable 
           style={[styles.tab, activeTab === 'stats' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-          onPress={() => { soundManager.play('click'); setActiveTab('stats'); }}
+          onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('stats'); }}
         >
           <Text style={[styles.tabText, { color: activeTab === 'stats' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Estatísticas</Text>
         </AnimatedPressable>
         <AnimatedPressable 
           style={[styles.tab, activeTab === 'heatmap' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-          onPress={() => { soundManager.play('click'); setActiveTab('heatmap'); }}
+          onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('heatmap'); }}
         >
           <Text style={[styles.tabText, { color: activeTab === 'heatmap' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Mapa Muscular</Text>
         </AnimatedPressable>
         <AnimatedPressable 
           style={[styles.tab, activeTab === 'history' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-          onPress={() => { soundManager.play('click'); setActiveTab('history'); }}
+          onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('history'); }}
         >
           <Text style={[styles.tabText, { color: activeTab === 'history' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Histórico</Text>
         </AnimatedPressable>
         <AnimatedPressable 
           style={[styles.tab, activeTab === 'gallery' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-          onPress={() => { soundManager.play('click'); setActiveTab('gallery'); }}
+          onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('gallery'); }}
         >
           <Text style={[styles.tabText, { color: activeTab === 'gallery' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Galeria</Text>
+        </AnimatedPressable>
+        <AnimatedPressable 
+          style={[styles.tab, activeTab === 'body' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+          onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('body'); }}
+        >
+          <Text style={[styles.tabText, { color: activeTab === 'body' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Corpo</Text>
         </AnimatedPressable>
       </View>
 
@@ -175,7 +183,7 @@ export default function ProfileScreen() {
                 <AnimatedPressable 
                   style={[styles.saveBtn, { backgroundColor: theme.colors.secondary }]} 
                   onPress={() => {
-                    soundManager.play('pop');
+                    sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
                     handleSaveWeight();
                   }} 
                   hapticFeedback="medium"
@@ -249,7 +257,7 @@ export default function ProfileScreen() {
               <AnimatedPressable 
                 style={[styles.dropdownBtn, { backgroundColor: theme.colors.surfaceHighlight }]} 
                 onPress={() => {
-                  soundManager.play('click');
+                  sensoryManager.trigger({ sound: 'click', haptic: 'light' });
                   setIsExercisePickerOpen(!isExercisePickerOpen);
                 }}
                 hapticFeedback="light"
@@ -373,6 +381,8 @@ export default function ProfileScreen() {
             )}
           </View>
         </View>
+      ) : activeTab === 'body' ? (
+        <BodyStatsScreen />
       ) : null}
     </ScrollView>
   );

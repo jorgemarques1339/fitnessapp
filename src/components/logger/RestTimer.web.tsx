@@ -15,6 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { X, SkipForward } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
+import { useAppTheme } from '../../hooks/useAppTheme';
 
 interface RestTimerProps {
   duration: number;
@@ -30,6 +31,7 @@ const R = (SIZE - STROKE_WIDTH) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * R;
 
 export default function RestTimer({ duration, onFinished, onClose, isVisible }: RestTimerProps) {
+  const theme = useAppTheme();
   const progress = useSharedValue(1);
   const pulse = useSharedValue(1);
   const timeLeft = useSharedValue(duration);
@@ -96,8 +98,8 @@ export default function RestTimer({ duration, onFinished, onClose, isVisible }: 
 
   return (
     <Animated.View style={[styles.overlay, animatedStyles]}>
-      <BlurView intensity={80} tint="dark" style={styles.blur}>
-        <View style={styles.card}>
+      <BlurView intensity={80} tint={theme.isDark ? "dark" : "light"} style={styles.blur}>
+        <View style={[styles.card, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
           <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
             <X color="#94A3B8" size={24} />
           </TouchableOpacity>
@@ -181,12 +183,10 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '85%',
-    backgroundColor: 'rgba(30, 41, 59, 0.7)',
     borderRadius: 32,
     padding: 30,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   closeBtn: {
     position: 'absolute',

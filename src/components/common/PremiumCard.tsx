@@ -15,6 +15,7 @@ interface PremiumCardProps {
   borderGradient?: string[];
   backgroundGradient?: string[];
   hasShadow?: boolean;
+  glow?: boolean;
 }
 
 export default function PremiumCard({ 
@@ -25,7 +26,8 @@ export default function PremiumCard({
   intensity, 
   borderGradient,
   backgroundGradient,
-  hasShadow = true 
+  hasShadow = true,
+  glow = false
 }: PremiumCardProps) {
   const theme = useAppTheme();
   
@@ -33,11 +35,11 @@ export default function PremiumCard({
   const getBorderGradient = () => {
     if (borderGradient) return borderGradient;
     switch (variant) {
-      case 'primary': return theme.colors.gradients.vibrant;
-      case 'secondary': return ['#00BCD4', '#00E676'];
-      case 'alert': return ['rgba(255,120,0,0.5)', 'rgba(255,60,0,0.3)'];
-      case 'ghost': return ['rgba(255,255,255,0.05)', 'rgba(255,255,255,0.05)'];
-      default: return [theme.colors.border, theme.colors.border];
+      case 'primary': return theme.colors.gradients.liquid;
+      case 'secondary': return ['#38BDF8', '#00E676'];
+      case 'alert': return ['#FF3366', '#FFD700'];
+      case 'ghost': return ['transparent', 'transparent'];
+      default: return [theme.colors.glassBorder, 'transparent'];
     }
   };
 
@@ -55,35 +57,44 @@ export default function PremiumCard({
     }
     
     // Default background color
-    let bgColor = theme.colors.surfaceHighlight;
-    if (variant === 'alert') bgColor = 'rgba(255,100,0,0.05)';
+    let bgColor = theme.colors.glassSurface;
+    if (variant === 'alert') bgColor = 'rgba(255, 51, 102, 0.05)';
     if (variant === 'ghost') bgColor = 'transparent';
+    if (variant === 'primary') bgColor = 'rgba(0, 230, 118, 0.03)';
 
     return (
       <View 
         style={[
           StyleSheet.absoluteFill, 
-          { backgroundColor: bgColor, opacity: theme.isDark ? 0.95 : 1.0 }, 
+          { backgroundColor: bgColor }, 
           styles.innerBackground
         ]} 
       />
     );
   };
 
-  const blurIntensity = intensity ?? (theme.isDark ? 30 : 60);
+  const blurIntensity = intensity ?? (theme.isDark ? 20 : 40);
   const borders = getBorderGradient();
+  const borderThickness = variant === 'primary' ? 1.5 : 1;
 
   return (
     <View style={[
       styles.outerContainer, 
-      hasShadow && theme.shadows.premium,
+      hasShadow && {
+        shadowColor: glow ? theme.colors.primary : theme.colors.primary,
+        shadowOffset: { width: 0, height: 12 },
+        shadowOpacity: (variant === 'primary' || glow) ? 0.3 : 0.1,
+        shadowRadius: glow ? 25 : 20,
+        elevation: (variant === 'primary' || glow) ? 10 : 4,
+        ...(glow && theme.shadows?.[`glow${(variant === 'secondary' ? 'Secondary' : 'Primary')}` as keyof typeof theme.shadows] || {}),
+      },
       style
     ]}>
       <LinearGradient
         colors={borders as any}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.gradientBorder}
+        style={[styles.gradientBorder, { padding: borderThickness }]}
       >
         <View style={styles.innerContent}>
           {getBackgroundContent()}

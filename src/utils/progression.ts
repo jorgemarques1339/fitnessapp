@@ -41,35 +41,59 @@ export function calculateProgression(
 
   // 2. Não bateu as repetições (Falhou antes do alvo).
   if (!allTargetsHit) {
-    // Se falhou 3 semanas seguidas na mesma carga, sugerimos um RESET (Deload focado no exercício)
-    // Para simplificar a lógica inicial, sugerimos manter.
     return {
       action: 'MAINTAIN_LOAD',
       suggestedWeight: averageWeight,
-      messageToUser: "Sem ego. Você falhou na repetição alvo. Vamos manter essa carga, focar em controlar a fase excêntrica e aumentar o descanso. Não suba o peso até dominar a carga atual."
+      messageToUser: "Foco na técnica. Como não atingiste as repetições alvo, vamos manter a carga. Recomendo aumentar o tempo de descanso entre séries para garantir a recuperação."
     };
   }
 
-  // 3. Bateu os alvos, RPE baixo (Progresso Fácil/Moderado)
-  if (allTargetsHit && highestRpe < 8.5) {
-    const bumpFactor = 1.025; 
+  // 3. Bateu os alvos, mas RPE muito alto (Quase na falha total ou técnica a degradar)
+  if (highestRpe >= 9.5) {
+    return {
+      action: 'MAINTAIN_LOAD',
+      suggestedWeight: averageWeight,
+      messageToUser: "Alvos atingidos, mas o esforço foi máximo (RPE 9.5+). Vamos manter o peso para consolidar a técnica antes de progredir."
+    };
+  }
+
+  // 4. Bateu os alvos, RPE Médio/Baixo (Progresso Ideal)
+  if (allTargetsHit) {
+    const config = require('../store/useConfigStore').useConfigStore.getState();
+    const experience = config.experienceLevel || 'intermediate';
+
+    let bumpFactor = highestRpe < 8 ? 1.05 : 1.025;
+    
+    // Ajuste de agressividade baseado na experiência
+    if (experience === 'beginner') {
+      bumpFactor += 0.02; // Iniciantes progridem mais rápido
+    } else if (experience === 'advanced') {
+      bumpFactor -= 0.01; // Avançados progridem mais devagar (micro-progressão)
+    }
+
     const rawSuggestedLoad = averageWeight * bumpFactor;
     
-    // Arredonda para múltiplo de de anilhas acessíveis (passos de 1kg ou 2.5kg)
-    const normalizedLoad = Math.round(rawSuggestedLoad);
-    const newWeight = normalizedLoad <= averageWeight ? averageWeight + 1 : normalizedLoad;
+    // Arredonda para múltiplo de 0.5kg ou 1kg dependendo da carga
+    let increment = averageWeight < 50 ? 1 : 2.5;
+    
+    if (experience === 'advanced') {
+      increment = 0.5; // Avançados usam frações menores
+    } else if (experience === 'beginner' && averageWeight > 50) {
+      increment = 5; // Iniciantes podem saltar mais peso
+    }
+
+    const newWeight = Math.ceil(rawSuggestedLoad / increment) * increment;
 
     return {
       action: 'INCREASE_LOAD',
       suggestedWeight: newWeight,
-      messageToUser: `Alvos destruídos! Próximo treino: coloque ${newWeight}kg. Prepare-se para aplicar mais força.`
+      messageToUser: `Excelente performance! RPE sob controlo. Próximo treino: sobe para ${newWeight}kg.`
     };
   }
 
-  // 4. Bateu os alvos, mas RPE muito alto (Quase na falha total)
   return {
     action: 'MAINTAIN_LOAD',
     suggestedWeight: averageWeight,
-    messageToUser: `Alvos atingidos, mas com esforço máximo. Vamos manter a carga atual até que este peso se sinta mais "sob controlo" antes de subir.`
+    messageToUser: "Mantém a carga atual para garantir consistência."
   };
 }

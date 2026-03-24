@@ -8,7 +8,7 @@ import { ExerciseDef } from '../data/exercises';
 import { useAllExercises } from '../utils/exerciseSelectors';
 import { RoutineDef } from '../data/routines';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { soundManager } from '../utils/SoundManager';
+import { sensoryManager } from '../utils/SensoryManager';
 
 interface RoutineBuilderModalProps {
   visible: boolean;
@@ -64,8 +64,7 @@ export default function RoutineBuilderModal({ visible, onClose, onSave, initialR
     };
 
     try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      soundManager.play('success');
+      sensoryManager.trigger({ sound: 'success', haptic: 'success' });
     } catch (e) {}
 
     onSave(newRoutine);

@@ -25,6 +25,7 @@ export interface WorkoutRecommendation {
   recoverySnapshot: { muscle: string; pct: number }[];
   fatiguredMuscleNames: string[];
   isGenerated: boolean;
+  fatigueWarning?: string;
 }
 
 const MUSCLE_NAMES_PT: Record<string, string> = {
@@ -122,6 +123,15 @@ export function getWorkoutRecommendation(
     reason = `${bestMusclePt} já estão suficientemente recuperados. Boa escolha para hoje.`;
   }
 
+  // Add specific fatigue warning if muscles in this routine are still recovering
+  const criticalMuscle = best.muscles.find(m => (recoveryMap[m] ?? 100) < 50);
+  let fatigueWarning = undefined;
+  if (criticalMuscle) {
+    const musclePt = MUSCLE_NAMES_PT[criticalMuscle] ?? criticalMuscle;
+    const recoveryPct = recoveryMap[criticalMuscle] ?? 100;
+    fatigueWarning = `O teu ${musclePt} ainda está ${(100 - recoveryPct)}% fadigado do último treino. Consideras trocar por um exercício de outra categoria?`;
+  }
+
   return {
     bestRoutine: best.routine,
     reason,
@@ -131,6 +141,7 @@ export function getWorkoutRecommendation(
     })),
     fatiguredMuscleNames: fatiguedPt,
     isGenerated: false,
+    fatigueWarning,
   };
 }
 

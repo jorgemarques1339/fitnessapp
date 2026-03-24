@@ -20,6 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useWorkoutStore } from '../../store/useWorkoutStore';
+import { useConfigStore } from '../../store/useConfigStore';
 
 interface PlateCalculatorProps {
   targetWeight: number;
@@ -38,7 +39,7 @@ const PLATE_CONFIG: Record<number, { color: string, height: number, width: numbe
 
 export default function PlateCalculator({ targetWeight, barWeight = 20 }: PlateCalculatorProps) {
   const theme = useAppTheme();
-  const availablePlates = useWorkoutStore(state => state.availablePlates);
+  const availablePlates = useConfigStore(state => state.availablePlates);
 
   const platesPerSide = useMemo(() => {
     let remaining = (targetWeight - barWeight) / 2;

@@ -9,26 +9,29 @@ import * as FileSystem from 'expo-file-system';
 import { Platform, Alert } from 'react-native';
 
 import { useWorkoutStore } from '../store/useWorkoutStore';
+import { useHistoryStore } from '../store/useHistoryStore';
+import { useConfigStore } from '../store/useConfigStore';
 import { theme } from '../theme/theme';
 import { useAppTheme } from '../hooks/useAppTheme';
 import AnimatedPressable from './common/AnimatedPressable';
-import { soundManager } from '../utils/SoundManager';
+import { sensoryManager } from '../utils/SensoryManager';
 import { Moon, Sun } from 'lucide-react-native';
 
 export default function SettingsScreen() {
-  const healthSyncEnabled = useWorkoutStore(state => state.healthSyncEnabled);
-  const setHealthSyncEnabled = useWorkoutStore(state => state.setHealthSyncEnabled);
-  const themeMode = useWorkoutStore(state => state.themeMode);
-  const setThemeMode = useWorkoutStore(state => state.setThemeMode);
-  const clearHistory = useWorkoutStore(state => state.clearHistory);
-  const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
-  const customRoutines = useWorkoutStore(state => state.customRoutines);
-  const bodyWeightLogs = useWorkoutStore(state => state.bodyWeightLogs);
-  const importData = useWorkoutStore(state => state.importData);
-  const lastBackupDate = useWorkoutStore(state => state.lastBackupDate);
-  const setLastBackupDate = useWorkoutStore(state => state.setLastBackupDate);
-  const availablePlates = useWorkoutStore(state => state.availablePlates);
-  const setAvailablePlates = useWorkoutStore(state => state.setAvailablePlates);
+  const healthSyncEnabled = useConfigStore(state => state.healthSyncEnabled);
+  const setHealthSyncEnabled = useConfigStore(state => state.setHealthSyncEnabled);
+  const themeMode = useConfigStore(state => state.themeMode);
+  const setThemeMode = useConfigStore(state => state.setThemeMode);
+  const availablePlates = useConfigStore(state => state.availablePlates);
+  const setAvailablePlates = useConfigStore(state => state.setAvailablePlates);
+
+  const clearHistory = useHistoryStore(state => state.clearHistory);
+  const completedWorkouts = useHistoryStore(state => state.completedWorkouts);
+  const customRoutines = useHistoryStore(state => state.customRoutines);
+  const bodyWeightLogs = useHistoryStore(state => state.bodyWeightLogs);
+  const importData = useHistoryStore(state => state.importData);
+  const lastBackupDate = useConfigStore(state => state.lastBackupDate);
+  const setLastBackupDate = useConfigStore(state => state.setLastBackupDate);
   const theme = useAppTheme();
 
   const getBackupStatus = () => {
@@ -43,7 +46,7 @@ export default function SettingsScreen() {
   };
 
   const handleExportJSON = async () => {
-    soundManager.play('click');
+    sensoryManager.trigger({ sound: 'click', haptic: 'light' });
     const data = {
       completedWorkouts,
       customRoutines,
@@ -71,7 +74,7 @@ export default function SettingsScreen() {
   };
 
   const handleExportCSV = async () => {
-    soundManager.play('click');
+    sensoryManager.trigger({ sound: 'click', haptic: 'light' });
     // Simple CSV for workouts
     let csv = 'Data,Rotina,Sets,Volume(kg),Duracao(ms)\n';
     completedWorkouts.forEach(w => {
@@ -96,7 +99,7 @@ export default function SettingsScreen() {
   };
 
   const handleImportJSON = async () => {
-    soundManager.play('pop');
+    sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: 'application/json',
@@ -123,7 +126,7 @@ export default function SettingsScreen() {
 
       const confirmImport = () => {
         importData(data);
-        soundManager.play('success');
+        sensoryManager.trigger({ sound: 'success', haptic: 'success' });
         if (Platform.OS !== 'web') {
           Alert.alert('Sucesso', 'Dados importados com sucesso!');
         } else {
@@ -155,8 +158,36 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleClearHistory = () => {
+    sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
+    const confirmClear = () => {
+      clearHistory();
+      sensoryManager.trigger({ sound: 'success', haptic: 'success' });
+      if (Platform.OS !== 'web') {
+        Alert.alert('Sucesso', 'Todo o histórico foi apagado.');
+      } else {
+        alert('Todo o histórico foi apagado.');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      if (window.confirm('CUIDADO: Isto irá apagar TODO o teu histórico, rotinas e logs de peso de forma irreversível. Continuar?')) {
+        confirmClear();
+      }
+    } else {
+      Alert.alert(
+        'Apagar Tudo?',
+        'CUIDADO: Isto irá apagar TODO o teu histórico, rotinas e logs de peso de forma irreversível. Continuar?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { text: 'APAGAR TUDO', onPress: confirmClear, style: 'destructive' }
+        ]
+      );
+    }
+  };
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={[styles.container, { backgroundColor: 'transparent' }]} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
       <Text style={[styles.pageTitle, { color: theme.colors.textPrimary }]}>Definições</Text>
 
       <View style={styles.section}>
@@ -166,7 +197,7 @@ export default function SettingsScreen() {
             <TouchableOpacity 
               style={[styles.themeOption, themeMode === 'oled' && styles.activeThemeOption, { borderColor: themeMode === 'oled' ? theme.colors.primary : 'transparent' }]}
               onPress={() => {
-                soundManager.play('pop');
+                sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
                 setThemeMode('oled');
               }}
             >
@@ -177,7 +208,7 @@ export default function SettingsScreen() {
             <TouchableOpacity 
               style={[styles.themeOption, themeMode === 'frosted' && styles.activeThemeOption, { borderColor: themeMode === 'frosted' ? theme.colors.primary : 'transparent' }]}
               onPress={() => {
-                soundManager.play('pop');
+                sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
                 setThemeMode('frosted');
               }}
             >
@@ -206,10 +237,34 @@ export default function SettingsScreen() {
               thumbColor={theme.colors.textPrimary}
               ios_backgroundColor={theme.colors.border}
               onValueChange={(val) => {
-                soundManager.play('click');
+                sensoryManager.trigger({ sound: 'click', haptic: 'light' });
                 setHealthSyncEnabled(val);
               }}
               value={healthSyncEnabled}
+            />
+          </View>
+
+          <View style={[styles.divider, { backgroundColor: theme.colors.border, marginVertical: 12 }]} />
+
+          <View style={styles.settingRow}>
+            <View style={styles.settingInfo}>
+              <View style={[styles.iconCircle, { backgroundColor: theme.colors.surfaceHighlight }]}>
+                <Activity color={theme.colors.secondary} size={20} />
+              </View>
+              <View>
+                <Text style={[styles.settingTitle, { color: theme.colors.textPrimary }]}>AI Voice Coach (Nível 100)</Text>
+                <Text style={[styles.settingDesc, { color: theme.colors.textSecondary }]}>Feedback por voz para tempos de descanso e motivação.</Text>
+              </View>
+            </View>
+            <Switch
+              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+              thumbColor={theme.colors.textPrimary}
+              ios_backgroundColor={theme.colors.border}
+              onValueChange={(val) => {
+                sensoryManager.trigger({ sound: 'click', haptic: 'light' });
+                useConfigStore.getState().setVoiceCoachEnabled(val);
+              }}
+              value={useConfigStore(state => state.voiceCoachEnabled)}
             />
           </View>
         </BlurView>
@@ -232,7 +287,7 @@ export default function SettingsScreen() {
                     isSelected && { borderColor: theme.colors.primary }
                   ]}
                   onPress={() => {
-                    soundManager.play('pop');
+                    sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
                     if (isSelected) {
                       setAvailablePlates(availablePlates.filter(p => p !== weight));
                     } else {
@@ -303,7 +358,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.dataButtonPremium} onPress={handleImportJSON}>
-            <View style={[styles.premiumIconCircle, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+            <View style={[styles.premiumIconCircle, { backgroundColor: theme.colors.surfaceHighlight }]}>
               <Upload color={theme.colors.accent} size={20} />
             </View>
             <View style={styles.dataButtonContent}>
@@ -314,7 +369,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.dataButtonPremium} onPress={handleExportCSV}>
-            <View style={[styles.premiumIconCircle, { backgroundColor: 'rgba(255,255,255,0.05)' }]}>
+            <View style={[styles.premiumIconCircle, { backgroundColor: theme.colors.surfaceHighlight }]}>
               <FileText color={theme.colors.secondary} size={20} />
             </View>
             <View style={styles.dataButtonContent}>
@@ -346,9 +401,7 @@ export default function SettingsScreen() {
 
       <AnimatedPressable 
         style={styles.dangerZoneBtn} 
-        onPress={() => {
-          clearHistory();
-        }}
+        onPress={handleClearHistory}
         hapticFeedback="heavy"
         scaleTo={0.96}
       >
@@ -389,7 +442,7 @@ const styles = StyleSheet.create({
     padding: theme.spacing.cardPadding,
     overflow: 'hidden',
     ...theme.shadows.soft,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    backgroundColor: theme.colors.surfaceHighlight,
   },
   settingRow: {
     flexDirection: 'row',
@@ -406,7 +459,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: theme.radii.md,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: theme.colors.surfaceHighlight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: theme.spacing.md,
@@ -448,10 +501,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    backgroundColor: 'rgba(255,255,255,0.02)',
+    backgroundColor: theme.colors.surfaceHighlight,
   },
   activeThemeOption: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: theme.colors.surfaceHighlight,
   },
   themeOptionText: {
     fontSize: 10,

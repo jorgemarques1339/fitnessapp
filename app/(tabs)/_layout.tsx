@@ -8,6 +8,8 @@ import { Home, User, Settings as SettingsIcon, Dumbbell, Users } from 'lucide-re
 import { useAppTheme } from '../../src/hooks/useAppTheme';
 import { themeBase } from '../../src/theme/theme';
 import Sidebar from '../../src/components/common/Sidebar';
+import LivingBackground from '../../src/components/common/LivingBackground';
+import { sensoryManager } from '../../src/utils/SensoryManager';
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const theme = useAppTheme();
@@ -22,6 +24,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           const isFocused = state.index === index;
           
           const onPress = () => {
+             sensoryManager.trigger({ sound: 'click', haptic: 'selection' });
              const event = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
              if (!isFocused && !event.defaultPrevented) navigation.navigate(route.name, route.params);
           };
@@ -87,7 +90,9 @@ export default function TabLayout() {
       <View style={{ flex: 1 }}>
         <Tabs 
           tabBar={props => isLargeScreen ? <View style={{display:'none'}} /> : <CustomTabBar {...props} />} 
-          screenOptions={{ headerShown: false }}
+          screenOptions={{ 
+            headerShown: false,
+          }}
         >
           <Tabs.Screen name="index" />
           <Tabs.Screen name="social" />

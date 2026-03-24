@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { useWorkoutStore } from '../../store/useWorkoutStore';
+import { useConfigStore } from '../../store/useConfigStore';
 
 interface PlateCalculatorProps {
   targetWeight: number;
@@ -20,7 +21,7 @@ const PLATE_CONFIG: Record<number, { color: string }> = {
 
 export default function PlateCalculator({ targetWeight, barWeight = 20 }: PlateCalculatorProps) {
   const theme = useAppTheme();
-  const availablePlates = useWorkoutStore(state => state.availablePlates);
+  const availablePlates = useConfigStore(state => state.availablePlates);
 
   const platesPerSide = useMemo(() => {
     let remaining = (targetWeight - barWeight) / 2;
@@ -49,7 +50,7 @@ export default function PlateCalculator({ targetWeight, barWeight = 20 }: PlateC
         </View>
       </View>
 
-      <View style={styles.webVisual}>
+      <View style={[styles.webVisual, { borderColor: theme.colors.border }]}>
          <View style={[styles.bar, { backgroundColor: theme.colors.border }]} />
          <View style={styles.platesContainer}>
             {platesPerSide.map((p, i) => (
@@ -112,13 +113,12 @@ const styles = StyleSheet.create({
   webVisual: {
     width: '100%',
     height: 120,
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'transparent',
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
   },
   bar: {
     width: '90%',

@@ -6,7 +6,7 @@ import { X, Search, ArrowRightLeft } from 'lucide-react-native';
 import { ExerciseDef } from '../data/exercises';
 import { useAllExercises } from '../utils/exerciseSelectors';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { soundManager } from '../utils/SoundManager';
+import { sensoryManager } from '../utils/SensoryManager';
 import { theme } from '../theme/theme';
 
 interface ExerciseSwapModalProps {
@@ -46,7 +46,7 @@ export default function ExerciseSwapModal({ visible, onClose, onSelectSwap, exer
           <Text style={[styles.headerTitle, { color: theme.colors.textPrimary }]}>Substituir Máquina</Text>
           <TouchableOpacity 
             onPress={() => {
-              soundManager.play('click');
+              sensoryManager.trigger({ sound: 'click', haptic: 'light' });
               onClose();
             }} 
             style={[styles.closeButton, { backgroundColor: theme.colors.surfaceHighlight }]}

@@ -16,8 +16,11 @@ import { Outfit_700Bold, Outfit_900Black } from '@expo-google-fonts/outfit';
 
 import * as Notifications from 'expo-notifications';
 import { useWorkoutStore } from '../src/store/useWorkoutStore';
+import { useHistoryStore } from '../src/store/useHistoryStore';
+import { useConfigStore } from '../src/store/useConfigStore';
 
 import WorkoutLogger from '../src/components/WorkoutLogger';
+import OnboardingScreen from '../src/components/OnboardingScreen';
 import TrophyScreen from '../src/components/TrophyScreen';
 import { initHealthKit } from '../src/utils/healthSync';
 
@@ -43,15 +46,19 @@ export default function RootLayout() {
   });
 
   const isInLogger = useWorkoutStore(state => state.isInLogger);
-  const lastCompletedWorkout = useWorkoutStore(state => state.lastCompletedWorkout);
+  const lastCompletedWorkout = useHistoryStore(state => state.lastCompletedWorkout);
+  const onboardingCompleted = useConfigStore(state => state.onboardingCompleted);
 
   React.useEffect(() => {
-    if (Platform.OS !== 'web') {
-      const isHealthEnabled = useWorkoutStore.getState().healthSyncEnabled;
-      if (isHealthEnabled) {
-         initHealthKit();
-      }
+    useHistoryStore.getState().initHistory();
+    const isWeb = Platform.OS === 'web';
+    const healthSyncEnabled = useConfigStore.getState().healthSyncEnabled;
 
+    if (healthSyncEnabled && !isWeb) {
+      initHealthKit(); // Assuming syncHealthData is initHealthKit based on original code
+    }
+
+    if (!isWeb) {
       Notifications.setNotificationCategoryAsync('REST_TIMER_ALARM', [
         { identifier: 'ADD_30', buttonTitle: '+30 Segundos', options: { opensAppToForeground: true } },
         { identifier: 'DISMISS', buttonTitle: 'Ignorar', options: { opensAppToForeground: false } }
@@ -66,12 +73,14 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        {lastCompletedWorkout ? (
+        {!onboardingCompleted ? (
+          <OnboardingScreen />
+        ) : lastCompletedWorkout ? (
           <TrophyScreen />
         ) : isInLogger ? (
           <WorkoutLogger />
         ) : (
-          <Stack screenOptions={{ headerShown: false }}>
+          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           </Stack>
         )}

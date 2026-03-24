@@ -6,6 +6,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { CompletedWorkout } from '../store/useWorkoutStore';
 import { useAppTheme } from '../hooks/useAppTheme';
+import { theme as staticTheme } from '../theme/theme';
 import { getWeekStart } from '../utils/weeklyStats';
 
 interface Props {
@@ -145,7 +146,7 @@ export default function SessionHistoryTab({ completedWorkouts }: Props) {
                         </Text>
                         <View style={styles.exSets}>
                           {log.sets.map((s, si) => (
-                            <View key={si} style={[styles.exSet, { borderColor: s.mediaUri ? theme.colors.secondary : 'transparent', borderWidth: s.mediaUri ? 1 : 0 }]}>
+                            <View key={si} style={[styles.exSet, { backgroundColor: theme.colors.surfaceHighlight, borderColor: s.mediaUri ? theme.colors.secondary : 'transparent', borderWidth: s.mediaUri ? 1 : 0 }]}>
                               <Text style={[styles.exSetText, { color: theme.colors.textMuted }]}>
                                 {s.weightKg}kg×{s.reps}
                               </Text>
@@ -186,74 +187,74 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   weekHeader: {
-    fontSize: 11,
-    fontWeight: '800',
+    fontSize: 10,
+    fontFamily: staticTheme.typography.fonts.black,
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginTop: 20,
-    marginBottom: 8,
+    letterSpacing: 1.5,
+    marginTop: 24,
+    marginBottom: 10,
   },
   sessionCard: {
-    borderRadius: 16,
+    borderRadius: 20,
     borderWidth: 1,
-    marginBottom: 8,
+    marginBottom: 10,
     overflow: 'hidden',
   },
   sessionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    gap: 10,
+    padding: 14,
+    gap: 12,
   },
   sessionLeft: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   sessionAccent: {
-    width: 4,
-    height: 36,
+    width: 3,
+    height: 32,
     borderRadius: 2,
   },
   sessionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
+    fontSize: 15,
+    fontFamily: staticTheme.typography.fonts.display,
     marginBottom: 2,
   },
   sessionDate: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: staticTheme.typography.fonts.medium,
   },
   sessionMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
   },
   metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 4,
   },
   metaText: {
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: staticTheme.typography.fonts.semiBold,
   },
   expandedArea: {
     borderTopWidth: 1,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
+    paddingVertical: 14,
+    gap: 10,
   },
   exerciseRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
+    gap: 10,
   },
   exName: {
-    width: 130,
+    width: 140,
     fontSize: 12,
-    fontWeight: '600',
+    fontFamily: staticTheme.typography.fonts.semiBold,
   },
   exSets: {
     flex: 1,
@@ -264,13 +265,12 @@ const styles = StyleSheet.create({
   exSet: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
   },
   exSetText: {
     fontSize: 11,
-    fontWeight: '500',
+    fontFamily: staticTheme.typography.fonts.medium,
   },
 });

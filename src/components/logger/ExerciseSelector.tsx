@@ -5,10 +5,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Play, ArrowRightLeft } from 'lucide-react-native';
 import AnimatedPressable from '../common/AnimatedPressable';
 import MagneticView from '../common/MagneticView';
-import { soundManager } from '../../utils/SoundManager';
+import { sensoryManager } from '../../utils/SensoryManager';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { RoutineDef, ExerciseDef } from '../../data/routines';
 import { useWorkoutStore } from '../../store/useWorkoutStore';
+import { useHistoryStore } from '../../store/useHistoryStore';
 import { getUnderTrainedMuscles } from '../../utils/recovery';
 import { theme } from '../../theme/theme';
 
@@ -32,7 +33,7 @@ export default function ExerciseSelector({
   insets
 }: ExerciseSelectorProps) {
   const theme = useAppTheme();
-  const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
+  const completedWorkouts = useHistoryStore(state => state.completedWorkouts);
   
   const recommendedMuscles = React.useMemo(() => 
     getUnderTrainedMuscles(completedWorkouts), 
@@ -66,7 +67,7 @@ export default function ExerciseSelector({
             <MagneticView key={exercise.id}>
               <AnimatedPressable 
                 onPress={() => {
-                  soundManager.play('click');
+                  sensoryManager.trigger({ sound: 'click', haptic: 'light' });
                   selectExercise(index);
                 }}
                 style={[styles.cardContainer, { backgroundColor: theme.colors.surfaceHighlight }]}
@@ -101,7 +102,7 @@ export default function ExerciseSelector({
                     <TouchableOpacity 
                       style={[styles.swapMiniBtn, { backgroundColor: theme.colors.surfaceHighlight }]}
                       onPress={(e) => {
-                        soundManager.play('pop');
+                        sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
                         e.stopPropagation();
                         onSwapExercise(exercise);
                       }}

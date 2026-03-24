@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { useSocialStore, LeaderboardEntry } from '../store/useSocialStore';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { Trophy, Medal } from 'lucide-react-native';
+import { Trophy, Medal, Swords } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Leaderboard() {
-  const { leaderboard, currentUserProfile } = useSocialStore();
+  const { leaderboard, currentUserProfile, setSelectedDuelUser } = useSocialStore();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
 
@@ -49,6 +49,15 @@ export default function Leaderboard() {
           <Text style={[styles.score, { color: theme.colors.textPrimary }]}>{(item.value / 1000).toFixed(1)}k</Text>
           <Text style={[styles.scoreLabel, { color: theme.colors.textMuted }]}>kg lifted</Text>
         </View>
+
+        {!isMe && (
+          <TouchableOpacity 
+            style={[styles.duelBtn, { backgroundColor: theme.colors.surfaceHighlight }]}
+            onPress={() => setSelectedDuelUser(item)}
+          >
+            <Swords size={18} color={theme.colors.primary} />
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -155,5 +164,10 @@ const styles = StyleSheet.create({
   scoreLabel: {
     fontSize: 12,
     fontFamily: 'Inter-Medium',
+  },
+  duelBtn: {
+    padding: 8,
+    borderRadius: 8,
+    marginLeft: 4,
   }
 });

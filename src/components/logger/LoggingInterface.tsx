@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Vibration, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet, Vibration, Image, useWindowDimensions, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Play, Focus, Clock, CheckCircle2, Calculator, X, Camera, Image as ImageIcon, Video } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
@@ -12,6 +12,13 @@ import { ExerciseDef } from '../../data/routines';
 import { SetLog } from '../../store/useWorkoutStore';
 import RestTimer from './RestTimer';
 import PlateCalculator from './PlateCalculator';
+import MusicOverlay from '../MusicOverlay';
+import { theme as staticTheme } from '../../theme/theme';
+import VelocityMeter from './VelocityMeter';
+
+
+import { voiceCoach } from '../../utils/voiceCoach';
+import HeartRateMonitor from './HeartRateMonitor';
 
 interface LoggingInterfaceProps {
   currentExercise: ExerciseDef;
@@ -22,6 +29,8 @@ interface LoggingInterfaceProps {
   setCurrentWeight: (v: string) => void;
   currentReps: string;
   setCurrentReps: (v: string) => void;
+  currentRpe: string;
+  setCurrentRpe: (v: string) => void;
   currentNote: string;
   setCurrentNote: (v: string) => void;
   previousSets: SetLog[];
@@ -37,6 +46,7 @@ interface LoggingInterfaceProps {
   aiMessage: string;
   onStopTimer: () => void;
   onUpdateSetMedia: (setNumber: number, mediaUri: string, mediaType: 'photo' | 'video') => void;
+  vbtData?: { velocity: number; peakVelocity: number; isMoving: boolean };
 }
 
 export default function LoggingInterface({
@@ -48,6 +58,8 @@ export default function LoggingInterface({
   setCurrentWeight,
   currentReps,
   setCurrentReps,
+  currentRpe,
+  setCurrentRpe,
   currentNote,
   setCurrentNote,
   previousSets,
@@ -63,7 +75,10 @@ export default function LoggingInterface({
   aiMessage,
   onStopTimer,
   onUpdateSetMedia,
+  vbtData
 }: LoggingInterfaceProps) {
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width >= staticTheme.breakpoints.tablet;
   const theme = useAppTheme();
   
   if (!currentExercise) return null;
@@ -157,16 +172,36 @@ export default function LoggingInterface({
     if (!currentWeight || !currentReps) return;
     triggerSuccessAnim();
     onLogSet(currentMediaUri || undefined, currentMediaType);
+    
+    // Voice Coach: Last set or regular set
+    if (completedCount + 1 === targetSets) {
+      voiceCoach.speak('LAST_SET');
+    } else {
+      voiceCoach.speak('SET_REGISTERED');
+    }
+
     setCurrentMediaUri(null);
-  }, [currentWeight, currentReps, onLogSet, triggerSuccessAnim, currentMediaUri, currentMediaType]);
+    setCurrentRpe(''); // Reset RPE for next set
+  }, [currentWeight, currentReps, onLogSet, triggerSuccessAnim, currentMediaUri, currentMediaType, setCurrentRpe, completedCount, targetSets]);
 
   return (
     <View style={styles.container}>
+      {/* VBT Overlay */}
+      {vbtData && !isReadyToAdvance && (
+        <View style={styles.vbtContainer}>
+          <VelocityMeter 
+            velocity={vbtData.velocity}
+            peakVelocity={vbtData.peakVelocity}
+            isMoving={vbtData.isMoving}
+          />
+        </View>
+      )}
+
       {/* Top Navigation */}
       <View style={[styles.topBar, { marginTop: Math.max(insets.top, 10) }]}>
         <TouchableOpacity onPress={onReturnToSelection} style={styles.badge}>
-          <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "light" : "dark"} style={[styles.glassBadge, { borderColor: theme.colors.border }]}>
-            <Text style={[styles.routineTitle, { color: theme.colors.secondary }]}>← LISTA DE EXERCÍCIOS</Text>
+          <BlurView intensity={20} tint="dark" style={[styles.glassBadge, { borderColor: theme.colors.border }]}>
+            <Text style={[styles.routineTitle, { color: theme.colors.textMuted }]}>← LISTA DE EXERCÍCIOS</Text>
           </BlurView>
         </TouchableOpacity>
         <Text style={[styles.counterText, { color: theme.colors.textMuted }]}>
@@ -174,230 +209,260 @@ export default function LoggingInterface({
         </Text>
       </View>
 
-      {/* Main Header */}
-      <View style={styles.titleRow}>
-        <Text style={[styles.header, { color: theme.colors.textPrimary }]} numberOfLines={2} adjustsFontSizeToFit>{currentExercise.name}</Text>
-        <TouchableOpacity onPress={onShowTechnicalModal}>
-          <BlurView intensity={theme.isDark ? 40 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.videoButtonGlow, { backgroundColor: theme.colors.surfaceHighlight }]}>
-            <Play color={theme.colors.secondary} size={24} fill={theme.isDark ? "rgba(56, 189, 248, 0.2)" : "transparent"} />
-          </BlurView>
-        </TouchableOpacity>
-      </View>
-
-      {/* ── FEATURE 1: Série progress circles ── */}
-      <View style={styles.setDotsRow}>
-        {Array.from({ length: targetSets }).map((_, i) => {
-          const done = i < completedCount;
-          return (
-            <View
-              key={i}
-              style={[
-                styles.setDot,
-                done
-                  ? { backgroundColor: '#00E676', shadowColor: '#00E676', shadowOpacity: 0.6, shadowRadius: 6, shadowOffset: { width: 0, height: 0 }, elevation: 4 }
-                  : { backgroundColor: 'transparent', borderWidth: 2, borderColor: theme.colors.border }
-              ]}
-            />
-          );
-        })}
-        <Text style={[styles.setDotsLabel, { color: theme.colors.textMuted }]}>
-          {completedCount}/{targetSets} séries
-        </Text>
-      </View>
-
-      {/* History Feed */}
-      <ScrollView
-        style={styles.historyContainer}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 220 }}
-      >
-        {/* ── FEATURE 3: Previous session history card ── */}
-        {previousSets.length > 0 && (
-          <Animated.View entering={FadeInDown.duration(400)}>
-            <BlurView intensity={theme.isDark ? 15 : 30} tint={theme.isDark ? "dark" : "light"} style={[styles.prevSessionCard, { borderColor: 'rgba(56,189,248,0.25)' }]}>
-              <View style={styles.prevSessionHeader}>
-                <Clock color={theme.colors.secondary} size={13} />
-                <Text style={[styles.prevSessionTitle, { color: theme.colors.secondary }]}>ÚLTIMA SESSÃO</Text>
-              </View>
-              <View style={styles.prevSessionSets}>
-                {previousSets.map((s, i) => (
-                  <View key={i} style={styles.prevSetItem}>
-                    <Text style={[styles.prevSetNum, { color: theme.colors.textMuted }]}>S{s.setNumber}</Text>
-                    <Text style={[styles.prevSetStat, { color: theme.colors.textPrimary }]}>{s.weightKg}kg</Text>
-                    <Text style={[styles.prevSetX, { color: theme.colors.textMuted }]}>×</Text>
-                    <Text style={[styles.prevSetStat, { color: theme.colors.textPrimary }]}>{s.reps}</Text>
-                  </View>
-                ))}
-              </View>
-              {bestPrevSet && suggestedWeight && (
-                <View style={[styles.aiSuggestionRow, { backgroundColor: 'rgba(0,230,118,0.1)', borderColor: 'rgba(0,230,118,0.25)' }]}>
-                  <Text style={[styles.aiSuggestionText, { color: '#00E676' }]}>
-                    🤖 IA sugere: {suggestedWeight}kg esta sessão
-                  </Text>
-                </View>
-              )}
-            </BlurView>
-          </Animated.View>
-        )}
-
-        {/* Technical Focus Note */}
-        <Animated.View entering={FadeInDown.duration(400).delay(100)}>
-          <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.notesContainer, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
-            <View style={styles.notesHeader}>
-              <Focus color={theme.colors.secondary} size={14} />
-              <Text style={[styles.notesTitle, { color: theme.colors.secondary }]}>Foco Técnico</Text>
+      <View style={[styles.mainLoggingArea, isLargeScreen && styles.rowLayout]}>
+        {/* Left Column: Info & History */}
+        <View style={[styles.infoColumn, isLargeScreen && { flex: 1.4 }]}>
+          {/* Main Header */}
+          <View style={styles.titleRow}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.header, { color: theme.colors.textPrimary }]} numberOfLines={2} adjustsFontSizeToFit>{currentExercise.name}</Text>
+              <HeartRateMonitor isTraining={true} />
             </View>
-            <Text style={[styles.notesText, { color: theme.colors.textSecondary }]}>{currentExercise.notes}</Text>
-          </BlurView>
-        </Animated.View>
+            <TouchableOpacity onPress={onShowTechnicalModal}>
+              <BlurView intensity={theme.isDark ? 40 : 60} tint={theme.isDark ? "dark" : "light"} style={[styles.videoButtonGlow, { backgroundColor: theme.colors.glassSurface, borderColor: theme.colors.glassBorder, borderWidth: 1 }]}>
+                <Play color={theme.colors.secondary} size={22} fill={theme.isDark ? theme.colors.secondary : "transparent"} />
+              </BlurView>
+            </TouchableOpacity>
+          </View>
 
-        {/* Current session sets */}
-        {currentExerciseSets.map((set: SetLog, i: number) => (
-          <Animated.View key={i} entering={FadeInDown.delay(i * 80)}>
-            <BlurView intensity={theme.isDark ? 25 : 45} tint={theme.isDark ? "dark" : "light"} style={[styles.setRow, { backgroundColor: theme.colors.surfaceHighlight }]}>
-              <View style={[styles.setLeft, { flex: 1, paddingRight: 10 }]}>
-                <View style={[styles.circleBadge, { backgroundColor: 'rgba(0,230,118,0.15)' }]}>
-                  <Text style={[styles.setText, { color: '#00E676' }]}>{set.setNumber}</Text>
+          {/* ── FEATURE 1: Série progress circles ── */}
+          <View style={styles.setDotsRow}>
+            {Array.from({ length: targetSets }).map((_, i) => {
+              const done = i < completedCount;
+              return (
+                <View
+                  key={i}
+                  style={[
+                    styles.setDot,
+                    done
+                      ? { backgroundColor: theme.colors.primary, shadowColor: theme.colors.primary, shadowOpacity: 0.5, shadowRadius: 8, elevation: 4 }
+                      : { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: theme.colors.border }
+                  ]}
+                />
+              );
+            })}
+            <Text style={[styles.setDotsLabel, { color: theme.colors.textMuted }]}>
+              {completedCount} de {targetSets} séries concluídas
+            </Text>
+          </View>
+
+          {/* History Feed */}
+          <ScrollView
+            style={styles.historyContainer}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: isLargeScreen ? 40 : 220 }}
+          >
+            {/* ── FEATURE 3: Previous session history card ── */}
+            {previousSets.length > 0 && (
+              <Animated.View entering={FadeInDown.duration(400)}>
+                <BlurView intensity={theme.isDark ? 10 : 20} tint={theme.isDark ? "dark" : "light"} style={[styles.prevSessionCard, { borderColor: theme.colors.border, backgroundColor: theme.colors.glassSurface }]}>
+                  <View style={styles.prevSessionHeader}>
+                    <Clock color={theme.colors.secondary} size={12} />
+                    <Text style={[styles.prevSessionTitle, { color: theme.colors.secondary }]}>SESSÃO ANTERIOR</Text>
+                  </View>
+                  <View style={styles.prevSessionSets}>
+                    {previousSets.map((s, i) => (
+                      <View key={i} style={[styles.prevSetItem, { backgroundColor: 'rgba(255,255,255,0.03)' }]}>
+                        <Text style={[styles.prevSetNum, { color: theme.colors.textMuted }]}>S{s.setNumber}</Text>
+                        <Text style={[styles.prevSetStat, { color: theme.colors.textPrimary }]}>{s.weightKg}kg</Text>
+                        <Text style={[styles.prevSetX, { color: theme.colors.textMuted }]}>×</Text>
+                        <Text style={[styles.prevSetStat, { color: theme.colors.textPrimary }]}>{s.reps}</Text>
+                      </View>
+                    ))}
+                  </View>
+                  {bestPrevSet && suggestedWeight && (
+                    <View style={[styles.aiSuggestionRow, { backgroundColor: 'rgba(0,230,118,0.05)', borderColor: 'rgba(0,230,118,0.15)' }]}>
+                      <Text style={[styles.aiSuggestionText, { color: theme.colors.primary }]}>
+                        ✦ Sugestão IA: {suggestedWeight}kg para progredir
+                      </Text>
+                    </View>
+                  )}
+                </BlurView>
+              </Animated.View>
+            )}
+
+            {/* Technical Focus Note */}
+            <Animated.View entering={FadeInDown.duration(400).delay(100)}>
+              <BlurView intensity={theme.isDark ? 10 : 20} tint={theme.isDark ? "dark" : "light"} style={[styles.notesContainer, { backgroundColor: theme.colors.glassSurface, borderColor: theme.colors.border }]}>
+                <View style={styles.notesHeader}>
+                  <Focus color={theme.colors.secondary} size={13} />
+                  <Text style={[styles.notesTitle, { color: theme.colors.secondary }]}>Foco Técnico</Text>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.setStatText, { color: theme.colors.textPrimary }]}>{set.weightKg} kg</Text>
-                  {set.note ? (
-                    <Text style={[styles.setNoteText, { color: theme.colors.textMuted }]} numberOfLines={1}>📝 {set.note}</Text>
-                  ) : null}
-                </View>
+                <Text style={[styles.notesText, { color: theme.colors.textSecondary }]}>{currentExercise.notes}</Text>
+              </BlurView>
+            </Animated.View>
+
+            {/* Current session sets */}
+            {currentExerciseSets.map((set: SetLog, i: number) => (
+              <Animated.View key={i} entering={FadeInDown.delay(i * 80)}>
+                <BlurView intensity={theme.isDark ? 25 : 45} tint={theme.isDark ? "dark" : "light"} style={[styles.setRow, { backgroundColor: theme.colors.surfaceHighlight }]}>
+                  <View style={[styles.setLeft, { flex: 1, paddingRight: 10 }]}>
+                    <View style={[styles.circleBadge, { backgroundColor: 'rgba(0,230,118,0.15)' }]}>
+                      <Text style={[styles.setText, { color: '#00E676' }]}>{set.setNumber}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.setStatText, { color: theme.colors.textPrimary }]}>{set.weightKg} kg</Text>
+                      {set.note ? (
+                        <Text style={[styles.setNoteText, { color: theme.colors.textMuted }]} numberOfLines={1}>📝 {set.note}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                  <View style={styles.setRight}>
+                    <Text style={[styles.setStatText, { color: theme.colors.textPrimary }]}>{set.reps} reps</Text>
+                    {set.mediaUri ? (
+                      <TouchableOpacity style={styles.mediaAttachedBtn}>
+                        {set.mediaType === 'video' ? <Video color={theme.colors.secondary} size={16} /> : <ImageIcon color={theme.colors.secondary} size={16} />}
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity onPress={() => pickMediaForPastSet(set.setNumber)} style={styles.attachBtn}>
+                        <Camera color={theme.colors.textMuted} size={16} />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </BlurView>
+              </Animated.View>
+            ))}
+
+            <AnimatedPressable style={styles.abortBtnSmall} onPress={onAbortWorkout} hapticFeedback="medium">
+              <Text style={styles.quitButtonText}>Sair sem Guardar</Text>
+            </AnimatedPressable>
+          </ScrollView>
+        </View>
+
+        {/* Right Column: Inputs & Actions */}
+        <View 
+          style={[
+            isLargeScreen ? styles.controlColumn : [styles.stickyFooterBase, { paddingBottom: Math.max(insets.bottom, 20) }]
+          ]}
+          pointerEvents="box-none"
+        >
+          {!isLargeScreen && (
+            <LinearGradient
+              colors={['transparent', theme.colors.background]}
+              style={styles.footerGradient}
+              pointerEvents="none"
+            />
+          )}
+
+          {/* Weight + Reps inputs */}
+          <View style={[styles.inputArea, isLargeScreen && styles.columnInputArea]}>
+            <View style={styles.inputGroup}>
+              <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 8, gap: 4 }}>
+                <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Peso</Text>
+                {suggestedWeight && !previousSets.length && (
+                  <View style={[styles.aiBadge, { backgroundColor: theme.colors.secondary }]}>
+                    <Text style={styles.aiBadgeText}>IA: {suggestedWeight}kg</Text>
+                  </View>
+                )}
               </View>
-              <View style={styles.setRight}>
-                <Text style={[styles.setStatText, { color: theme.colors.textPrimary }]}>{set.reps} reps</Text>
-                {set.mediaUri ? (
-                  <TouchableOpacity style={styles.mediaAttachedBtn}>
-                    {set.mediaType === 'video' ? <Video color={theme.colors.secondary} size={16} /> : <ImageIcon color={theme.colors.secondary} size={16} />}
-                  </TouchableOpacity>
-                ) : (
-                  <TouchableOpacity onPress={() => pickMediaForPastSet(set.setNumber)} style={styles.attachBtn}>
-                    <Camera color={theme.colors.textMuted} size={16} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <BlurView intensity={40} tint="dark" style={[styles.inputGlass, { flex: 1 }]}>
+                  <TextInput
+                    style={[styles.input, { backgroundColor: theme.colors.surfaceHighlight }]}
+                    keyboardType="numeric"
+                    value={currentWeight}
+                    onChangeText={setCurrentWeight}
+                    placeholderTextColor="rgba(255,255,255,0.2)"
+                  />
+                </BlurView>
+                {(currentExercise.equipment === 'Barbell' || currentExercise.equipment === 'Smith') && (
+                  <TouchableOpacity 
+                    onPress={() => setPlateCalcVisible(true)}
+                    style={styles.calcButton}
+                  >
+                    <BlurView intensity={50} tint="dark" style={styles.calcButtonBlur}>
+                      <Calculator color={theme.colors.primary} size={22} />
+                    </BlurView>
                   </TouchableOpacity>
                 )}
               </View>
-            </BlurView>
-          </Animated.View>
-        ))}
-
-        <AnimatedPressable style={styles.abortBtnSmall} onPress={onAbortWorkout} hapticFeedback="medium">
-          <Text style={styles.quitButtonText}>Sair sem Guardar</Text>
-        </AnimatedPressable>
-      </ScrollView>
-
-      {/* Inputs & Actions - STICKY FOOTER */}
-      <View 
-        style={[styles.stickyFooterBase, { paddingBottom: Math.max(insets.bottom, 20) }]}
-        pointerEvents="box-none"
-      >
-        <LinearGradient
-          colors={['transparent', theme.colors.background]}
-          style={styles.footerGradient}
-          pointerEvents="none"
-        />
-
-        {/* Weight + Reps inputs */}
-        <View style={styles.inputArea}>
-          <View style={styles.inputGroup}>
-            <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 8, gap: 4 }}>
-              <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Peso</Text>
-              {suggestedWeight && !previousSets.length && (
-                <View style={[styles.aiBadge, { backgroundColor: theme.colors.secondary }]}>
-                  <Text style={styles.aiBadgeText}>IA: {suggestedWeight}kg</Text>
-                </View>
-              )}
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <BlurView intensity={40} tint="dark" style={[styles.inputGlass, { flex: 1 }]}>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Reps</Text>
+              <BlurView intensity={40} tint="dark" style={styles.inputGlass}>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: theme.colors.surfaceHighlight }]}
                   keyboardType="numeric"
-                  value={currentWeight}
-                  onChangeText={setCurrentWeight}
+                  value={currentReps}
+                  onChangeText={setCurrentReps}
                   placeholderTextColor="rgba(255,255,255,0.2)"
                 />
               </BlurView>
-              <TouchableOpacity 
-                onPress={() => setPlateCalcVisible(true)}
-                style={styles.calcButton}
-              >
-                <BlurView intensity={50} tint="dark" style={styles.calcButtonBlur}>
-                  <Calculator color={theme.colors.primary} size={22} />
-                </BlurView>
-              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: theme.colors.textSecondary }]}>RPE (0-10)</Text>
+              <BlurView intensity={40} tint="dark" style={styles.inputGlass}>
+                <TextInput
+                  style={[styles.input, { backgroundColor: theme.colors.surfaceHighlight }]}
+                  keyboardType="numeric"
+                  value={currentRpe}
+                  onChangeText={setCurrentRpe}
+                  placeholder="8"
+                  placeholderTextColor="rgba(255,255,255,0.2)"
+                />
+              </BlurView>
             </View>
           </View>
 
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: theme.colors.textSecondary }]}>Repetições</Text>
-            <BlurView intensity={40} tint="dark" style={styles.inputGlass}>
+          {/* ── FEATURE 2: Optional note per set + Media Attach ── */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10, marginTop: isLargeScreen ? 20 : 0 }}>
+            <BlurView intensity={20} tint="dark" style={[styles.noteInputGlass, { borderColor: theme.colors.border, flex: 1, marginBottom: 0 }]}>
               <TextInput
-                style={styles.input}
-                keyboardType="numeric"
-                value={currentReps}
-                onChangeText={setCurrentReps}
+                style={[styles.noteInput, { color: theme.colors.textSecondary }]}
+                placeholder="Nota opcional... (ex: PB hoje! 🔥)"
                 placeholderTextColor="rgba(255,255,255,0.2)"
+                value={currentNote}
+                onChangeText={setCurrentNote}
+                maxLength={80}
+                returnKeyType="done"
               />
             </BlurView>
+
+            <TouchableOpacity style={styles.currentAttachBtn} onPress={pickMediaForCurrentSet}>
+              {currentMediaUri ? (
+                <Image source={{ uri: currentMediaUri }} style={styles.currentMediaThumb} />
+              ) : (
+                <Camera color={theme.colors.textMuted} size={24} />
+              )}
+            </TouchableOpacity>
           </View>
-        </View>
 
-        {/* ── FEATURE 2: Optional note per set + Media Attach ── */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 }}>
-          <BlurView intensity={20} tint="dark" style={[styles.noteInputGlass, { borderColor: theme.colors.border, flex: 1, marginBottom: 0 }]}>
-            <TextInput
-              style={[styles.noteInput, { color: theme.colors.textSecondary }]}
-              placeholder="Nota opcional... (ex: PB hoje! 🔥)"
-              placeholderTextColor="rgba(255,255,255,0.2)"
-              value={currentNote}
-              onChangeText={setCurrentNote}
-              maxLength={80}
-              returnKeyType="done"
-            />
-          </BlurView>
+          <MusicOverlay />
 
-          <TouchableOpacity style={styles.currentAttachBtn} onPress={pickMediaForCurrentSet}>
-            {currentMediaUri ? (
-              <Image source={{ uri: currentMediaUri }} style={styles.currentMediaThumb} />
-            ) : (
-              <Camera color={theme.colors.textMuted} size={24} />
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {!isReadyToAdvance ? (
-          <TouchableOpacity
-            onPress={handleLogSetWithAnim}
-            style={[styles.registerButton, (!currentWeight || !currentReps) && styles.registerButtonDisabled]}
-            activeOpacity={0.8}
-            disabled={!currentWeight || !currentReps}
-          >
-            <LinearGradient
-              colors={(!currentWeight || !currentReps) ? ['#2a2a2a', '#1a1a1a'] : ['#00E676', '#00BCD4']}
-              style={styles.registerGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+          {!isReadyToAdvance ? (
+            <TouchableOpacity
+              onPress={handleLogSetWithAnim}
+              style={[styles.registerButton, (!currentWeight || !currentReps) && styles.registerButtonDisabled]}
+              activeOpacity={0.8}
+              disabled={!currentWeight || !currentReps}
             >
-              <Text style={[styles.registerButtonText, (!currentWeight || !currentReps) && { color: 'rgba(255,255,255,0.3)' }]}>Registar Série</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        ) : (
-          <AnimatedPressable
-            style={styles.nextButtonGlow}
-            onPress={onReturnToSelection}
-          >
-            <LinearGradient
-              colors={[theme.colors.primary, '#00C853']}
-              style={styles.nextGradientButton}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
+              <LinearGradient
+                colors={((!currentWeight || !currentReps) ? ['#1a1a1a', '#0a0a0a'] : theme.colors.gradients.liquid) as any}
+                style={styles.registerGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={[styles.registerButtonText, (!currentWeight || !currentReps) && { color: 'rgba(255,255,255,0.15)' }]}>REGISTAR SÉRIE</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            <AnimatedPressable
+              style={styles.nextButtonGlow}
+              onPress={onReturnToSelection}
             >
-              <Text style={{ color: theme.colors.textInverse, fontWeight: '900', fontSize: 18, textTransform: 'uppercase', letterSpacing: 1 }}>Regressar à Lista</Text>
-            </LinearGradient>
-          </AnimatedPressable>
-        )}
+              <LinearGradient
+                colors={[theme.colors.primary, '#00C853']}
+                style={styles.nextGradientButton}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={{ color: theme.colors.textInverse, fontWeight: '900', fontSize: 18, textTransform: 'uppercase', letterSpacing: 1 }}>Regressar à Lista</Text>
+              </LinearGradient>
+            </AnimatedPressable>
+          )}
+        </View>
       </View>
 
       {/* Checkmark success overlay */}
@@ -413,6 +478,7 @@ export default function LoggingInterface({
         isVisible={timerActive}
         onFinished={onStopTimer}
         onClose={onStopTimer}
+        previousSets={previousSets}
       />
 
       {/* Plate Calculator Modal */}
@@ -460,34 +526,35 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   badge: {
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   glassBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderWidth: 1,
   },
   routineTitle: {
-    fontSize: 10,
-    fontWeight: 'bold',
+    fontSize: 9,
+    fontFamily: staticTheme.typography.fonts.bold,
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    letterSpacing: 2,
   },
   counterText: {
-    fontSize: 12,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontSize: 10,
+    fontFamily: staticTheme.typography.fonts.bold,
+    letterSpacing: 1,
+    opacity: 0.5,
   },
   titleRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   header: {
-    fontSize: 26,
-    fontWeight: '900',
+    fontSize: staticTheme.typography.sizes.display,
+    fontFamily: staticTheme.typography.fonts.displayBlack,
     letterSpacing: -1,
     flex: 1,
     paddingRight: 10,
@@ -500,7 +567,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
   },
-  // ── Set dots ──
   setDotsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -518,7 +584,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginLeft: 4,
   },
-  // ── Plate Calculator ──
   calcButton: {
     width: 48,
     height: 52,
@@ -555,7 +620,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
-  // ── Previous session ──
   prevSessionCard: {
     borderRadius: 16,
     overflow: 'hidden',
@@ -583,7 +647,6 @@ const styles = StyleSheet.create({
   prevSetItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
@@ -614,7 +677,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-  // ── Tech notes ──
   notesContainer: {
     padding: 16,
     borderRadius: 16,
@@ -642,7 +704,6 @@ const styles = StyleSheet.create({
   historyContainer: {
     flex: 1,
   },
-  // ── Current session set rows ──
   setRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -694,7 +755,6 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: '#94A3B8',
   },
-  // ── Sticky footer ──
   stickyFooterBase: {
     position: 'absolute',
     bottom: 0,
@@ -715,7 +775,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 10,
-    gap: 12,
+    gap: 8,
   },
   inputGroup: {
     flex: 1,
@@ -724,7 +784,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginBottom: 8,
     textTransform: 'uppercase',
-    fontWeight: 'bold',
+    fontFamily: staticTheme.typography.fonts.bold,
     letterSpacing: 1,
     textAlign: 'center',
   },
@@ -733,19 +793,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   input: {
-    padding: 14,
+    padding: 12,
     fontSize: 22,
-    fontWeight: '900',
+    fontFamily: staticTheme.typography.fonts.black,
     textAlign: 'center',
     color: '#FFFFFF',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  // ── Note input & Media ──
   noteInputGlass: {
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    backgroundColor: 'rgba(255,255,255,0.04)',
   },
   noteInput: {
     paddingHorizontal: 14,
@@ -757,11 +814,9 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
     overflow: 'hidden',
   },
   currentMediaThumb: {
@@ -772,7 +827,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -784,12 +838,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  // ── Register button ──
   registerButton: {
-    borderRadius: 100,
+    height: 64,
+    borderRadius: 20,
     overflow: 'hidden',
+    marginTop: 10,
     shadowColor: '#00E676',
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
@@ -797,18 +852,19 @@ const styles = StyleSheet.create({
   registerButtonDisabled: {
     shadowOpacity: 0,
     elevation: 0,
+    opacity: 0.6,
   },
   registerGradient: {
-    height: 58,
+    ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
   },
   registerButtonText: {
     color: '#000',
-    fontWeight: '900',
-    fontSize: 17,
+    fontSize: 14,
+    fontFamily: staticTheme.typography.fonts.black,
+    letterSpacing: 2,
     textTransform: 'uppercase',
-    letterSpacing: 1.5,
   },
   nextButtonGlow: {
     shadowColor: '#00E676',
@@ -829,11 +885,10 @@ const styles = StyleSheet.create({
   },
   aiBadgeText: {
     fontSize: 9,
-    fontWeight: 'bold',
+    fontFamily: staticTheme.typography.fonts.bold,
     color: '#000',
     textTransform: 'uppercase',
   },
-  // ── Checkmark overlay ──
   checkOverlayBg: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0, 230, 118, 0.12)',
@@ -857,5 +912,31 @@ const styles = StyleSheet.create({
     shadowRadius: 30,
     shadowOffset: { width: 0, height: 0 },
     elevation: 20,
+  },
+  vbtContainer: {
+    position: 'absolute',
+    right: 10,
+    top: 100,
+    zIndex: 1000,
+  },
+  mainLoggingArea: {
+    flex: 1,
+  },
+  rowLayout: {
+    flexDirection: 'row',
+    gap: 30,
+    paddingTop: 20,
+  },
+  infoColumn: {
+    flex: 1,
+  },
+  controlColumn: {
+    width: 360,
+    paddingTop: 20,
+  },
+  columnInputArea: {
+    flexDirection: 'column',
+    gap: 20,
+    marginBottom: 0,
   },
 });

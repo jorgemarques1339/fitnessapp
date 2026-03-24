@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingUp, TrendingDown, Minus, Dumbbell, Calendar } from 'lucide-react-native';
@@ -14,13 +14,16 @@ import {
   getWeeklyVolumeByMuscle,
   MuscleVolume,
 } from '../utils/weeklyStats';
+import MuscleHeatmap from './common/MuscleHeatmap';
 
 interface Props {
   completedWorkouts: CompletedWorkout[];
 }
 
 export default function WeeklyDashboard({ completedWorkouts }: Props) {
+  const { width } = useWindowDimensions();
   const theme = useAppTheme();
+  const isLargeScreen = width >= 768;
 
   const thisWeek = useMemo(() => getWorkoutsForWeek(completedWorkouts, 0), [completedWorkouts]);
   const lastWeek = useMemo(() => getWorkoutsForWeek(completedWorkouts, 1), [completedWorkouts]);
@@ -40,7 +43,7 @@ export default function WeeklyDashboard({ completedWorkouts }: Props) {
     <View style={styles.wrapper}>
 
       {/* ── WEEKLY STATS ── */}
-      <Animated.View entering={FadeInDown.duration(400).delay(80)} style={styles.statsRow}>
+      <Animated.View entering={FadeInDown.duration(400).delay(80)} style={[styles.statsRow, isLargeScreen && styles.statsRowDesktop]}>
 
         {/* Days trained */}
         <BlurView
@@ -105,9 +108,16 @@ export default function WeeklyDashboard({ completedWorkouts }: Props) {
               </View>
             </View>
 
-            {volumeByMuscle.map((item, i) => (
-              <MuscleBar key={item.muscle} item={item} maxSets={maxSets} index={i} />
-            ))}
+            <View style={[styles.chartContent, isLargeScreen && styles.chartContentDesktop]}>
+              <View style={styles.barsContainer}>
+                {volumeByMuscle.map((item, i) => (
+                  <MuscleBar key={item.muscle} item={item} maxSets={maxSets} index={i} />
+                ))}
+              </View>
+              <View style={[styles.heatmapContainer, isLargeScreen && { width: 250 }]}>
+                <MuscleHeatmap volumeData={volumeByMuscle} size={isLargeScreen ? 250 : 150} />
+              </View>
+            </View>
 
             <Text style={[styles.rpCredit, { color: theme.colors.textMuted }]}>
               Baseado na ciência de Mike Israetel / RP Hypertrophy
@@ -153,7 +163,7 @@ function MuscleBar({ item, maxSets, index }: { item: MuscleVolume; maxSets: numb
   return (
     <Animated.View entering={FadeInDown.delay(index * 50)} style={[styles.barRow, isAbove && animatedStyle]}>
       <Text style={[styles.barLabel, { color: theme.colors.textSecondary }]}>{item.musclePt}</Text>
-      <View style={styles.barTrackWrapper}>
+      <View style={[styles.barTrackWrapper, { flex: 1, height: 10, backgroundColor: theme.colors.surfaceHighlight }]}>
         {/* Green hypertrophy zone (10–20 sets) */}
         <View
           pointerEvents="none"
@@ -192,6 +202,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
+  statsRowDesktop: {
+    gap: 16,
+  },
   statCard: {
     flex: 1,
     borderRadius: 16,
@@ -227,6 +240,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 14,
   },
+  chartContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 15,
+  },
+  chartContentDesktop: {
+    gap: 40,
+  },
+  barsContainer: {
+    flex: 1,
+  },
+  heatmapContainer: {
+    width: 150,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   chartTitle: {
     fontSize: 14,
     fontWeight: '800',
@@ -260,10 +289,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   barTrackWrapper: {
-    flex: 1,
-    height: 10,
     borderRadius: 5,
-    backgroundColor: 'rgba(255,255,255,0.06)',
     overflow: 'hidden',
     position: 'relative',
   },

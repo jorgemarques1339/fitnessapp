@@ -9,10 +9,16 @@ import { calculateProgression, SetData } from '../utils/progression';
 import { ExerciseDef } from '../data/routines';
 import { useWorkoutTimer } from '../hooks/useWorkoutTimer';
 import { useWorkoutStore } from '../store/useWorkoutStore';
+import { useHistoryStore } from '../store/useHistoryStore';
+import { useConfigStore } from '../store/useConfigStore';
 import TechnicalModal from './TechnicalModal';
 import ExerciseSwapModal from './ExerciseSwapModal';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { soundManager } from '../utils/SoundManager';
+import { sensoryManager } from '../utils/SensoryManager';
+import { voiceCoach } from '../utils/voiceCoach';
+import HeartRateMonitor from './logger/HeartRateMonitor';
+import { useVBTSimulated as useVBT } from '../hooks/useVBT';
+import VelocityMeter from './logger/VelocityMeter';
 
 // Refactored Sub-Components
 import ExerciseSelector from './logger/ExerciseSelector';
@@ -35,7 +41,7 @@ export default function WorkoutLogger() {
   const currentExerciseSets = useWorkoutStore(state => state.currentExerciseSets);
   const isExerciseSelectionMode = useWorkoutStore(state => state.isExerciseSelectionMode);
   const sessionLogs = useWorkoutStore(state => state.sessionLogs);
-  const completedWorkouts = useWorkoutStore(state => state.completedWorkouts);
+  const completedWorkouts = useHistoryStore(state => state.completedWorkouts);
 
   // Store Actions
   const selectExercise = useWorkoutStore(state => state.selectExercise);
@@ -57,14 +63,24 @@ export default function WorkoutLogger() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [exerciseToSwap, setExerciseToSwap] = useState<ExerciseDef | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  
   if (!activeRoutine) return null;
   const currentExercise = activeRoutine.exercises[currentExerciseIndex];
+
+  // VBT Integration
+  const { velocity, peakVelocity, isMoving, resetSet } = useVBT(
+    !isExerciseSelectionMode && !!currentExercise,
+    parseFloat(currentWeight) || 0
+  );
 
   // Timer Hook
   const { remainingSeconds, isActive, startTimer, stopTimer } = useWorkoutTimer({
     exerciseName: currentExercise?.name,
     totalSets: currentExercise?.targetSets,
-    currentSet: currentExerciseSets.length + 1
+    currentSet: currentExerciseSets.length + 1,
+    onTimerEnd: () => {
+      voiceCoach.announceRestEnd();
+    }
   });
 
   // If we are in logging mode but somehow the exercise is missing, return to selection or show error
@@ -109,14 +125,20 @@ export default function WorkoutLogger() {
   const handleLogSet = (mediaUri?: string, mediaType?: 'photo' | 'video') => {
     if (!currentWeight || !currentReps || !currentExercise || !activeRoutine) return;
 
+    const rpeValue = parseFloat(currentRpe) || 8;
+
     logSet({
       weightKg: currentWeight,
       reps: currentReps,
-      rpe: '8',
+      rpe: rpeValue.toString(),
       note: currentNote.trim() || undefined,
+      isCompleted: true, // Mark as completed when logged
       mediaUri,
       mediaType,
+      velocityMs: peakVelocity, // Store the peak velocity of the set
     });
+    
+    resetSet(); // Reset VBT for next set
     
     // Check for Personal Record (PR) - if current weight > max weight in previous session
     const prevLog = getPreviousExerciseLog(currentExercise.id);
@@ -124,12 +146,11 @@ export default function WorkoutLogger() {
     const isPR = parseFloat(currentWeight) > prevMaxWeight && prevMaxWeight > 0;
 
     if (isPR) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowSuccess(true);
-      soundManager.play('success');
+      sensoryManager.trigger({ sound: 'success', haptic: 'success' });
+      voiceCoach.motivatePR(currentExercise.name, parseFloat(currentWeight), prevMaxWeight);
     } else {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      soundManager.play('complete');
+      sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
     }
     
     // AI Progression Logic (Update suggestion after each set)
@@ -145,7 +166,7 @@ export default function WorkoutLogger() {
       reps: parseInt(s.reps, 10),
       targetReps: currentExercise.targetSets,
       restSeconds: 90,
-      rpe: 8
+      rpe: parseFloat(s.rpe) || 8
     }));
     
     const routineCompletions = completedWorkouts.filter(w => w.routineId === activeRoutine.id).length;
@@ -154,9 +175,35 @@ export default function WorkoutLogger() {
     setAiMessage(progression.messageToUser);
     setSuggestedWeight(progression.suggestedWeight);
 
-    startTimer(90);
+    const nextSetNum = currentExerciseSets.length + 1;
+    if (nextSetNum < currentExercise.targetSets) {
+      voiceCoach.speak(`Série ${nextSetNum} concluída. Aproveita o descanso.`);
+      
+      // ── SMART REST LOGIC ──
+      let restTime = 90; // Default
+      if (rpeValue >= 9) restTime = 150; // Heavy/CNS tax
+      else if (rpeValue >= 8) restTime = 120;
+      else if (rpeValue <= 6) restTime = 60; // Power/Speed work
+      
+      // Adjust based on VBT (if velocity was very low, increase rest)
+      if (peakVelocity < 0.3 && peakVelocity > 0) restTime += 30;
+
+      startTimer(restTime);
+    } else {
+      // Check if this was the last set of the last exercise
+      const isLastExercise = currentExerciseIndex === activeRoutine.exercises.length - 1;
+      if (isLastExercise) {
+        // We'll let the user finish manually or auto-trigger WORKOUT_COMPLETE when they click finish
+      }
+    }
+    
     setCurrentReps('');
     setCurrentNote('');
+  };
+
+  const handleFinishWithVoice = () => {
+    voiceCoach.speak('Treino terminado. Excelente esforço hoje! Estás mais forte.');
+    finishWorkout();
   };
 
   const handleStopTimer = () => {
@@ -210,7 +257,7 @@ export default function WorkoutLogger() {
 
             {/* Progress Bar Widget */}
             <View style={styles.progressBarContainer}>
-              <View style={[styles.progressBarTrack, { backgroundColor: 'rgba(255,255,255,0.07)' }]}>
+              <View style={[styles.progressBarTrack, { backgroundColor: theme.colors.surfaceHighlight }]}>
                 <Animated.View style={[styles.progressBarFill, animProgressStyle]} />
               </View>
               <Text style={[styles.progressLabel, { color: completedExercisesCount === totalExercises ? '#00E676' : theme.colors.textMuted }]}>
@@ -223,7 +270,7 @@ export default function WorkoutLogger() {
                 activeRoutine={activeRoutine}
                 sessionLogs={sessionLogs}
                 selectExercise={selectExercise}
-                onFinishWorkout={finishWorkout}
+                onFinishWorkout={handleFinishWithVoice}
                 onAbortWorkout={abortWorkout}
                 onSwapExercise={setExerciseToSwap}
                 insets={insets}
@@ -238,6 +285,8 @@ export default function WorkoutLogger() {
                 setCurrentWeight={setCurrentWeight}
                 currentReps={currentReps}
                 setCurrentReps={setCurrentReps}
+                currentRpe={currentRpe}
+                setCurrentRpe={setCurrentRpe}
                 currentNote={currentNote}
                 setCurrentNote={setCurrentNote}
                 previousSets={previousSets}
@@ -253,6 +302,7 @@ export default function WorkoutLogger() {
                 aiMessage={aiMessage}
                 onStopTimer={handleStopTimer}
                 onUpdateSetMedia={updateCurrentSetLog}
+                vbtData={{ velocity, peakVelocity, isMoving }}
               />
             )}
 
@@ -328,5 +378,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     minWidth: 80,
     textAlign: 'right',
+  },
+  vbtContainer: {
+    position: 'absolute',
+    right: 10,
+    top: 100,
+    zIndex: 100,
   },
 });

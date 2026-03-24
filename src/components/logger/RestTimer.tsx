@@ -16,19 +16,22 @@ import Animated, {
 } from 'react-native-reanimated';
 import { X, Play, SkipForward } from 'lucide-react-native';
 import { BlurView } from 'expo-blur';
+import GhostOverlay from './GhostOverlay';
+import { SetLog } from '../../store/useWorkoutStore';
 
 interface RestTimerProps {
   duration: number; // seconds
   onFinished: () => void;
   onClose: () => void;
   isVisible: boolean;
+  previousSets: SetLog[];
 }
 
 const SIZE = 200;
 const STROKE_WIDTH = 10;
 const R = (SIZE - STROKE_WIDTH) / 2;
 
-export default function RestTimer({ duration, onFinished, onClose, isVisible }: RestTimerProps) {
+export default function RestTimer({ duration, onFinished, onClose, isVisible, previousSets }: RestTimerProps) {
   const progress = useSharedValue(1);
   const pulse = useSharedValue(1);
   const timeLeft = useSharedValue(duration);
@@ -139,6 +142,8 @@ export default function RestTimer({ duration, onFinished, onClose, isVisible }: 
               <Text style={styles.skipText}>Pular</Text>
             </TouchableOpacity>
           </View>
+
+          <GhostOverlay previousSets={previousSets} />
         </View>
       </BlurView>
     </Animated.View>

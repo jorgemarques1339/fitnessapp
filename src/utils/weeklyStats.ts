@@ -93,6 +93,12 @@ const MUSCLE_NAMES_PT: Record<string, string> = {
   Glutes: 'Glúteos',
   Calves: 'Gémeos',
   Core: 'Core',
+  Forearms: 'Antebraços',
+  'Rear Delts': 'Deltoide Post.',
+  'Upper Back': 'Trapézios/Superior',
+  'Lower Back': 'Lombar',
+  Abductors: 'Abdutores',
+  Adductors: 'Adutores',
 };
 
 export interface MuscleVolume {
@@ -109,8 +115,18 @@ export function getWeeklyVolumeByMuscle(workouts: CompletedWorkout[]): MuscleVol
   workouts.forEach(workout => {
     workout.exerciseLogs.forEach(log => {
       const ex = getAllExercisesStatic().find(e => e.id === log.exerciseId);
-      const muscle = ex?.category ?? 'Core';
-      raw[muscle] = (raw[muscle] ?? 0) + log.sets.length;
+      if (!ex) return;
+
+      // Primary Muscle (100% volume)
+      const primary = ex.category;
+      raw[primary] = (raw[primary] ?? 0) + log.sets.length;
+
+      // Secondary Muscles (50% volume weight)
+      if (ex.secondaryMuscles) {
+        ex.secondaryMuscles.forEach(secondary => {
+          raw[secondary] = (raw[secondary] ?? 0) + (log.sets.length * 0.5);
+        });
+      }
     });
   });
 
@@ -131,6 +147,15 @@ export interface PR {
   type: 'weight' | '1rm';
   newValue: number;
   previousBest: number;
+}
+
+export interface BestRecord {
+  exerciseId: string;
+  exerciseName: string;
+  bestWeight: number;
+  best1RM: number;
+  totalVolume: number;
+  lastDate: Date;
 }
 
 /** Compares the new workout against all previous workouts and returns a list of broken PRs. */
@@ -195,4 +220,70 @@ export function detectPRs(
   });
 
   return prs;
+}
+
+/** Returns the lifetime best records for every exercise ever performed. */
+export function getAllTimePRs(workouts: CompletedWorkout[]): BestRecord[] {
+  const records: Record<string, BestRecord> = {};
+
+  workouts.forEach(workout => {
+    const d = new Date(workout.date);
+    workout.exerciseLogs.forEach(log => {
+      if (!records[log.exerciseId]) {
+        records[log.exerciseId] = {
+          exerciseId: log.exerciseId,
+          exerciseName: log.exerciseName,
+          bestWeight: 0,
+          best1RM: 0,
+          totalVolume: 0,
+          lastDate: d,
+        };
+      }
+
+      const rec = records[log.exerciseId];
+      if (d > rec.lastDate) rec.lastDate = d;
+
+      let sessionVolume = 0;
+      log.sets.forEach(s => {
+        const w = parseFloat(s.weightKg) || 0;
+        const r = parseInt(s.reps, 10) || 0;
+        sessionVolume += (w * r);
+        
+        if (w > rec.bestWeight) rec.bestWeight = w;
+        const rm = r > 0 ? calculateEpley1RM(w, r) : 0;
+        if (rm > rec.best1RM) rec.best1RM = rm;
+      });
+
+      if (sessionVolume > rec.totalVolume) rec.totalVolume = sessionVolume;
+    });
+  });
+
+  return Object.values(records).sort((a, b) => b.lastDate.getTime() - a.lastDate.getTime());
+}
+
+/** Detects the 'Best Set' of a workout (the one with the highest calculated 1RM). */
+export function detectBestSet(workout: CompletedWorkout): { exerciseName: string; weight: string; reps: string; rm1: number } | null {
+  let bestSet: { exerciseName: string; weight: string; reps: string; rm1: number } | null = null;
+  let maxRM = 0;
+
+  workout.exerciseLogs.forEach(log => {
+    log.sets.forEach(set => {
+      const w = parseFloat(set.weightKg) || 0;
+      const r = parseInt(set.reps, 10) || 0;
+      if (w > 0 && r > 0) {
+        const rm = calculateEpley1RM(w, r);
+        if (rm > maxRM) {
+          maxRM = rm;
+          bestSet = {
+            exerciseName: log.exerciseName,
+            weight: set.weightKg,
+            reps: set.reps,
+            rm1: Math.round(rm)
+          };
+        }
+      }
+    });
+  });
+
+  return bestSet;
 }

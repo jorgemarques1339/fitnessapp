@@ -6,8 +6,9 @@ import * as Haptics from 'expo-haptics';
 
 import { MuscleGroup, ExerciseDef } from '../data/exercises';
 import { useWorkoutStore } from '../store/useWorkoutStore';
+import { useHistoryStore } from '../store/useHistoryStore';
 import { useAppTheme } from '../hooks/useAppTheme';
-import { soundManager } from '../utils/SoundManager';
+import { sensoryManager } from '../utils/SensoryManager';
 
 interface AddExerciseModalProps {
   visible: boolean;
@@ -21,7 +22,7 @@ const MUSCLE_GROUPS: MuscleGroup[] = [
 
 export default function AddExerciseModal({ visible, onClose }: AddExerciseModalProps) {
   const theme = useAppTheme();
-  const addCustomExercise = useWorkoutStore(state => state.addCustomExercise);
+  const addCustomExercise = useHistoryStore(state => state.addCustomExercise);
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState<MuscleGroup>('Chest');
@@ -36,23 +37,24 @@ export default function AddExerciseModal({ visible, onClose }: AddExerciseModalP
   };
 
   const handleClose = () => {
-    soundManager.play('click');
+    sensoryManager.trigger({ sound: 'click', haptic: 'light' });
     onClose();
   };
 
   const handleSave = () => {
     if (!name.trim()) return;
 
-    soundManager.play('success');
+    sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     const newExercise: ExerciseDef = {
       id: `custom_${Date.now()}`,
       name: name.trim(),
-      targetSets,
+      targetSets: 3,
       notes: 'Exercício Customizado.',
       videoUrl: videoUrl.trim() || undefined,
-      category,
+      category: category as MuscleGroup,
+      equipment: 'Machine'
     };
 
     addCustomExercise(newExercise);
