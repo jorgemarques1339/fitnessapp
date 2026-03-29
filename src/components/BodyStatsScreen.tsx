@@ -9,8 +9,11 @@ import {
   Plus, 
   Calendar,
   ChevronRight,
-  Info
+  Info,
+  Camera,
+  Image as ImageIcon
 } from 'lucide-react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { useBodyStore } from '../store/useBodyStore';
 import { useHistoryStore } from '../store/useHistoryStore';
 import { useAppTheme } from '../hooks/useAppTheme';
@@ -33,6 +36,19 @@ export default function BodyStatsScreen() {
     chest: '',
     bodyFat: '',
   });
+  const [photos, setPhotos] = useState<{front?: string, side?: string, back?: string}>({});
+
+  const pickImage = async (view: 'front' | 'side' | 'back') => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      setPhotos(prev => ({ ...prev, [view]: result.assets[0].uri }));
+    }
+  };
 
   const handleSave = () => {
     addMeasurement({
@@ -41,9 +57,13 @@ export default function BodyStatsScreen() {
       biceps: parseFloat(inputs.biceps) || undefined,
       chest: parseFloat(inputs.chest) || undefined,
       bodyFat: parseFloat(inputs.bodyFat) || undefined,
+      frontPhotoUri: photos.front,
+      sidePhotoUri: photos.side,
+      backPhotoUri: photos.back,
     });
     setIsLogging(false);
     setInputs({ weight: '', waist: '', biceps: '', chest: '', bodyFat: '' });
+    setPhotos({});
   };
 
   const correlationData = useMemo(() => {
@@ -120,8 +140,33 @@ export default function BodyStatsScreen() {
               />
             </View>
           </View>
+          
+          <View style={styles.photoGrid}>
+            <TouchableOpacity style={styles.photoBtn} onPress={() => pickImage('front')}>
+              {photos.front ? (
+                <View style={styles.photoPreview}><Camera color="#FFF" size={16} /></View> /* Can use Image component here */
+              ) : (
+                <View style={styles.photoEmpty}><Camera color="rgba(255,255,255,0.3)" size={20} /><Text style={styles.photoLabel}>Frente</Text></View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.photoBtn} onPress={() => pickImage('side')}>
+              {photos.side ? (
+                <View style={styles.photoPreview}><Camera color="#FFF" size={16} /></View>
+              ) : (
+                <View style={styles.photoEmpty}><Camera color="rgba(255,255,255,0.3)" size={20} /><Text style={styles.photoLabel}>Lado</Text></View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.photoBtn} onPress={() => pickImage('back')}>
+              {photos.back ? (
+                <View style={styles.photoPreview}><Camera color="#FFF" size={16} /></View>
+              ) : (
+                <View style={styles.photoEmpty}><Camera color="rgba(255,255,255,0.3)" size={20} /><Text style={styles.photoLabel}>Costas</Text></View>
+              )}
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.logActions}>
-            <TouchableOpacity onPress={() => setIsLogging(false)}>
+            <TouchableOpacity onPress={() => { setIsLogging(false); setPhotos({}); }}>
               <Text style={{ color: theme.colors.textMuted }}>Cancelar</Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -289,6 +334,39 @@ const styles = StyleSheet.create({
   saveBtnText: {
     color: '#FFF',
     fontWeight: '800',
+  },
+  photoGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    gap: 8,
+  },
+  photoBtn: {
+    flex: 1,
+    height: 80,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    overflow: 'hidden',
+  },
+  photoEmpty: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 4,
+  },
+  photoLabel: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  photoPreview: {
+    flex: 1,
+    backgroundColor: 'rgba(0,230,118,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   insightCard: {
     borderRadius: 24,

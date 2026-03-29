@@ -36,6 +36,9 @@ interface WorkoutState {
 
   updateCurrentSetLog: (setNumber: number, mediaUri: string, mediaType: 'photo' | 'video') => void;
   getPreviousExerciseLog: (exerciseId: string) => ExerciseLog | null;
+
+  lastCompletedWorkoutId: string | null;
+  clearLastCompletedWorkout: () => void;
 }
 
 export const useWorkoutStore = create<WorkoutState>()(
@@ -49,6 +52,7 @@ export const useWorkoutStore = create<WorkoutState>()(
       isExerciseSelectionMode: false,
       sessionLogs: [],
       sessionStartTime: null,
+      lastCompletedWorkoutId: null,
 
       startWorkout: (routine) => set({
         activeRoutine: routine,
@@ -58,6 +62,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         sessionLogs: [],
         sessionStartTime: Date.now(),
         isExerciseSelectionMode: false,
+        lastCompletedWorkoutId: null,
       }),
 
       abortWorkout: () => set({
@@ -241,8 +246,11 @@ export const useWorkoutStore = create<WorkoutState>()(
           activeRoutine: null,
           sessionLogs: [],
           sessionStartTime: null,
+          lastCompletedWorkoutId: newWorkout.id,
         });
       },
+
+      clearLastCompletedWorkout: () => set({ lastCompletedWorkoutId: null }),
 
       updateCurrentSetLog: (setNumber, mediaUri, mediaType) => {
         const { currentExerciseSets } = get();
@@ -273,6 +281,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         sessionLogs: state.sessionLogs,
         isExerciseSelectionMode: state.isExerciseSelectionMode,
         sessionStartTime: state.sessionStartTime,
+        lastCompletedWorkoutId: state.lastCompletedWorkoutId,
       }),
     }
   )

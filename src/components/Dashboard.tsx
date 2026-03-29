@@ -34,9 +34,12 @@ import PremiumCard from './common/PremiumCard';
 import EmptyWorkoutIllustration from './common/EmptyWorkoutIllustration';
 import StatusPill from './common/StatusPill';
 import { PRConsoleModal } from './PRConsole';
+import SuccessShareModal from './common/SuccessShareModal';
 import GlobalTonnageWidget from './GlobalTonnageWidget';
 import HallOfFame from './HallOfFame';
 import MuscleHeatmap from './common/MuscleHeatmap';
+import VolumeTrendChart from './dashboard/VolumeTrendChart';
+import StrengthProgressionChart from './dashboard/StrengthProgressionChart';
 import { Trophy, Target, ChartBar, Share2, Calendar, Zap } from 'lucide-react-native';
 import { useSocialStore } from '../store/useSocialStore';
 import EliteDuelWidget from './EliteDuelWidget';
@@ -64,6 +67,9 @@ interface DashboardProps {
 
 export default function Dashboard({ onSelectRoutine, onResumeWorkout }: DashboardProps) {
   const activeRoutine = useWorkoutStore(state => state.activeRoutine);
+  const lastCompletedWorkoutId = useWorkoutStore(state => state.lastCompletedWorkoutId);
+  const clearLastCompletedWorkout = useWorkoutStore(state => state.clearLastCompletedWorkout);
+
   const completedWorkouts = useHistoryStore(state => state.completedWorkouts);
   const customRoutines = useHistoryStore(state => state.customRoutines);
   const saveCustomRoutine = useHistoryStore(state => state.saveCustomRoutine);
@@ -91,6 +97,11 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
   const allRoutines = React.useMemo(() => [...ROUTINES, ...customRoutines], [customRoutines]);
   const fatigueData = React.useMemo(() => calculateMuscleFatigue(safeWorkouts), [safeWorkouts]);
   const volumeData = React.useMemo(() => getWeeklyVolumeByMuscle(safeWorkouts), [safeWorkouts]);
+
+  const justCompletedWorkout = React.useMemo(() => {
+    if (!lastCompletedWorkoutId) return null;
+    return safeWorkouts.find(w => w.id === lastCompletedWorkoutId) || null;
+  }, [lastCompletedWorkoutId, safeWorkouts]);
 
   const [routineToDelete, setRoutineToDelete] = React.useState<{id: string, title: string} | null>(null);
 
@@ -362,6 +373,15 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
 
             {activeTab === 'metricas' && (
               <Animated.View entering={FadeInDown.delay(200).springify()}>
+                
+                <PremiumCard style={{ marginBottom: 20, padding: 0 }}>
+                  <VolumeTrendChart completedWorkouts={safeWorkouts} />
+                </PremiumCard>
+                
+                <PremiumCard style={{ marginBottom: 20, padding: 0 }}>
+                  <StrengthProgressionChart completedWorkouts={safeWorkouts} />
+                </PremiumCard>
+
                 <View style={styles.metricsHeader}>
                   <Text style={styles.sectionTitle}>Evolução Muscular</Text>
                 </View>
@@ -483,6 +503,11 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
             </AnimatedPressable>
           </View>
         </Modal>
+
+        <SuccessShareModal 
+          workout={justCompletedWorkout} 
+          onClose={clearLastCompletedWorkout} 
+        />
       </SafeAreaView>
     </View>
   );

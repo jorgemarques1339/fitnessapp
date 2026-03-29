@@ -25,20 +25,27 @@ export default function TechnicalModal({ visible, onClose, exerciseName, videoUr
           
           <View style={styles.mediaContainer}>
             {videoUrl ? (
-              Platform.OS === 'web' ? (
-                /* @ts-ignore - standard img tag for web stability */
-                <img 
-                  src={videoUrl} 
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-                  alt={exerciseName}
-                />
-              ) : (
-                <Image 
-                  source={{ uri: videoUrl }} 
-                  style={styles.gifImage} 
-                  resizeMode="contain"
-                />
-              )
+              <View style={{ flex: 1, width: '100%', borderRadius: 16, overflow: 'hidden' }}>
+                {Platform.OS === 'web' ? (
+                  /* @ts-ignore - standard img tag for web stability */
+                  <img 
+                    src={videoUrl} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    alt={exerciseName}
+                  />
+                ) : (
+                  <Image 
+                    source={{ uri: videoUrl }} 
+                    style={styles.gifImage} 
+                    resizeMode="cover"
+                  />
+                )}
+                {!videoUrl.includes('.gif') && (
+                  <View style={styles.illustrativeBadge}>
+                    <Text style={styles.illustrativeText}>IMAGEM ILUSTRATIVA</Text>
+                  </View>
+                )}
+              </View>
             ) : (
               <View style={[styles.placeholderBox, { backgroundColor: theme.colors.background }]}>
                 <Text style={[styles.placeholderText, { color: theme.colors.textMuted }]}>Demonstração não disponível</Text>
@@ -146,5 +153,23 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     textTransform: 'uppercase',
     letterSpacing: 2,
+  },
+  illustrativeBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  illustrativeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   }
 });

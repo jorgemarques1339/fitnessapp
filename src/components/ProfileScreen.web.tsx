@@ -15,6 +15,8 @@ import AnimatedPressable from './common/AnimatedPressable';
 import SimpleWebChart from './common/SimpleWebChart';
 import MuscleHeatmap from './MuscleHeatmap';
 import SessionHistoryTab from './SessionHistoryTab';
+import BodyStatsScreen from './BodyStatsScreen';
+import BodyAlbum from './profile/BodyAlbum';
 import FluidChart from './common/FluidChart';
 
 export default function ProfileScreen() {
@@ -28,7 +30,7 @@ export default function ProfileScreen() {
   
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>('peito1');
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'stats' | 'heatmap' | 'history'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'heatmap' | 'history' | 'gallery' | 'body'>('stats');
 
   const handleSaveWeight = () => {
     const w = parseFloat(weightInput);
@@ -59,34 +61,43 @@ export default function ProfileScreen() {
       <Text style={[styles.pageTitle, { color: theme.colors.textPrimary }]}>Meu Perfil</Text>
 
       {/* Profile Tabs */}
-      <View style={[styles.tabContainer, { backgroundColor: theme.colors.surfaceHighlight }]}>
-        <AnimatedPressable 
-          style={[styles.tab, activeTab === 'stats' && { backgroundColor: theme.colors.surfaceHighlight }]}
-          onPress={() => {
-            sensoryManager.trigger({ sound: 'click', haptic: 'selection' });
-            setActiveTab('stats');
-          }}
+      <View style={{ marginBottom: theme.spacing.xl }}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={[styles.tabContainer, { backgroundColor: theme.colors.surfaceHighlight }]}
         >
-          <Text style={[styles.tabText, { color: activeTab === 'stats' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Estatísticas</Text>
-        </AnimatedPressable>
-        <AnimatedPressable 
-          style={[styles.tab, activeTab === 'heatmap' && { backgroundColor: theme.colors.surfaceHighlight }]}
-          onPress={() => {
-            sensoryManager.trigger({ sound: 'click', haptic: 'selection' });
-            setActiveTab('heatmap');
-          }}
-        >
-          <Text style={[styles.tabText, { color: activeTab === 'heatmap' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Mapa Muscular</Text>
-        </AnimatedPressable>
-        <AnimatedPressable 
-          style={[styles.tab, activeTab === 'history' && { backgroundColor: theme.colors.surfaceHighlight }]}
-          onPress={() => {
-            sensoryManager.trigger({ sound: 'click', haptic: 'selection' });
-            setActiveTab('history');
-          }}
-        >
-          <Text style={[styles.tabText, { color: activeTab === 'history' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Histórico</Text>
-        </AnimatedPressable>
+          <AnimatedPressable 
+            style={[styles.tab, activeTab === 'stats' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('stats'); }}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'stats' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Estatísticas</Text>
+          </AnimatedPressable>
+          <AnimatedPressable 
+            style={[styles.tab, activeTab === 'heatmap' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('heatmap'); }}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'heatmap' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Mapa Muscular</Text>
+          </AnimatedPressable>
+          <AnimatedPressable 
+            style={[styles.tab, activeTab === 'history' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('history'); }}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'history' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Histórico</Text>
+          </AnimatedPressable>
+          <AnimatedPressable 
+            style={[styles.tab, activeTab === 'gallery' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('gallery'); }}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'gallery' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Galeria</Text>
+          </AnimatedPressable>
+          <AnimatedPressable 
+            style={[styles.tab, activeTab === 'body' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('body'); }}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'body' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Corpo</Text>
+          </AnimatedPressable>
+        </ScrollView>
       </View>
 
       {activeTab === 'stats' ? (
@@ -211,9 +222,15 @@ export default function ProfileScreen() {
             <MuscleHeatmap completedWorkouts={completedWorkouts} />
           </BlurView>
         </View>
-      ) : (
+      ) : activeTab === 'history' ? (
         <SessionHistoryTab completedWorkouts={completedWorkouts} />
-      )}
+      ) : activeTab === 'gallery' ? (
+        <View style={{ flex: 1, minHeight: 500 }}>
+          <BodyAlbum />
+        </View>
+      ) : activeTab === 'body' ? (
+        <BodyStatsScreen />
+      ) : null}
     </ScrollView>
   );
 }
@@ -226,12 +243,12 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    marginBottom: staticTheme.spacing.xl,
     borderRadius: staticTheme.radii.md,
     padding: 4,
+    minWidth: '100%',
   },
   tab: {
-    flex: 1,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     alignItems: 'center',
     borderRadius: staticTheme.radii.sm,

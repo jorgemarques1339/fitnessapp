@@ -21,6 +21,7 @@ import MuscleHeatmap from './MuscleHeatmap';
 import SimpleWebChart from './common/SimpleWebChart';
 import SessionHistoryTab from './SessionHistoryTab';
 import BodyStatsScreen from './BodyStatsScreen';
+import BodyAlbum from './profile/BodyAlbum';
 import FluidChart from './common/FluidChart';
 import { getLatestBodyWeight } from '../utils/healthSync';
 
@@ -115,37 +116,43 @@ export default function ProfileScreen() {
       <Text style={[styles.pageTitle, { color: theme.colors.textPrimary }]}>Meu Perfil</Text>
 
       {/* Profile Tabs */}
-      <View style={[styles.tabContainer, { backgroundColor: theme.colors.surfaceHighlight }]}>
-        <AnimatedPressable 
-          style={[styles.tab, activeTab === 'stats' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-          onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('stats'); }}
+      <View style={{ marginBottom: theme.spacing.xl }}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={[styles.tabContainer, { backgroundColor: theme.colors.surfaceHighlight }]}
         >
-          <Text style={[styles.tabText, { color: activeTab === 'stats' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Estatísticas</Text>
-        </AnimatedPressable>
-        <AnimatedPressable 
-          style={[styles.tab, activeTab === 'heatmap' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-          onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('heatmap'); }}
-        >
-          <Text style={[styles.tabText, { color: activeTab === 'heatmap' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Mapa Muscular</Text>
-        </AnimatedPressable>
-        <AnimatedPressable 
-          style={[styles.tab, activeTab === 'history' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-          onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('history'); }}
-        >
-          <Text style={[styles.tabText, { color: activeTab === 'history' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Histórico</Text>
-        </AnimatedPressable>
-        <AnimatedPressable 
-          style={[styles.tab, activeTab === 'gallery' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-          onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('gallery'); }}
-        >
-          <Text style={[styles.tabText, { color: activeTab === 'gallery' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Galeria</Text>
-        </AnimatedPressable>
-        <AnimatedPressable 
-          style={[styles.tab, activeTab === 'body' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
-          onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('body'); }}
-        >
-          <Text style={[styles.tabText, { color: activeTab === 'body' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Corpo</Text>
-        </AnimatedPressable>
+          <AnimatedPressable 
+            style={[styles.tab, activeTab === 'stats' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('stats'); }}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'stats' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Estatísticas</Text>
+          </AnimatedPressable>
+          <AnimatedPressable 
+            style={[styles.tab, activeTab === 'heatmap' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('heatmap'); }}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'heatmap' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Mapa Muscular</Text>
+          </AnimatedPressable>
+          <AnimatedPressable 
+            style={[styles.tab, activeTab === 'history' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('history'); }}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'history' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Histórico</Text>
+          </AnimatedPressable>
+          <AnimatedPressable 
+            style={[styles.tab, activeTab === 'gallery' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('gallery'); }}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'gallery' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Galeria</Text>
+          </AnimatedPressable>
+          <AnimatedPressable 
+            style={[styles.tab, activeTab === 'body' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
+            onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'selection' }); setActiveTab('body'); }}
+          >
+            <Text style={[styles.tabText, { color: activeTab === 'body' ? theme.colors.textPrimary : theme.colors.textMuted }]}>Corpo</Text>
+          </AnimatedPressable>
+        </ScrollView>
       </View>
 
       {activeTab === 'stats' ? (
@@ -354,32 +361,8 @@ export default function ProfileScreen() {
       ) : activeTab === 'history' ? (
         <SessionHistoryTab completedWorkouts={completedWorkouts} />
       ) : activeTab === 'gallery' ? (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <ImageIcon color={theme.colors.primary} size={24} />
-            <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Galeria de Progresso</Text>
-          </View>
-          <Text style={[styles.sectionDesc, { color: theme.colors.textSecondary }]}>As tuas fotos de progresso associadas ao registo de peso corporal.</Text>
-          
-          <View style={styles.galleryGrid}>
-            {bodyWeightLogs.filter(log => log.mediaUri).length === 0 ? (
-              <View style={styles.emptyChart}>
-                <Text style={styles.emptyChartText}>Nenhuma foto registada ainda. Adiciona fotos quando pesares.</Text>
-              </View>
-            ) : (
-              bodyWeightLogs.filter(log => log.mediaUri).reverse().map((log, i) => (
-                <View key={`gallery-${i}`} style={styles.galleryItem}>
-                  <Image source={{ uri: log.mediaUri }} style={styles.galleryImage} />
-                  <BlurView intensity={30} tint="dark" style={styles.galleryTag}>
-                    <Text style={styles.galleryWeight}>{log.weightKg} kg</Text>
-                    <Text style={styles.galleryDate}>
-                      {new Date(log.date).toLocaleDateString('pt-PT', { month: 'short', year: 'numeric' })}
-                    </Text>
-                  </BlurView>
-                </View>
-              ))
-            )}
-          </View>
+        <View style={{ flex: 1, minHeight: 500 }}>
+          <BodyAlbum />
         </View>
       ) : activeTab === 'body' ? (
         <BodyStatsScreen />
@@ -398,13 +381,12 @@ const styles = StyleSheet.create({
   },
   tabContainer: {
     flexDirection: 'row',
-    marginBottom: theme.spacing.xl,
-    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: theme.radii.md,
     padding: 4,
+    minWidth: '100%',
   },
   tab: {
-    flex: 1,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     alignItems: 'center',
     borderRadius: theme.radii.sm,
@@ -548,45 +530,5 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
     fontSize: theme.typography.sizes.md,
     fontFamily: theme.typography.fonts.medium,
-  },
-  galleryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginTop: 10,
-  },
-  galleryItem: {
-    width: '46%',
-    aspectRatio: 3/4,
-    borderRadius: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  galleryImage: {
-    width: '100%',
-    height: '100%',
-  },
-  galleryTag: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  galleryWeight: {
-    color: '#FFF',
-    fontFamily: 'Outfit-Bold',
-    fontSize: 16,
-  },
-  galleryDate: {
-    color: 'rgba(255,255,255,0.8)',
-    fontFamily: 'Inter-Medium',
-    fontSize: 10,
-    textTransform: 'uppercase',
   }
 });

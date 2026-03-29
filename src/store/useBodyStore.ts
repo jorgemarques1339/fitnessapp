@@ -11,14 +11,18 @@ export interface BodyMeasurement {
   chest?: number;
   thigh?: number;
   bodyFat?: number;
+  frontPhotoUri?: string;
+  sidePhotoUri?: string;
+  backPhotoUri?: string;
 }
 
 interface BodyState {
   measurements: BodyMeasurement[];
   addMeasurement: (m: Omit<BodyMeasurement, 'id' | 'date'>) => void;
+  updateMeasurement: (id: string, data: Partial<BodyMeasurement>) => void;
   deleteMeasurement: (id: string) => void;
   getLatestMeasurement: () => BodyMeasurement | null;
-  getCorrelationData: (metric: keyof BodyMeasurement) => { date: string; value: number }[];
+  getCorrelationData: (metric: keyof BodyMeasurement) => { date: string; value: number | string }[];
 }
 
 export const useBodyStore = create<BodyState>()(
@@ -33,6 +37,12 @@ export const useBodyStore = create<BodyState>()(
           date: new Date().toISOString(),
         };
         set({ measurements: [newEntry, ...get().measurements] });
+      },
+
+      updateMeasurement: (id, data) => {
+        set({
+          measurements: get().measurements.map(m => m.id === id ? { ...m, ...data } : m)
+        });
       },
 
       deleteMeasurement: (id) => {
