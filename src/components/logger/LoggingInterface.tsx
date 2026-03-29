@@ -254,36 +254,18 @@ export default function LoggingInterface({
             </View>
           </View>
 
-          <View style={[styles.inputGroup, !isLargeScreen && styles.mobileInputRowSplit]}>
-            <View style={[styles.inputSubGroup, !isLargeScreen && { flex: 1 }]}>
-              <Text style={[styles.label, { color: theme.colors.textSecondary, textAlign: isLargeScreen ? 'center' : 'left' }]}>{isLargeScreen ? 'Repetições' : 'REPS'}</Text>
-              <BlurView intensity={20} tint="dark" style={styles.inputGlass}>
-                <TextInput
-                  style={[styles.input, isLargeScreen ? styles.inputText : styles.inputTextMobile, { backgroundColor: theme.colors.surfaceHighlight }]}
-                  keyboardType="numeric"
-                  value={currentReps}
-                  onChangeText={setCurrentReps}
-                  placeholder="0"
-                  placeholderTextColor="rgba(255,255,255,0.2)"
-                />
-              </BlurView>
-            </View>
-
-            {!isLargeScreen && <View style={{ width: 12 }} />}
-
-            <View style={[styles.inputSubGroup, !isLargeScreen && { flex: 1 }]}>
-              <Text style={[styles.label, { color: theme.colors.textSecondary, textAlign: isLargeScreen ? 'center' : 'left' }]}>{isLargeScreen ? 'RPE Intensity' : 'RPE'}</Text>
-              <BlurView intensity={20} tint="dark" style={styles.inputGlass}>
-                <TextInput
-                  style={[styles.input, isLargeScreen ? styles.inputText : styles.inputTextMobile, { backgroundColor: theme.colors.surfaceHighlight }]}
-                  keyboardType="numeric"
-                  value={currentRpe}
-                  onChangeText={setCurrentRpe}
-                  placeholder="8"
-                  placeholderTextColor="rgba(255,255,255,0.2)"
-                />
-              </BlurView>
-            </View>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: theme.colors.textSecondary, textAlign: isLargeScreen ? 'center' : 'left' }]}>{isLargeScreen ? 'Repetições' : 'REPS'}</Text>
+            <BlurView intensity={20} tint="dark" style={styles.inputGlass}>
+              <TextInput
+                style={[styles.input, isLargeScreen ? styles.inputText : styles.inputTextMobile, { backgroundColor: theme.colors.surfaceHighlight }]}
+                keyboardType="numeric"
+                value={currentReps}
+                onChangeText={setCurrentReps}
+                placeholder="0"
+                placeholderTextColor="rgba(255,255,255,0.2)"
+              />
+            </BlurView>
           </View>
         </View>
       </PremiumCard>
@@ -884,10 +866,10 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
   },
   mobileControlArea: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 0,
     paddingTop: 10,
     backgroundColor: 'transparent',
-    alignItems: 'center',
+    alignItems: 'stretch',
     width: '100%',
   },
   stickyFooterBase: {
@@ -978,6 +960,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     overflow: 'hidden',
     marginTop: 10,
+    width: '100%',
     shadowColor: '#00E676',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.3,
