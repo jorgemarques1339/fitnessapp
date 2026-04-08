@@ -26,7 +26,7 @@ export default function StatusPill({ label, type = 'neutral', style, textStyle }
 
   return (
     <LinearGradient
-      colors={getGradient()}
+      colors={getGradient() as [string, string, ...string[]]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 0 }}
       style={[styles.pill, style]}

@@ -1,19 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Dimensions, Platform, Image } from 'react-native';
 import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
-import { CartesianChart, Line, useChartPressState } from 'victory-native';
-import { vec, LinearGradient as SkiaGradient, Circle } from '@shopify/react-native-skia';
-import { Save, TrendingUp, Scale, ChevronDown, Activity, Camera, Image as ImageIcon } from 'lucide-react-native';
+import { CartesianChart, Line } from 'victory-native';
+import { vec, LinearGradient as SkiaGradient } from '@shopify/react-native-skia';
+import { Save, TrendingUp, Scale, ChevronDown, Activity, Camera, Search, Trophy, Pencil } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 
-import { useWorkoutStore } from '../store/useWorkoutStore';
 import { useHistoryStore } from '../store/useHistoryStore';
 import { useConfigStore } from '../store/useConfigStore';
+import { useSocialStore } from '../store/useSocialStore';
 import { get1RMTrendData } from '../utils/math';
-import { MuscleGroup } from '../data/exercises';
 import { useAllExercises } from '../utils/exerciseSelectors';
-import { theme } from '../theme/theme';
 import { useAppTheme } from '../hooks/useAppTheme';
 import { sensoryManager } from '../utils/SensoryManager';
 import AnimatedPressable from './common/AnimatedPressable';
@@ -31,21 +28,28 @@ export default function ProfileScreen() {
   const completedWorkouts = useHistoryStore(state => state.completedWorkouts);
   const bodyWeightLogs = useHistoryStore(state => state.bodyWeightLogs);
   const logBodyWeight = useHistoryStore(state => state.logBodyWeight);
+  const currentUserProfile = useSocialStore(state => state.currentUserProfile);
   const theme = useAppTheme();
 
   const [weightInput, setWeightInput] = useState('');
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
-  // By default, select the first exercise from the DB that has some history, or just the first one.
   const ALLEX = useAllExercises();
   
   const [selectedExerciseId, setSelectedExerciseId] = useState<string>('peito1');
   const [isExercisePickerOpen, setIsExercisePickerOpen] = useState(false);
+  const [exerciseSearchQuery, setExerciseSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'stats' | 'heatmap' | 'history' | 'gallery' | 'body'>('stats');
 
-  const screenWidth = Dimensions.get('window').width;
+  // Profile Edit State
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [tempProfileName, setTempProfileName] = useState(currentUserProfile.name);
+  const [tempProfileAvatar, setTempProfileAvatar] = useState(currentUserProfile.avatar);
 
-  const pickImage = async () => {
+  const screenWidth = Dimensions.get('window').width;
+  const isLargeScreen = screenWidth > 768;
+
+  const pickImage = async (target: 'weight' | 'profile' = 'weight') => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: 'image/*',
@@ -53,10 +57,22 @@ export default function ProfileScreen() {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setSelectedPhoto(result.assets[0].uri);
+        if (target === 'weight') {
+          setSelectedPhoto(result.assets[0].uri);
+        } else {
+          setTempProfileAvatar(result.assets[0].uri);
+        }
       }
     } catch (error) {
       console.log('Error picking image:', error);
+    }
+  };
+
+  const handleUpdateProfile = () => {
+    if (tempProfileName.trim()) {
+      useSocialStore.getState().updateProfile(tempProfileName, tempProfileAvatar);
+      setIsEditingProfile(false);
+      sensoryManager.trigger({ sound: 'pop', haptic: 'heavy' });
     }
   };
 
@@ -86,19 +102,6 @@ export default function ProfileScreen() {
     return get1RMTrendData(completedWorkouts, selectedExerciseId);
   }, [completedWorkouts, selectedExerciseId]);
 
-  const bwChartData = useMemo(() => {
-    const recent = bodyWeightLogs.slice(-10);
-    if (recent.length === 0) return { labels: ['N/A'], data: [0] };
-
-    return {
-      labels: recent.map(log => {
-        const d = new Date(log.date);
-        return `${d.getDate()}/${d.getMonth() + 1}`;
-      }),
-      data: recent.map(log => log.weightKg)
-    };
-  }, [bodyWeightLogs]);
-
   const tonnageData = useMemo(() => {
     const safeWorkouts = completedWorkouts || [];
     const recentWorkouts = [...safeWorkouts]
@@ -110,17 +113,72 @@ export default function ProfileScreen() {
   }, [completedWorkouts]);
 
   const selectedExerciseName = ALLEX.find(e => e.id === selectedExerciseId)?.name || 'Exercício';
+  const filteredALLEX = ALLEX.filter(ex => ex.name.toLowerCase().includes(exerciseSearchQuery.toLowerCase()));
+  const currentAthleteLevel = Math.floor(completedWorkouts.length / 5) + 1;
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: 'transparent' }]} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-      <Text style={[styles.pageTitle, { color: theme.colors.textPrimary }]}>Meu Perfil</Text>
+      
+      {/* 1. Hero Header */}
+      <View style={[styles.heroHeader, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
+        <View style={styles.avatarWrapper}>
+          <Image source={{ uri: currentUserProfile.avatar }} style={[styles.heroAvatar, { borderColor: theme.colors.primary }]} />
+          {isEditingProfile && (
+            <TouchableOpacity style={styles.avatarEditOverlay} onPress={() => pickImage('profile')}>
+               <Camera color="#FFF" size={16} />
+            </TouchableOpacity>
+          )}
+        </View>
+        <View style={styles.heroInfo}>
+          {isEditingProfile ? (
+            <TextInput 
+              style={[styles.heroNameInput, { color: theme.colors.textPrimary, borderBottomColor: theme.colors.primary }]}
+              value={tempProfileName}
+              onChangeText={setTempProfileName}
+              autoFocus
+              maxLength={20}
+            />
+          ) : (
+            <Text style={[styles.heroName, { color: theme.colors.textPrimary }]} numberOfLines={1}>{currentUserProfile.name}</Text>
+          )}
+          <View style={styles.heroBadges}>
+             <View style={[styles.heroBadge, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
+               <Trophy size={12} color="#FFD700" />
+               <Text style={[styles.heroBadgeText, { color: '#FFD700' }]}>Nível {currentAthleteLevel}</Text>
+             </View>
+             <View style={[styles.heroBadge, { backgroundColor: 'rgba(0,0,0,0.4)' }]}>
+               <Activity size={12} color={theme.colors.primary} />
+               <Text style={[styles.heroBadgeText, { color: theme.colors.primary }]}>{completedWorkouts.length} Treinos</Text>
+             </View>
+          </View>
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.editBtn, isEditingProfile && { backgroundColor: theme.colors.primary }]} 
+          onPress={() => {
+            if (isEditingProfile) {
+              handleUpdateProfile();
+            } else {
+              setTempProfileName(currentUserProfile.name);
+              setTempProfileAvatar(currentUserProfile.avatar);
+              setIsEditingProfile(true);
+            }
+          }}
+        >
+          {isEditingProfile ? (
+            <Save color="#000" size={18} />
+          ) : (
+            <Pencil color={theme.colors.primary} size={18} />
+          )}
+        </TouchableOpacity>
+      </View>
 
       {/* Profile Tabs */}
       <View style={{ marginBottom: theme.spacing.xl }}>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false} 
-          contentContainerStyle={[styles.tabContainer, { backgroundColor: theme.colors.surfaceHighlight }]}
+          contentContainerStyle={[styles.tabContainer, { backgroundColor: theme.colors.surfaceHighlight }, isLargeScreen && { alignSelf: 'center', minWidth: 'auto' }]}
         >
           <AnimatedPressable 
             style={[styles.tab, activeTab === 'stats' && { backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }]}
@@ -155,10 +213,12 @@ export default function ProfileScreen() {
         </ScrollView>
       </View>
 
+      {/* Content Rendering based on Tab */}
       {activeTab === 'stats' ? (
-        <>
-          {/* Bodyweight Section */}
-          <View style={styles.section}>
+        <View style={isLargeScreen ? styles.statsGridDesktop : styles.statsGridMobile}>
+          
+          {/* Bodyweight Section Column */}
+          <View style={[styles.section, isLargeScreen && styles.gridCol]}>
             <View style={styles.sectionHeader}>
               <Scale color={theme.colors.secondary} size={24} />
               <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Peso Corporal</Text>
@@ -176,10 +236,7 @@ export default function ProfileScreen() {
                 />
                 <Text style={styles.kgLabel}>KG</Text>
                 
-                <AnimatedPressable 
-                  style={styles.photoBtn} 
-                  onPress={pickImage}
-                >
+                <AnimatedPressable style={styles.photoBtn} onPress={() => pickImage()}>
                   {selectedPhoto ? (
                     <Image source={{ uri: selectedPhoto }} style={styles.thumbnail} />
                   ) : (
@@ -189,11 +246,7 @@ export default function ProfileScreen() {
 
                 <AnimatedPressable 
                   style={[styles.saveBtn, { backgroundColor: theme.colors.secondary }]} 
-                  onPress={() => {
-                    sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
-                    handleSaveWeight();
-                  }} 
-                  hapticFeedback="medium"
+                  onPress={() => { sensoryManager.trigger({ sound: 'pop', haptic: 'medium' }); handleSaveWeight(); }} 
                 >
                   <Save color={theme.colors.background} size={20} />
                 </AnimatedPressable>
@@ -220,17 +273,8 @@ export default function ProfileScreen() {
                       }}
                     >
                       {({ points, chartBounds }) => (
-                        <Line
-                          points={points.y}
-                          color={theme.colors.secondary}
-                          strokeWidth={3}
-                          curveType="natural"
-                        >
-                          <SkiaGradient
-                            start={vec(0, chartBounds.top)}
-                            end={vec(0, chartBounds.bottom)}
-                            colors={["rgba(56, 189, 248, 0.3)", "transparent"]}
-                          />
+                        <Line points={points.y} color={theme.colors.secondary} strokeWidth={3} curveType="natural">
+                          <SkiaGradient start={vec(0, chartBounds.top)} end={vec(0, chartBounds.bottom)} colors={["rgba(56, 189, 248, 0.3)", "transparent"]} />
                         </Line>
                       )}
                     </CartesianChart>
@@ -251,23 +295,18 @@ export default function ProfileScreen() {
             </BlurView>
           </View>
 
-          {/* 1RM Section */}
-          <View style={styles.section}>
+          {/* 1RM Force Section Column */}
+          <View style={[styles.section, isLargeScreen && styles.gridCol]}>
             <View style={styles.sectionHeader}>
               <TrendingUp color={theme.colors.primary} size={24} />
               <Text style={[styles.sectionTitle, { color: theme.colors.textPrimary }]}>Força Bruta (1RM Estimado)</Text>
             </View>
-            <Text style={[styles.sectionDesc, { color: theme.colors.textSecondary }]}>Evolução da carga máxima para 1 repetição limpa (Fórmula de Epley).</Text>
 
             <BlurView intensity={theme.isDark ? 20 : 40} tint={theme.isDark ? "dark" : "light"} style={[styles.glassCard, { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border }]}>
               
               <AnimatedPressable 
                 style={[styles.dropdownBtn, { backgroundColor: theme.colors.surfaceHighlight }]} 
-                onPress={() => {
-                  sensoryManager.trigger({ sound: 'click', haptic: 'light' });
-                  setIsExercisePickerOpen(!isExercisePickerOpen);
-                }}
-                hapticFeedback="light"
+                onPress={() => { sensoryManager.trigger({ sound: 'click', haptic: 'light' }); setIsExercisePickerOpen(!isExercisePickerOpen); }}
               >
                 <Text style={[styles.dropdownText, { color: theme.colors.textPrimary }]} numberOfLines={1}>{selectedExerciseName}</Text>
                 <ChevronDown color={theme.colors.textPrimary} size={20} />
@@ -275,21 +314,33 @@ export default function ProfileScreen() {
 
               {isExercisePickerOpen && (
                 <View style={styles.pickerList}>
-                  {ALLEX.map(ex => (
-                    <AnimatedPressable 
-                      key={ex.id} 
-                      style={styles.pickerItem}
-                      onPress={() => {
-                        setSelectedExerciseId(ex.id);
-                        setIsExercisePickerOpen(false);
-                      }}
-                      hapticFeedback="light"
-                    >
-                      <Text style={[styles.pickerItemText, selectedExerciseId === ex.id && { color: theme.colors.primary, fontFamily: theme.typography.fonts.bold }]}>
-                        {ex.name}
-                      </Text>
-                    </AnimatedPressable>
-                  ))}
+                  <View style={styles.searchRow}>
+                    <Search color={theme.colors.textMuted} size={16} />
+                    <TextInput 
+                      style={[styles.searchInput, { color: theme.colors.textPrimary }]}
+                      placeholder="Procurar Exercício..."
+                      placeholderTextColor={theme.colors.textMuted}
+                      value={exerciseSearchQuery}
+                      onChangeText={setExerciseSearchQuery}
+                    />
+                  </View>
+                  <ScrollView style={{ maxHeight: 200 }} nestedScrollEnabled>
+                    {filteredALLEX.map(ex => (
+                      <AnimatedPressable 
+                        key={ex.id} 
+                        style={styles.pickerItem}
+                        onPress={() => {
+                          setSelectedExerciseId(ex.id);
+                          setIsExercisePickerOpen(false);
+                          setExerciseSearchQuery('');
+                        }}
+                      >
+                        <Text style={[styles.pickerItemText, selectedExerciseId === ex.id && { color: theme.colors.primary, fontFamily: theme.typography.fonts.bold }]}>
+                          {ex.name}
+                        </Text>
+                      </AnimatedPressable>
+                    ))}
+                  </ScrollView>
                 </View>
               )}
 
@@ -314,17 +365,8 @@ export default function ProfileScreen() {
                         }}
                       >
                         {({ points, chartBounds }) => (
-                          <Line
-                            points={points.y}
-                            color={theme.colors.primary}
-                            strokeWidth={3}
-                            curveType="natural"
-                          >
-                            <SkiaGradient
-                              start={vec(0, chartBounds.top)}
-                              end={vec(0, chartBounds.bottom)}
-                              colors={["rgba(0, 230, 118, 0.3)", "transparent"]}
-                            />
+                          <Line points={points.y} color={theme.colors.primary} strokeWidth={3} curveType="natural">
+                            <SkiaGradient start={vec(0, chartBounds.top)} end={vec(0, chartBounds.bottom)} colors={["rgba(0, 230, 118, 0.3)", "transparent"]} />
                           </Line>
                         )}
                       </CartesianChart>
@@ -342,7 +384,7 @@ export default function ProfileScreen() {
               )}
             </BlurView>
           </View>
-        </>
+        </View>
       ) : activeTab === 'heatmap' ? (
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -371,17 +413,86 @@ export default function ProfileScreen() {
   );
 }
 
-// Removed chartConfigBW and chartConfigRM as they are no longer needed.
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: 20,
     paddingTop: 20,
+  },
+  heroHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  heroAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 2,
+  },
+  avatarWrapper: {
+    position: 'relative',
+    marginRight: 16,
+  },
+  avatarEditOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  heroInfo: {
+    flex: 1,
+  },
+  heroName: {
+    fontSize: 24,
+    fontFamily: 'Outfit-Bold',
+    marginBottom: 6,
+  },
+  heroNameInput: {
+    fontSize: 22,
+    fontFamily: 'Outfit-Bold',
+    marginBottom: 6,
+    paddingVertical: 2,
+    borderBottomWidth: 2,
+  },
+  editBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 230, 118, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 230, 118, 0.2)',
+  },
+  heroBadges: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+  },
+  heroBadgeText: {
+    fontSize: 11,
+    fontFamily: 'Inter-Bold',
+    textTransform: 'uppercase',
   },
   tabContainer: {
     flexDirection: 'row',
-    borderRadius: theme.radii.md,
+    borderRadius: 12,
     padding: 4,
     minWidth: '100%',
   },
@@ -389,86 +500,71 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     alignItems: 'center',
-    borderRadius: theme.radii.sm,
-  },
-  activeTab: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 8,
   },
   tabText: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.typography.fonts.bold,
-    fontSize: theme.typography.sizes.sm,
+    fontFamily: 'Inter-Bold',
+    fontSize: 14,
   },
-  activeTabText: {
-    color: theme.colors.textPrimary,
+  statsGridDesktop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 20,
   },
-  pageTitle: {
-    fontSize: theme.typography.sizes.display,
-    fontFamily: theme.typography.fonts.displayBlack,
-    color: theme.colors.textPrimary,
-    letterSpacing: -1,
-    marginBottom: theme.spacing.xl,
+  statsGridMobile: {
+    flexDirection: 'column',
+    gap: 0,
+  },
+  gridCol: {
+    flex: 1,
   },
   section: {
-    marginBottom: theme.spacing.xxl,
+    marginBottom: 32,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: theme.spacing.md,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: theme.typography.sizes.xl,
-    fontFamily: theme.typography.fonts.bold,
-    color: theme.colors.textPrimary,
+    fontSize: 20,
+    fontFamily: 'Outfit-Bold',
     marginLeft: 10,
   },
-  sectionDesc: {
-    color: theme.colors.textSecondary,
-    fontSize: theme.typography.sizes.sm,
-    fontFamily: theme.typography.fonts.regular,
-    marginBottom: theme.spacing.md,
-    lineHeight: 20,
-  },
   glassCard: {
-    borderRadius: theme.radii.lg,
-    padding: theme.spacing.cardPadding,
+    borderRadius: 20,
+    padding: 20,
     overflow: 'hidden',
-    ...theme.shadows.soft,
-    backgroundColor: 'rgba(255, 255, 255, 0.02)',
+    borderWidth: 1,
   },
   weightInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: theme.radii.md,
+    borderRadius: 12,
     paddingRight: 6,
-    marginBottom: theme.spacing.lg,
+    marginBottom: 20,
   },
   weightInput: {
     flex: 1,
     padding: 16,
-    color: theme.colors.textPrimary,
-    fontSize: theme.typography.sizes.xl,
-    fontFamily: theme.typography.fonts.black,
+    fontSize: 24,
+    fontFamily: 'Outfit-Black',
   },
   kgLabel: {
-    color: theme.colors.textMuted,
-    fontFamily: theme.typography.fonts.bold,
+    fontFamily: 'Inter-Bold',
     marginRight: 10,
   },
   saveBtn: {
-    backgroundColor: theme.colors.secondary,
     width: 40,
     height: 40,
-    borderRadius: theme.radii.sm,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
   },
   photoBtn: {
     width: 40,
     height: 40,
-    borderRadius: theme.radii.sm,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(255,255,255,0.05)',
@@ -478,15 +574,7 @@ const styles = StyleSheet.create({
   thumbnail: {
     width: '100%',
     height: '100%',
-    borderRadius: theme.radii.sm,
-  },
-  chartWrapper: {
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  chart: {
-    borderRadius: theme.radii.md,
-    paddingRight: 40,
+    borderRadius: 8,
   },
   emptyChart: {
     height: 160,
@@ -495,31 +583,44 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyChartText: {
-    color: theme.colors.textMuted,
+    color: 'rgba(255,255,255,0.5)',
     textAlign: 'center',
     fontStyle: 'italic',
-    fontFamily: theme.typography.fonts.medium,
+    fontFamily: 'Inter-Medium',
   },
   dropdownBtn: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.1)',
     padding: 16,
-    borderRadius: theme.radii.md,
+    borderRadius: 12,
     marginBottom: 20,
   },
   dropdownText: {
-    color: theme.colors.textPrimary,
-    fontSize: theme.typography.sizes.lg,
-    fontFamily: theme.typography.fonts.bold,
+    fontSize: 16,
+    fontFamily: 'Inter-Bold',
     flex: 1,
   },
   pickerList: {
-    maxHeight: 250,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: theme.radii.md,
+    borderRadius: 12,
     padding: 10,
+    marginBottom: 20,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    marginBottom: 10,
+    height: 40,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'Inter-Medium',
   },
   pickerItem: {
     paddingVertical: 12,
@@ -528,7 +629,7 @@ const styles = StyleSheet.create({
   },
   pickerItemText: {
     color: 'rgba(255,255,255,0.8)',
-    fontSize: theme.typography.sizes.md,
-    fontFamily: theme.typography.fonts.medium,
+    fontSize: 15,
+    fontFamily: 'Inter-Medium',
   }
 });

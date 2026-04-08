@@ -31,7 +31,7 @@ export default function ElevatedCard({
       style
     ]}>
       <LinearGradient
-        colors={borderGradient}
+        colors={borderGradient as [string, string, ...string[]]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradientBorder}

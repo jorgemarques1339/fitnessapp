@@ -11,6 +11,10 @@ jest.mock('../../src/store/storage', () => ({
   }
 }));
 
+jest.mock('../../src/utils/healthSync', () => ({
+  saveWorkoutToHealth: jest.fn(),
+}));
+
 jest.mock('../../src/store/useHistoryStore', () => ({
     useHistoryStore: {
         getState: () => ({
@@ -48,10 +52,9 @@ const mockRoutine: RoutineDef = {
     id: 'r-test',
     title: 'Test Routine',
     subtitle: 'Test',
-    level: 'beginner',
     exercises: [
-        { id: 'ex-1', name: 'Test Ex 1', category: 'Chest' },
-        { id: 'ex-2', name: 'Test Ex 2', category: 'Back' }
+        { id: 'ex-1', name: 'Test Ex 1', category: 'Chest', targetSets: 3, notes: '', equipment: 'Bodyweight' },
+        { id: 'ex-2', name: 'Test Ex 2', category: 'Back', targetSets: 3, notes: '', equipment: 'Bodyweight' }
     ]
 };
 

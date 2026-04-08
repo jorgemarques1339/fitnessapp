@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { safeStorage } from './storage';
+import type { CompletedWorkout } from './types';
 
 export interface SocialComment {
   id: string;
@@ -19,10 +20,15 @@ export interface SocialPost {
   workoutTitle: string;
   tonnageKg: number;
   durationMs: number;
-  personalRecords: number; // number of PRs broken
+  personalRecords: number;
   timestamp: string;
-  likes: string[]; // array of userIds who liked
+  likes: string[];
   comments: SocialComment[];
+  mediaUri?: string;
+  caption?: string;
+  completedWorkout?: CompletedWorkout;
+  peakVelocity?: number;
+  type?: 'workout' | 'duel_event' | 'challenge_badge';
 }
 
 export interface LeaderboardEntry {
@@ -56,7 +62,9 @@ interface SocialState {
   toggleLike: (postId: string) => void;
   addComment: (postId: string, text: string) => void;
   addMockPost: () => void;
-  createPostFromWorkout: (workout: any) => void;
+  createPostFromWorkout: (workout: any, mediaUri?: string, caption?: string, peakVelocity?: number) => void;
+  createDuelPost: (duelEventMsg: string) => void;
+  createBadgePost: (badgeTitle: string) => void;
   
   selectedDuelUser: LeaderboardEntry | null;
   setSelectedDuelUser: (user: LeaderboardEntry | null) => void;
@@ -64,6 +72,7 @@ interface SocialState {
   startDuel: (user: LeaderboardEntry) => void;
   updateDuelTonnage: (tonnage: number) => void;
   simulateOpponentProgress: () => void;
+  updateProfile: (name: string, avatar: string) => void;
 }
 
 const MOCK_AVATARS = [
@@ -87,39 +96,98 @@ const INITIAL_MOCK_POSTS: SocialPost[] = [
     comments: [
       {
         id: 'c-1',
+        userId: 'ai-coach',
+        userName: 'Antigravity AI',
+        userAvatar: 'https://cdn-icons-png.flaticon.com/512/1188/1188151.png',
+        text: 'Trabalho insano hoje, Alex! Mais de 8 toneladas movidas. Parecias uma máquina! 🤖🔋',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1.9).toISOString(),
+      },
+      {
+        id: 'c-2',
         userId: 'user-3',
         userName: 'Maria Costa',
         userAvatar: MOCK_AVATARS[1],
         text: 'Aquela última série de agachamento foi insana 🔥',
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(),
       }
-    ]
+    ],
+    mediaUri: 'https://images.unsplash.com/photo-1574680096145-d05b474e2155?q=80&w=1000&auto=format&fit=crop',
+    caption: 'Bati o meu RP no agachamento! As pernas estão mortas, mas o coração está cheio. Vamosssss! 🔥🦵',
+    type: 'workout',
+    completedWorkout: {
+      id: 'mock-w1',
+      routineId: 'mock-r1',
+      routineTitle: 'Leg Day Killer',
+      date: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
+      durationMs: 4500000,
+      totalTonnageKg: 8500,
+      totalSets: 20,
+      exerciseLogs: [
+        {
+          exerciseId: 'ex-squat',
+          exerciseName: 'Agachamento Livre',
+          sets: [
+            { setNumber: 1, weightKg: '100', reps: '10', rpe: '8', isCompleted: true },
+            { setNumber: 2, weightKg: '120', reps: '8', rpe: '9', isCompleted: true },
+          ]
+        },
+        {
+          exerciseId: 'ex-legpress',
+          exerciseName: 'Leg Press',
+          sets: [
+            { setNumber: 1, weightKg: '200', reps: '12', rpe: '8', isCompleted: true },
+          ]
+        }
+      ]
+    }
   },
   {
     id: 'post-2',
     userId: 'user-3',
     userName: 'Maria Costa',
     userAvatar: MOCK_AVATARS[1],
-    workoutTitle: 'Upper Body Power',
-    tonnageKg: 6200,
-    durationMs: 3600000, // 60 mins
+    workoutTitle: 'Duelo Semanal',
+    tonnageKg: 0,
+    durationMs: 0,
     personalRecords: 0,
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-    likes: ['my-user-id'],
-    comments: []
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+    likes: ['user-2'],
+    comments: [],
+    caption: 'Maria Costa venceu o duelo épico de volume contra João Santos! 🏆⚔️',
+    type: 'duel_event',
+    mediaUri: 'https://images.unsplash.com/photo-1555597673-b21d5c935865?q=80&w=1000&auto=format&fit=crop'
   },
   {
     id: 'post-3',
     userId: 'user-4',
     userName: 'João Santos',
     userAvatar: MOCK_AVATARS[2],
-    workoutTitle: 'Full Body 5x5',
-    tonnageKg: 9100,
-    durationMs: 5400000, // 90 mins
+    workoutTitle: 'Força Bruta',
+    tonnageKg: 6200,
+    durationMs: 3600000, // 60 mins
     personalRecords: 1,
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
-    likes: ['user-2', 'user-3'],
-    comments: []
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
+    likes: ['my-user-id', 'user-2'],
+    comments: [],
+    mediaUri: 'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?q=80&w=1000&auto=format&fit=crop',
+    caption: 'Velocidade na barra foi top class hoje! Foco total. 💪⚡',
+    type: 'workout',
+    peakVelocity: 1.12, // VBT Sticker triggering
+  },
+  {
+    id: 'post-4',
+    userId: 'user-2',
+    userName: 'Alex Silva',
+    userAvatar: MOCK_AVATARS[0],
+    workoutTitle: 'Nova Conquista',
+    tonnageKg: 0,
+    durationMs: 0,
+    personalRecords: 0,
+    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
+    likes: ['user-3', 'user-4'],
+    comments: [],
+    caption: 'Desbloqueei o troféu: Senhor do Agachamento 🥇',
+    type: 'challenge_badge'
   }
 ];
 
@@ -256,8 +324,22 @@ export const useSocialStore = create<SocialState>()(
         set({ activeDuels: updated });
       },
 
-      createPostFromWorkout: (workout: any) => {
+      createPostFromWorkout: (workout: any, mediaUri?: string, caption?: string, peakVelocity?: number) => {
         const { posts, currentUserProfile } = get();
+        
+        let initialComments: SocialComment[] = [];
+        
+        if (workout.totalTonnageKg >= 5000) {
+           initialComments.push({
+             id: `comment-ai-${Date.now()}`,
+             userId: 'ai-coach',
+             userName: 'Antigravity AI',
+             userAvatar: 'https://cdn-icons-png.flaticon.com/512/1188/1188151.png',
+             text: `Trabalho insano hoje, ${currentUserProfile.name.split(' ')[0]}! Mais de ${Math.floor(workout.totalTonnageKg/1000)} toneladas movidas. Parecias uma máquina! 🤖🔋`,
+             timestamp: new Date().toISOString(),
+           })
+        }
+
         const newPost: SocialPost = {
           id: `post-${Date.now()}`,
           userId: currentUserProfile.id,
@@ -269,9 +351,72 @@ export const useSocialStore = create<SocialState>()(
           personalRecords: 0, 
           timestamp: new Date().toISOString(),
           likes: [],
-          comments: []
+          comments: initialComments,
+          mediaUri,
+          caption,
+          completedWorkout: workout,
+          peakVelocity,
+          type: 'workout'
         };
         set({ posts: [newPost, ...posts] });
+      },
+
+      createDuelPost: (duelEventMsg: string) => {
+        const { posts, currentUserProfile } = get();
+        const newPost: SocialPost = {
+          id: `post-${Date.now()}`,
+          userId: currentUserProfile.id,
+          userName: currentUserProfile.name,
+          userAvatar: currentUserProfile.avatar,
+          workoutTitle: 'Duelo',
+          tonnageKg: 0,
+          durationMs: 0,
+          personalRecords: 0,
+          timestamp: new Date().toISOString(),
+          likes: [],
+          comments: [],
+          caption: duelEventMsg,
+          type: 'duel_event',
+          mediaUri: 'https://images.unsplash.com/photo-1555597673-b21d5c935865?q=80&w=1000&auto=format&fit=crop'
+        };
+        set({ posts: [newPost, ...posts] });
+      },
+
+      createBadgePost: (badgeTitle: string) => {
+        const { posts, currentUserProfile } = get();
+        const newPost: SocialPost = {
+          id: `post-${Date.now()}`,
+          userId: currentUserProfile.id,
+          userName: currentUserProfile.name,
+          userAvatar: currentUserProfile.avatar,
+          workoutTitle: 'Nova Conquista',
+          tonnageKg: 0,
+          durationMs: 0,
+          personalRecords: 0,
+          timestamp: new Date().toISOString(),
+          likes: [],
+          comments: [],
+          caption: `Desbloqueei o troféu: ${badgeTitle} 🥇`,
+          type: 'challenge_badge'
+        };
+        set({ posts: [newPost, ...posts] });
+      },
+
+      updateProfile: (name, avatar) => {
+        const { currentUserProfile, leaderboard } = get();
+        const newProfile = { ...currentUserProfile, name, avatar };
+        
+        // Sync leaderboard
+        const updatedLeaderboard = leaderboard.map(entry => 
+          entry.userId === currentUserProfile.id 
+            ? { ...entry, userName: name, userAvatar: avatar }
+            : entry
+        );
+
+        set({ 
+          currentUserProfile: newProfile,
+          leaderboard: updatedLeaderboard
+        });
       }
     }),
     {

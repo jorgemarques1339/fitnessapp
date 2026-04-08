@@ -24,6 +24,7 @@ import VelocityMeter from './logger/VelocityMeter';
 import ExerciseSelector from './logger/ExerciseSelector';
 import LoggingInterface from './logger/LoggingInterface';
 import SuccessGlow from './common/SuccessGlow';
+import WorkoutShareModal from './WorkoutShareModal';
 
 const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
 
@@ -63,6 +64,7 @@ export default function WorkoutLogger() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [exerciseToSwap, setExerciseToSwap] = useState<ExerciseDef | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   
   if (!activeRoutine) return null;
   const currentExercise = activeRoutine.exercises[currentExerciseIndex];
@@ -204,7 +206,7 @@ export default function WorkoutLogger() {
 
   const handleFinishWithVoice = () => {
     voiceCoach.speak('Treino terminado. Excelente esforço hoje! Estás mais forte.');
-    finishWorkout();
+    setShowShareModal(true);
   };
 
   const handleStopTimer = () => {
@@ -330,6 +332,19 @@ export default function WorkoutLogger() {
             {showSuccess && (
               <SuccessGlow onAnimationComplete={() => setShowSuccess(false)} />
             )}
+
+            <WorkoutShareModal 
+              visible={showShareModal}
+              activeRoutine={activeRoutine}
+              onConfirm={(mediaUri, caption) => {
+                setShowShareModal(false);
+                finishWorkout(mediaUri, caption);
+              }}
+              onSkip={() => {
+                setShowShareModal(false);
+                finishWorkout();
+              }}
+            />
 
           </View>
         </KeyboardAvoidingView>

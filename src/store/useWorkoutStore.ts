@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { RoutineDef, ExerciseDef } from '../data/routines';
+import type { RoutineDef, ExerciseDef } from '../data/routines';
 import { safeStorage } from './storage';
 import { saveWorkoutToHealth } from '../utils/healthSync';
 import { useChallengeStore } from './useChallengeStore';
@@ -8,9 +8,9 @@ import { useHistoryStore } from './useHistoryStore';
 import { useConfigStore } from './useConfigStore';
 import { useSocialStore } from './useSocialStore';
 
-import { SetLog, ExerciseLog, CompletedWorkout, BodyWeightLog } from './types';
+import type { SetLog, ExerciseLog, CompletedWorkout, BodyWeightLog } from './types';
 
-export { SetLog, ExerciseLog, CompletedWorkout, BodyWeightLog };
+export type { SetLog, ExerciseLog, CompletedWorkout, BodyWeightLog };
 
 interface WorkoutState {
   isInLogger: boolean;
@@ -26,7 +26,7 @@ interface WorkoutState {
   sessionStartTime: number | null;
 
   startWorkout: (routine: RoutineDef) => void;
-  finishWorkout: () => void;
+  finishWorkout: (mediaUri?: string, caption?: string) => void;
   abortWorkout: () => void; 
   logSet: (set: Omit<SetLog, 'setNumber'>) => void;
   
@@ -70,6 +70,8 @@ export const useWorkoutStore = create<WorkoutState>()(
         activeRoutine: null,
         sessionLogs: [],
         sessionStartTime: null,
+        currentExerciseSets: [],
+        currentExerciseIndex: 0
       }),
 
       logSet: (setLog) => {
@@ -161,7 +163,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         });
       },
 
-      finishWorkout: () => {
+      finishWorkout: (mediaUri?: string, caption?: string) => {
         const { activeRoutine, sessionLogs, currentExerciseSets, currentExerciseIndex, sessionStartTime } = get();
         if (!activeRoutine) return;
 
@@ -184,6 +186,7 @@ export const useWorkoutStore = create<WorkoutState>()(
         const durationMs = sessionStartTime ? Date.now() - sessionStartTime : 0;
         let sessionTotalTonnage = 0;
         let sessionTotalSets = 0;
+        let peakVelocity = 0;
         finalLogs.forEach(log => {
           const exercise = activeRoutine.exercises.find(ex => ex.id === log.exerciseId);
           log.sets.forEach(s => {
@@ -191,6 +194,9 @@ export const useWorkoutStore = create<WorkoutState>()(
               const baseTonnage = (parseFloat(s.weightKg) || 0) * (parseInt(s.reps, 10) || 0);
               sessionTotalTonnage += exercise?.unilateral ? baseTonnage * 2 : baseTonnage;
               sessionTotalSets++;
+              if (s.velocityMs && s.velocityMs > peakVelocity) {
+                peakVelocity = s.velocityMs;
+              }
             }
           });
         });
@@ -241,11 +247,16 @@ export const useWorkoutStore = create<WorkoutState>()(
         // Update Social Duels
         useSocialStore.getState().updateDuelTonnage(sessionTotalTonnage);
 
+        // Generate the Social Post
+        useSocialStore.getState().createPostFromWorkout(newWorkout, mediaUri, caption, peakVelocity > 0 ? peakVelocity : undefined);
+
         set({
           isInLogger: false,
           activeRoutine: null,
           sessionLogs: [],
           sessionStartTime: null,
+          currentExerciseSets: [],
+          currentExerciseIndex: 0,
           lastCompletedWorkoutId: newWorkout.id,
         });
       },

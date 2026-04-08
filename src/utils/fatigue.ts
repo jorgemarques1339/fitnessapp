@@ -1,4 +1,4 @@
-import { CompletedWorkout, ExerciseLog } from '../store/useWorkoutStore';
+import type { CompletedWorkout, ExerciseLog } from '../store/useWorkoutStore';
 import { getAllExercisesStatic } from './exerciseSelectors';
 
 export interface MuscleFatigue {

@@ -1,5 +1,5 @@
 import { calculateMuscleFatigue } from '../../src/utils/fatigue';
-import { CompletedWorkout } from '../../src/store/useWorkoutStore';
+import type { CompletedWorkout } from '../../src/store/useWorkoutStore';
 import * as exerciseSelectors from '../../src/utils/exerciseSelectors';
 
 jest.mock('../../src/utils/exerciseSelectors', () => ({
@@ -37,6 +37,7 @@ describe('calculateMuscleFatigue', () => {
     
     const workouts: CompletedWorkout[] = [{
       id: 'mock-1',
+      routineId: 'mock-routine',
       date: workoutDate.toISOString(),
       routineTitle: 'Mock Routine',
       totalTonnageKg: 1000,
@@ -77,6 +78,7 @@ describe('calculateMuscleFatigue', () => {
     
     const workouts: CompletedWorkout[] = [{
       id: 'mock-2',
+      routineId: 'mock-routine-2',
       date: workoutDate.toISOString(),
       routineTitle: 'Mock Routine',
       totalTonnageKg: 1000,

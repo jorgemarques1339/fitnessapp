@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { safeStorage } from './storage';
 import { Challenge, COMMUNITY_CHALLENGES } from '../data/challenges';
+import { useSocialStore } from './useSocialStore';
 
 interface ChallengeProgress {
   challengeId: string;
@@ -36,6 +37,10 @@ export const useChallengeStore = create<ChallengeState>()(
 
         const newValue = currentProg.currentValue + value;
         const isNowCompleted = newValue >= challenge.targetGoal && !currentProg.isCompleted;
+
+        if (isNowCompleted) {
+          useSocialStore.getState().createBadgePost(challenge.title);
+        }
 
         set({
           userProgress: {
