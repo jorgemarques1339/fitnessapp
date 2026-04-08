@@ -57,8 +57,9 @@ export default function ProfileScreen() {
   const selectedExerciseName = ALLEX.find(e => e.id === selectedExerciseId)?.name || 'Exercício';
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-      <Text style={[styles.pageTitle, { color: theme.colors.textPrimary }]}>Meu Perfil</Text>
+    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]} contentContainerStyle={[{ paddingBottom: 100 }, Platform.OS === 'web' && { alignItems: 'center' }]} showsVerticalScrollIndicator={false}>
+      <View style={{ width: '100%', maxWidth: theme.layout?.maxContentWidth || 1200 }}>
+        <Text style={[styles.pageTitle, { color: theme.colors.textPrimary }]}>Meu Perfil</Text>
 
       {/* Profile Tabs */}
       <View style={{ marginBottom: theme.spacing.xl }}>
@@ -231,6 +232,7 @@ export default function ProfileScreen() {
       ) : activeTab === 'body' ? (
         <BodyStatsScreen />
       ) : null}
+      </View>
     </ScrollView>
   );
 }

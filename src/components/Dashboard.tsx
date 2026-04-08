@@ -59,6 +59,11 @@ import ScienceDashboard from './ScienceDashboard';
 import GhostModeWidget from './GhostModeWidget';
 import LivingBackground from './common/LivingBackground';
 
+import EliteTab from './dashboard/EliteTab';
+import MetricsTab from './dashboard/MetricsTab';
+import TodayTab from './dashboard/TodayTab';
+import FatigueCard from './dashboard/FatigueCard';
+
 
 interface DashboardProps {
   onSelectRoutine: (routine: RoutineDef) => void;
@@ -199,230 +204,34 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
             </Animated.View>
 
             {activeTab === 'hoje' && (
-              <>
-                <Animated.View entering={FadeInDown.delay(300).springify()}>
-                  <AICoachCard
-                    completedWorkouts={safeWorkouts}
-                    routines={allRoutines}
-                    onSelectRoutine={onSelectRoutine}
-                  />
-                </Animated.View>
-
-                <Animated.View entering={FadeInDown.delay(400).springify()}>
-                  <WeeklyDashboard completedWorkouts={safeWorkouts} />
-                </Animated.View>
-
-                {activeRoutine && (
-                  <AnimatedPressable 
-                    onPress={() => {
-                      sensoryManager.trigger({ sound: 'click', haptic: 'light' });
-                      onResumeWorkout();
-                    }} 
-                    style={styles.recoveryMargin}
-                    hapticFeedback="light"
-                    scaleTo={0.97}
-                  >
-                    <PremiumCard 
-                      style={styles.recoveryMargin}
-                      variant="alert"
-                    >
-                      <View style={styles.recoveryContent}>
-                        <View style={styles.recoveryIconBox}>
-                          <Activity color={appTheme.colors.danger} size={24} />
-                        </View>
-                        <View style={styles.recoveryTexts}>
-                          <Text style={styles.recoveryTitle}>⏱️ Treino em Andamento</Text>
-                          <Text style={styles.recoverySubtitle}>{activeRoutine.title}</Text>
-                        </View>
-                        <ChevronRight color={appTheme.colors.textMuted} size={20} />
-                      </View>
-                    </PremiumCard>
-                  </AnimatedPressable>
-                )}
-                
-                <Animated.View entering={FadeInDown.delay(500).springify()}>
-                  <View style={styles.fatigueHeader}>
-                    <Text style={styles.sectionTitle}>Recuperação Muscular</Text>
-                  </View>
-                  <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false} 
-                    contentContainerStyle={styles.fatigueScroll}
-                  >
-                    {fatigueData.map((item) => (
-                      <FatigueCard key={item.muscle} item={item} theme={theme} />
-                    ))}
-                  </ScrollView>
-                </Animated.View>
-
-                <Animated.View entering={FadeInDown.delay(600).springify()}>
-                  <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.sectionTitle}>Meus Treinos</Text>
-                      <AnimatedPressable 
-                      onPress={() => {
-                        sensoryManager.trigger({ sound: 'pop', haptic: 'medium' });
-                        toggleBuilder(true);
-                      }} 
-                      hapticFeedback="light"
-                    >
-                      <BlurView intensity={appTheme.isDark ? 20 : 40} tint={appTheme.isDark ? "dark" : "light"} style={[styles.createBtn, { borderColor: appTheme.colors.border }]}>
-                        <Plus color={appTheme.colors.secondary} size={16} style={{ marginRight: 6 }} />
-                        <Text style={styles.createBtnText}>Novo</Text>
-                      </BlurView>
-                    </AnimatedPressable>
-                  </View>
-
-                  {customRoutines.length === 0 ? (
-                    <View style={styles.emptyCustomState}>
-                      <EmptyWorkoutIllustration />
-                      <Text style={[styles.emptyCustomText, { color: appTheme.colors.textPrimary }]}>Nada por aqui ainda...</Text>
-                      <Text style={[styles.emptyCustomSubtext, { color: appTheme.colors.textMuted }]}>
-                        Cria o teu primeiro treino personalizado para começares a evoluir!
-                      </Text>
-                      <TouchableOpacity 
-                        onPress={() => toggleBuilder(true)}
-                        style={[styles.emptyCreateBtn, { backgroundColor: appTheme.colors.primary }]}
-                      >
-                        <Plus color="#000" size={18} />
-                        <Text style={styles.emptyCreateBtnText}>Criar Treino</Text>
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.routinesGrid}>
-                      {customRoutines.map((routine) => (
-                        <MagneticView key={routine.id}>
-                          <AnimatedPressable 
-                            onPress={() => {
-                              sensoryManager.trigger({ sound: 'click', haptic: 'light' });
-                              onSelectRoutine(routine);
-                            }}
-                            style={styles.cardContainer}
-                            hapticFeedback="medium"
-                          >
-                            <PremiumCard variant="ghost" intensity={appTheme.isDark ? 30 : 50}>
-                              <View style={[styles.cardIndicator, { backgroundColor: appTheme.colors.accent }]} />
-                              <View style={styles.cardContent}>
-                                <View style={styles.cardHeader}>
-                                  <Text style={styles.cardTitle}>{routine.title}</Text>
-                                  <View style={styles.cardActions}>
-                                    <Pressable 
-                                      onPress={(e: GestureResponderEvent) => {
-                                        e.stopPropagation();
-                                        handleDeletePress(routine.id, routine.title);
-                                      }}
-                                      style={({ pressed }: { pressed: boolean }) => [
-                                        styles.deleteBtn,
-                                        pressed && { opacity: 0.7 }
-                                      ]}
-                                    >
-                                      <Trash2 color={appTheme.colors.textMuted} size={16} />
-                                    </Pressable>
-                                  </View>
-                                </View>
-                                <View style={styles.cardMeta}>
-                                  <Text style={styles.cardInfo}>{routine.exercises.length} Exercícios</Text>
-                                  <ChevronRight color={appTheme.colors.primary} size={16} />
-                                </View>
-                              </View>
-                            </PremiumCard>
-                          </AnimatedPressable>
-                        </MagneticView>
-                      ))}
-                    </View>
-                  )}
-                </Animated.View>
-
-                <Animated.View entering={FadeInDown.delay(700).springify()}>
-                  <Text style={[styles.sectionTitle, { marginTop: 40, marginBottom: 16 }]}>Planos Predefinidos</Text>
-                  
-                  <View style={styles.routinesGrid}>
-                    {ROUTINES.map((routine) => (
-                      <MagneticView key={routine.id}>
-                        <AnimatedPressable 
-                          onPress={() => {
-                              sensoryManager.trigger({ sound: 'click', haptic: 'light' });
-                              onSelectRoutine(routine);
-                          }}
-                          style={styles.cardContainer}
-                          hapticFeedback="medium"
-                        >
-                          <PremiumCard variant="ghost" intensity={appTheme.isDark ? 30 : 50}>
-                            <View style={[styles.cardIndicator, { backgroundColor: appTheme.colors.secondary }]} />
-                            <View style={styles.cardContent}>
-                              <View style={styles.cardHeader}>
-                                <Text style={styles.cardTitle}>{routine.title}</Text>
-                                <Play color={appTheme.colors.textSecondary} size={20} />
-                              </View>
-                              
-                              <Text style={styles.cardSubtitle}>{routine.subtitle}</Text>
-                              
-                              <View style={styles.tagContainer}>
-                                <View style={[styles.glassTag, { backgroundColor: appTheme.colors.surfaceHighlight, borderColor: appTheme.colors.border }]}>
-                                  <Text style={styles.tagText}>{routine.exercises.length} Exercícios</Text>
-                                </View>
-                              </View>
-                            </View>
-                          </PremiumCard>
-                        </AnimatedPressable>
-                      </MagneticView>
-                    ))}
-                  </View>
-                </Animated.View>
-              </>
+              <TodayTab
+                safeWorkouts={safeWorkouts}
+                allRoutines={allRoutines}
+                onSelectRoutine={onSelectRoutine}
+                activeRoutine={activeRoutine}
+                onResumeWorkout={onResumeWorkout}
+                fatigueData={fatigueData}
+                theme={theme}
+                appTheme={appTheme}
+                styles={styles}
+                toggleBuilder={toggleBuilder}
+                customRoutines={customRoutines}
+                handleDeletePress={handleDeletePress}
+              />
             )}
 
             {activeTab === 'metricas' && (
-              <Animated.View entering={FadeInDown.delay(200).springify()}>
-                
-                <PremiumCard style={{ marginBottom: 20, padding: 0 }}>
-                  <VolumeTrendChart completedWorkouts={safeWorkouts} />
-                </PremiumCard>
-                
-                <PremiumCard style={{ marginBottom: 20, padding: 0 }}>
-                  <StrengthProgressionChart completedWorkouts={safeWorkouts} />
-                </PremiumCard>
-
-                <View style={styles.metricsHeader}>
-                  <Text style={styles.sectionTitle}>Evolução Muscular</Text>
-                </View>
-                <PremiumCard style={styles.heatmapCard}>
-                  <MuscleHeatmap volumeData={volumeData} />
-                </PremiumCard>
-
-                <AnimatedPressable 
-                  onPress={() => {
-                    sensoryManager.trigger({ sound: 'click', haptic: 'light' });
-                    setIsPRConsoleVisible(true);
-                  }}
-                  style={styles.prCardLink}
-                >
-                  <PremiumCard variant="primary">
-                    <View style={styles.prLinkContent}>
-                      <Trophy color={appTheme.colors.primary} size={24} />
-                      <View style={styles.prLinkTexts}>
-                        <Text style={styles.prLinkTitle}>Consola de Recordes (PR)</Text>
-                        <Text style={styles.prLinkSubtitle}>Vê as tuas melhores marcas históricas.</Text>
-                      </View>
-                      <ChevronRight color={appTheme.colors.primary} size={20} />
-                    </View>
-                  </PremiumCard>
-                </AnimatedPressable>
-
-                <View style={styles.metricsHeader}>
-                  <Text style={styles.sectionTitle}>Treino Científico (VBT)</Text>
-                </View>
-                <ScienceDashboard completedWorkouts={safeWorkouts} />
-              </Animated.View>
+              <MetricsTab
+                safeWorkouts={safeWorkouts}
+                volumeData={volumeData}
+                appTheme={appTheme}
+                styles={styles}
+                onOpenPRConsole={() => setIsPRConsoleVisible(true)}
+              />
             )}
 
             {activeTab === 'elite' && (
-              <Animated.View entering={FadeInDown.delay(200).springify()}>
-                {runningDuels.map(duel => (
-                  <EliteDuelWidget key={duel.id} duel={duel} />
-                ))}
-                <GlobalTonnageWidget />
-                <HallOfFame />
-              </Animated.View>
+              <EliteTab runningDuels={runningDuels} />
             )}
           </View>
 
@@ -513,74 +322,6 @@ export default function Dashboard({ onSelectRoutine, onResumeWorkout }: Dashboar
   );
 }
 
-function FatigueCard({ item, theme }: { item: any, theme: any }) {
-  const muscleNames: Record<string, string> = {
-    'Chest': 'Peito',
-    'Back': 'Costas',
-    'Shoulders': 'Ombros',
-    'Biceps': 'Bíceps',
-    'Triceps': 'Tríceps',
-    'Quads': 'Quadríceps',
-    'Hamstrings': 'Isquios',
-    'Glutes': 'Glúteos',
-    'Calves': 'Gémeos',
-    'Core': 'Core'
-  };
-
-  const isCritical = item.recoveryPercent < 30;
-  const statusColor = item.status === 'Ready' ? '#00E676' : item.status === 'Recovering' ? '#FFA000' : theme.colors.danger;
-
-  const pulse = useSharedValue(1);
-  React.useEffect(() => {
-    if (isCritical) {
-      pulse.value = withRepeat(
-        withSequence(
-          withTiming(0.6, { duration: 1000, easing: Easing.inOut(Easing.sin) }),
-          withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.sin) })
-        ),
-        -1,
-        true
-      );
-    }
-  }, [isCritical]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    opacity: pulse.value,
-  }));
-
-  return (
-    <Animated.View 
-      style={[
-        styles.fatigueCard, 
-        { backgroundColor: theme.colors.surfaceHighlight, borderColor: theme.colors.border },
-        isCritical && { borderColor: theme.colors.danger },
-        isCritical && animatedStyle
-      ]}
-    >
-      <View style={styles.fatigueTop}>
-        <Text style={[styles.fatigueLabel, { color: theme.colors.textMuted }]}>{muscleNames[item.muscle] || item.muscle}</Text>
-        <StatusPill 
-          label={item.status === 'Ready' ? 'Pronto' : item.status === 'Recovering' ? 'Médio' : 'Baixo'} 
-          type={item.status === 'Ready' ? 'success' : item.status === 'Recovering' ? 'warning' : 'danger'}
-          style={styles.miniPill}
-        />
-      </View>
-      
-      <View style={styles.fatigueBody}>
-        <Text style={[styles.fatiguePercent, { color: theme.colors.textPrimary }]}>{item.recoveryPercent}%</Text>
-        <View style={styles.fatigueBarBase}>
-          <View style={[
-            styles.fatigueBar, 
-            { 
-              width: `${item.recoveryPercent}%`, 
-              backgroundColor: statusColor 
-            }
-          ]} />
-        </View>
-      </View>
-    </Animated.View>
-  );
-}
 
 const styles = StyleSheet.create({
   background: {
