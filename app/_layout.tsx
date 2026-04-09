@@ -38,7 +38,7 @@ Notifications.setNotificationHandler({
 // Initialize Skia on Web
 if (Platform.OS === 'web') {
   LoadSkiaWeb({
-    locateFile: (file) => `https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.39.1/bin/full/${file}`,
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.40.0/bin/full/${file}`,
   }).catch(err => console.error("Skia failed to load on web", err));
 }
 
