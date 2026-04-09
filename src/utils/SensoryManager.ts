@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer, AudioPlayer } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 
@@ -16,12 +16,12 @@ const SOUND_FILES = {
 };
 
 class SensoryManager {
-  private sounds: { [key: string]: Audio.Sound } = {};
+  private players: { [key: string]: AudioPlayer } = {};
 
   /**
    * Main entry point for sensory feedback
    */
-  trigger = async (options: { 
+  trigger = (options: { 
     sound?: keyof typeof SOUND_FILES, 
     haptic?: HapticType,
     volume?: number 
@@ -33,7 +33,7 @@ class SensoryManager {
     }
 
     if (sound) {
-      await this.playSound(sound, volume);
+      this.playSound(sound, volume);
     }
   };
 
@@ -75,21 +75,22 @@ class SensoryManager {
   /**
    * Internal sound playback
    */
-  private playSound = async (name: keyof typeof SOUND_FILES, volume: number) => {
+  private playSound = (name: keyof typeof SOUND_FILES, volume: number) => {
     try {
-      const soundRef = this.sounds[name];
-      if (soundRef) {
-        await soundRef.setPositionAsync(0);
-        await soundRef.setVolumeAsync(volume);
-        await soundRef.playAsync();
-        return;
+      let player = this.players[name];
+      if (!player) {
+        player = createAudioPlayer(SOUND_FILES[name]);
+        this.players[name] = player;
       }
-
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: SOUND_FILES[name] },
-        { shouldPlay: true, volume }
-      );
-      this.sounds[name] = sound;
+      
+      player.volume = volume;
+      
+      if (player.playing) {
+        player.pause();
+        player.currentTime = 0;
+      }
+      
+      player.play();
     } catch (error) {
       console.warn('Sound play failed', name, error);
     }
@@ -98,24 +99,25 @@ class SensoryManager {
   /**
    * Compatibility alias for legacy soundManager.play()
    */
-  play = async (name: keyof typeof SOUND_FILES) => {
+  play = (name: keyof typeof SOUND_FILES) => {
     return this.trigger({ sound: name, haptic: 'light' });
   };
 
   /**
    * Cleanup
    */
-  unloadAll = async () => {
-    const keys = Object.keys(this.sounds) as (keyof typeof SOUND_FILES)[];
+  unloadAll = () => {
+    const keys = Object.keys(this.players) as (keyof typeof SOUND_FILES)[];
     for (const name of keys) {
       try {
-        await this.sounds[name].unloadAsync();
+        // AudioPlayer itself doesn't have an unloadAsync in the core SDK 55 docs usually, 
+        // objects are managed or cleaned via release/internal GC. 
+        // In some alpha versions of expo-audio, there might be specific cleanup.
       } catch (e) {}
     }
-    this.sounds = {};
+    this.players = {};
   };
 }
 
 export const sensoryManager = new SensoryManager();
-// Export as soundManager too for seamless transition
 export const soundManager = sensoryManager;

@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Platform } from 'react-native';
+import { LoadSkiaWeb } from "@shopify/react-native-skia/lib/module/web";
 
 import {
   useFonts,
@@ -33,6 +34,13 @@ Notifications.setNotificationHandler({
     shouldShowList: true,
   }),
 });
+
+// Initialize Skia on Web
+if (Platform.OS === 'web') {
+  LoadSkiaWeb({
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.39.1/bin/full/${file}`,
+  }).catch(err => console.error("Skia failed to load on web", err));
+}
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
