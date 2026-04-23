@@ -35,9 +35,10 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Initialize Skia on Web
+// We will manage Skia initialization inside the component now
+let skiaInitializationPromise: Promise<void> | null = null;
 if (Platform.OS === 'web') {
-  LoadSkiaWeb({
+  skiaInitializationPromise = LoadSkiaWeb({
     locateFile: (file) => `https://cdn.jsdelivr.net/npm/canvaskit-wasm@0.40.0/bin/full/${file}`,
   }).catch(err => console.error("Skia failed to load on web", err));
 }
@@ -53,9 +54,19 @@ export default function RootLayout() {
     'Outfit-Black': Outfit_900Black,
   });
 
+  const [skiaLoaded, setSkiaLoaded] = React.useState(Platform.OS !== 'web');
+
   const isInLogger = useWorkoutStore(state => state.isInLogger);
   const lastCompletedWorkout = useHistoryStore(state => state.lastCompletedWorkout);
   const onboardingCompleted = useConfigStore(state => state.onboardingCompleted);
+
+  React.useEffect(() => {
+    if (Platform.OS === 'web' && skiaInitializationPromise) {
+      skiaInitializationPromise.then(() => {
+        setSkiaLoaded(true);
+      });
+    }
+  }, []);
 
   React.useEffect(() => {
     useHistoryStore.getState().initHistory();
@@ -74,7 +85,7 @@ export default function RootLayout() {
     }
   }, []);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !skiaLoaded) {
     return null;
   }
 
